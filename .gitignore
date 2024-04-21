@@ -161,3 +161,7 @@ cython_debug/
 
 # OCR
 frames/
+
+# config
+
+main.yaml
