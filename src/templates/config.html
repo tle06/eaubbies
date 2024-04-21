@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Configuration</title>
+    <!DOCTYPE html>
+    <html>
+
+    <head>
+        <title>Configuration</title>
+    </head>
+
+<body>
+    <h1>Configuration</h1>
+    <form action="/save_config" method="post">
+        <label for="vision_key">Azure vision subscription Key:</label>
+        <input type="password" id="vision_key" name="vision_key" value="********************************"><br><br>
+
+        <label for="endpoint_url">Azure vision endpoint URL:</label>
+        <input type="text" id="endpoint_url" name="endpoint_url" value="{{ config['vision']['endpoint'] }}"><br><br>
+
+        <label for="rtsp_url">RTSP URL:</label>
+        <input type="text" id="rtsp_url" name="rtsp_url" value="{{ config['rtsp']['url'] }}"><br><br>
+
+        <label for="mqtt_server">MQTT server:</label>
+        <input type="text" id="mqtt_server" name="mqtt_server" value="{{ config['mqtt']['server'] }}"><br><br>
+
+        <label for="mqtt_user">MQTT user:</label>
+        <input type="text" id="mqtt_user" name="mqtt_user" value="{{ config['mqtt']['user'] }}"><br><br>
+
+        <label for="mqtt_password">MQTT password:</label>
+        <input type="password" id="mqtt_password" name="mqtt_password" value="********************************"><br><br>
+        <label for="cron_time">Cron Time:</label>
+        <select id="cron_time" name="cron_time">
+            <!-- Generate options for every 10-minute interval -->
+            {% for hour in range(0, 24) %}
+            {% for minute in range(0, 60, 10) %}
+            {% set time_value = '%02d:%02d' % (hour, minute) %}
+            <option value="{{ time_value }}" {% if time_value==config['service']['cron'] %}>selected{% endif %}</option>
+            {{ time_value }}
+            {% endfor %}
+            {% endfor %}
+        </select>
+        <br><br>
+
+        <input type="submit" value="Save">
+    </form>
+</body>
+
+</html>

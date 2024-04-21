@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your APP</title>
+    <style src="{{url_for('static', filename='css/style.css')}}"></style>
+</head>
+
+<body>
+    <div id="healthCheck">
+
+    </div>
+    <button onclick="toggleVideoFeed()">Toggle Video Feed</button>
+    <img id="videoFeed" src="{{ url_for('video_feed') }}" width="50%" style="display: none;" controls autoplay>
+    <br>
+    <button onclick="startProcess()">Start Process</button>
+    <br>
+    <div id="tableResult"></div>
+    <img id="sourceFrame" src="" alt="Source Frame" width="50%">
+    <img id="improveFrame" src="" alt="Improve Frame" width="50%">
+    <img id="azureVision" src="" alt="Azure Vision" width="50%">
+
+    <script src="{{url_for('static', filename='js/main.js')}}"></script>
+</body>
+
+</html>

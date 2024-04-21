@@ -1,0 +1,21 @@
+frame:
+  brightness: null
+  exposure: null
+  storage_path: static/img/frames
+mqtt:
+  password: mqttpassword
+  server: localhost:4453
+  user: mqttuser
+result:
+  current: null
+  previous: null
+  unit: l
+rtsp:
+  url: rtsp://home-assistant:home-assistant@172.16.22.174:554/stream1
+service:
+  cron: 00:10
+vision:
+  curent_region: null
+  endpoint: https://ocr-wate-meter.cognitiveservices.azure.com/
+  key: b02314ff65414e4783c3a736c4a87284
+  previous_region: null
