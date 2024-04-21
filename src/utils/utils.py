@@ -1,3 +1,6 @@
+from crontab import CronTab
+
+
 def volume_converter(number, from_unit: str, to_unit: str):
     units = {"l": 1, "cl": 0.01, "dl": 0.1, "hl": 100, "m3": 1000}
 
@@ -17,10 +20,17 @@ def volume_converter(number, from_unit: str, to_unit: str):
 
 
 def time_to_cron(selected_time):
-    # Split the selected time into hours and minutes
     hours, minutes = map(int, selected_time.split(":"))
+    if hours == 0:
+        hours = "*"
+    if minutes == 0:
+        minutes = "*"
+    return f"{minutes} {hours} * * *"
 
-    # Create the cron expression
-    cron_expression = f"{minutes} {hours} * * *"
 
-    return cron_expression
+def register_cron_task(command, selected_time):
+    cron = CronTab(user=True)
+    cron_expression = time_to_cron(selected_time)
+    job = cron.new(command=command)
+    job.setall(cron_expression)
+    cron.write()

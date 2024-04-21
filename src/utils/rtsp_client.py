@@ -80,7 +80,7 @@ class RTSPClient:
 
         if self.save_frame:
             # Save the frame as an image
-            self.write_output_file(name="frame_origine", frame=frame)
+            self.write_output_file(name="origine", frame=frame)
 
         # Release the capture object
         cap.release()

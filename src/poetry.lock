@@ -1167,6 +1167,38 @@ docs = ["sphinx (!=5.2.0,!=5.2.0.post0,!=7.2.5)", "sphinx-rtd-theme"]
 test = ["pretend", "pytest (>=3.0.1)", "pytest-rerunfailures"]
 
 [[package]]
+name = "python-crontab"
+version = "3.0.0"
+description = "Python Crontab API"
+optional = false
+python-versions = "*"
+files = [
+    {file = "python-crontab-3.0.0.tar.gz", hash = "sha256:79fb7465039ddfd4fb93d072d6ee0d45c1ac8bf1597f0686ea14fd4361dba379"},
+    {file = "python_crontab-3.0.0-py3-none-any.whl", hash = "sha256:6d5ba3c190ec76e4d252989a1644fcb233dbf53fbc8fceeb9febe1657b9fb1d4"},
+]
+
+[package.dependencies]
+python-dateutil = "*"
+
+[package.extras]
+cron-description = ["cron-descriptor"]
+cron-schedule = ["croniter"]
+
+[[package]]
+name = "python-dateutil"
+version = "2.9.0.post0"
+description = "Extensions to the standard Python datetime module"
+optional = false
+python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,>=2.7"
+files = [
+    {file = "python-dateutil-2.9.0.post0.tar.gz", hash = "sha256:37dd54208da7e1cd875388217d5e00ebd4179249f90fb72437e91a35459a0ad3"},
+    {file = "python_dateutil-2.9.0.post0-py2.py3-none-any.whl", hash = "sha256:a8b2bc7bffae282281c8140a97d3aa9c14da0b136dfe83f850eea9a5f7470427"},
+]
+
+[package.dependencies]
+six = ">=1.5"
+
+[[package]]
 name = "pyyaml"
 version = "6.0.1"
 description = "YAML parser and emitter for Python"
@@ -1437,4 +1469,4 @@ watchdog = ["watchdog (>=2.3)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "f962ee860c121a8b8aec356cda206e76a595f63afcdee9ae6dc7038798064704"
+content-hash = "67739db537a72ffe647437c4e153b33584db7b8f85c102c7d616bcc7f3e8e8c6"

@@ -36,8 +36,9 @@
             {% for hour in range(0, 24) %}
             {% for minute in range(0, 60, 10) %}
             {% set time_value = '%02d:%02d' % (hour, minute) %}
-            <option value="{{ time_value }}" {% if time_value==config['service']['cron'] %}>selected{% endif %}</option>
-            {{ time_value }}
+            <option value="{{ time_value }}" {% if time_value==config['service']['cron'] %}selected{% endif %}>{{
+                time_value }}</option>
+
             {% endfor %}
             {% endfor %}
         </select>
