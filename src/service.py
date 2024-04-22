@@ -1,8 +1,9 @@
 from utils.rtsp_client import RTSPClient
 from utils.azure_client import AzureClient
 from utils.configuration import YamlConfigLoader
-from flask import jsonify
 from utils.utils import volume_converter
+from utils.mqtt import MqttCLient
+import json
 
 configuration = YamlConfigLoader()
 
@@ -11,8 +12,7 @@ def service_process():
 
     # init rtsp client
     rtsp_url = configuration.get_param("rtsp", "url")
-    save_frame = configuration.get_param("frame", "save") or False
-    client_rtsp = RTSPClient(rtsp_url=rtsp_url, save_frame=save_frame)
+    client_rtsp = RTSPClient(rtsp_url=rtsp_url)
 
     # capture frame
     default_folder = configuration.get_param("frame", "storage_path")
@@ -59,11 +59,13 @@ def service_process():
         "total_liters": total_liters,
     }
 
-    data = jsonify(
-        image_source=f"{default_folder}/origine.jpg",
-        image_improve=f"{default_folder}/improve.jpg",
-        image_vision=f"{default_folder}/vision.jpg",
-        result=text,
+    data = json.dumps(
+        {
+            "image_source": f"{default_folder}/origine.jpg",
+            "image_improve": f"{default_folder}/improve.jpg",
+            "image_vision": f"{default_folder}/vision.jpg",
+            "result": text,
+        }
     )
 
     return data
