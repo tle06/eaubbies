@@ -1,4 +1,5 @@
 from crontab import CronTab
+import uuid
 
 
 def volume_converter(number, from_unit: str, to_unit: str):
@@ -34,3 +35,7 @@ def register_cron_task(command, selected_time):
     job = cron.new(command=command)
     job.setall(cron_expression)
     cron.write()
+
+
+def generate_unique_id():
+    return str(uuid.uuid4()).split("-")[0]

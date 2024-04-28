@@ -1,5 +1,6 @@
 import yaml
 import os
+from utils.utils import generate_unique_id
 
 default_config_file = "data/config/main.yaml"
 
@@ -40,7 +41,18 @@ class YamlConfigLoader:
                 "curent_region": None,
             },
             "rtsp": {"url": None},
-            "mqtt": {"server": None, "user": None, "password": None},
+            "mqtt": {
+                "server": None,
+                "user": None,
+                "password": None,
+                "discovery_prefix": "homeassistant",
+                "sensors": {"water": {"unit_of_measurement": "L"}},
+                "device": {
+                    "name": "eaubbies-watermeter",
+                    "node_id": "eaubbies-watermeter",
+                    "unique_id": generate_unique_id(),
+                },
+            },
             "service": {"cron": None},
         }
 

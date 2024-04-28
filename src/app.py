@@ -12,12 +12,14 @@ from utils.rtsp_client import RTSPClient
 from utils.azure_client import AzureClient
 from utils.utils import volume_converter, time_to_cron, register_cron_task
 from utils.configuration import YamlConfigLoader
+from utils.mqtt import MqttCLient
 from service import service_process
 import cv2
 import os
 import time
 import logging
 import base64
+import json
 
 app = Flask(__name__)
 configuration = YamlConfigLoader()
@@ -94,6 +96,22 @@ def video_feed():
 @app.route("/run_process")
 def run_process():
     result = service_process()
+    return result
+
+
+@app.route("/create_sensor")
+def create_sensor():
+    client_mqtt = MqttCLient()
+
+    response = client_mqtt.mqtt_publish_device()
+    print(response)
+
+    result = json.dumps(
+        {
+            "mqtt": response,
+        }
+    )
+
     return result
 
 

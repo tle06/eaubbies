@@ -43,3 +43,21 @@ function toggleVideoFeed() {
         video.style.display = 'none';
     }
 }
+
+CreateHomeAssistantMqttSensor
+
+function CreateHomeAssistantMqttSensor() {
+    fetch('/create_sensor')
+        .then(response => response.json())
+        .then(data => {
+            console.log(data.mqtt[0]["water"]);
+            if (data.mqtt[0]["water"]) {
+                document.getElementById('mqttStatus').innerHTML = "MQTT sensors created in home assistant";
+            } else {
+                document.getElementById('mqttStatus').innerHTML = "MQTT sensors creation error, check the logs";
+            }
+            
+        });
+
+        
+}
