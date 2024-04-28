@@ -24,9 +24,9 @@ function startProcess() {
     fetch('/run_process')
         .then(response => response.json())
         .then(data => {
-            document.getElementById('sourceFrame').src = data.image_source;
-            document.getElementById('improveFrame').src = data.image_improve;
-            document.getElementById('azureVision').src = data.image_vision;
+            document.getElementById('sourceFrame').src = data.image.image_source;
+            document.getElementById('improveFrame').src = data.image.image_improve;
+            document.getElementById('azureVision').src = data.image.image_vision;
             console.log(data.result);
             var tableContainer = document.getElementById('tableResult');
             tableContainer.appendChild(createTableFromObject(data.result));

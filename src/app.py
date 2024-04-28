@@ -96,7 +96,7 @@ def video_feed():
 @app.route("/run_process")
 def run_process():
     result = service_process()
-    return result
+    return json.dumps(result)
 
 
 @app.route("/create_sensor")

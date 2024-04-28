@@ -37,8 +37,10 @@ class YamlConfigLoader:
             "vision": {
                 "endpoint": None,
                 "key": None,
-                "previous_region": None,
-                "curent_region": None,
+                "line_with_data": 0,
+                "region": {"current": None, "previous": None},
+                "integer": {"digit": 6, "unit_of_measurement": "m3"},
+                "decimal": {"digit": 5, "unit_of_measurement": "cl"},
             },
             "rtsp": {"url": None},
             "mqtt": {
@@ -46,7 +48,7 @@ class YamlConfigLoader:
                 "user": None,
                 "password": None,
                 "discovery_prefix": "homeassistant",
-                "sensors": {"water": {"unit_of_measurement": "L"}},
+                "sensors": {"water": {"unit_of_measurement": "l"}},
                 "device": {
                     "name": "eaubbies-watermeter",
                     "node_id": "eaubbies-watermeter",

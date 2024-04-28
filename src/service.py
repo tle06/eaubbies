@@ -1,7 +1,7 @@
 from utils.rtsp_client import RTSPClient
 from utils.azure_client import AzureClient
 from utils.configuration import YamlConfigLoader
-from utils.utils import volume_converter
+from utils.utils import volume_converter, generate_result
 from utils.mqtt import MqttCLient
 import json
 
@@ -37,35 +37,27 @@ def service_process():
         text_regions=text_regions, frame=frame_to_process, output_image_name="vision"
     )
 
-    raw_result = result[0].lines[0].text
-    raw_result_without_space = raw_result.replace(" ", "")
-    cubic_meters = int(raw_result_without_space[:6])
-    centiliters = int(raw_result_without_space[7:])
-    cubic_meters_to_liters = volume_converter(
-        number=cubic_meters, from_unit="m3", to_unit="l"
-    )
-    centiliters_to_liters = volume_converter(
-        number=cubic_meters, from_unit="cl", to_unit="l"
-    )
-    total_liters = cubic_meters_to_liters + centiliters_to_liters
+    # process the result of vision
+    line_with_data = configuration.get_param("vision", "line_with_data") or 0
+    raw_result = result[0].lines[line_with_data].text
+    result_values = generate_result(raw_result=raw_result)
 
-    text = {
-        "raw_result": raw_result,
-        "raw_result_without_space": raw_result_without_space,
-        "cubic_meters": cubic_meters,
-        "centiliters": centiliters,
-        "cubic_meters_to_liters": cubic_meters_to_liters,
-        "centiliters_to_liters": centiliters_to_liters,
-        "total_liters": total_liters,
-    }
+    # publish value to MQTT
+    client_mqtt = MqttCLient()
+    client_mqtt.mqtt_publish_device()
+    client_mqtt.send_value(value=result_values.get("total_liters"), measurement="water")
+    client_mqtt.send_value(
+        value=result_values.get("raw_result_without_space"), measurement="raw"
+    )
 
-    data = json.dumps(
-        {
+    # create return object
+    data = {
+        "images": {
             "image_source": f"{default_folder}/origine.jpg",
             "image_improve": f"{default_folder}/improve.jpg",
             "image_vision": f"{default_folder}/vision.jpg",
-            "result": text,
-        }
-    )
+        },
+        "result": result_values,
+    }
 
     return data

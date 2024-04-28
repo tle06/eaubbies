@@ -92,55 +92,170 @@ class MqttCLient:
 
     def mqtt_publish_device(self):
 
-        global_result = []
-        payload_water = {
-            "name": "watermeter",
-            "device_class": "water",
-            "unique_id": f"water_{self.device_unique_id}",
-            "state_topic": self.topic_state,
-            "device": {
-                "identifiers": self.device_unique_id,
-                "name": self.name,
-                "manufacturer": "eaubbies project",
-                "model": "V1",
+        sensors = [
+            {
+                "name": "main",
+                "payload": {
+                    "name": self.name,
+                    "device_class": None,
+                    "unique_id": f"name_{self.device_unique_id}",
+                    "state_topic": self.topic_state,
+                    "value_template": self.name,
+                    "device": {
+                        "identifiers": self.device_unique_id,
+                        "name": self.name,
+                        "manufacturer": "eaubbies project",
+                        "model": "V1",
+                    },
+                },
             },
-            "unit_of_measurement": self.sensor_water_uom,
-            "value_template": "{{value_json.water}}",
-        }
+            {
+                "name": "water",
+                "payload": {
+                    "name": "watermeter",
+                    "device_class": "water",
+                    "unique_id": f"water_{self.device_unique_id}",
+                    "state_topic": self.topic_state,
+                    "device": {
+                        "identifiers": self.device_unique_id,
+                    },
+                    "unit_of_measurement": self.sensor_water_uom.upper(),
+                    "value_template": "{{value_json.total_liters}}",
+                },
+            },
+            {
+                "name": "raw_result_without_space",
+                "payload": {
+                    "name": "raw result without space",
+                    "device_class": None,
+                    "unique_id": f"raw_result_without_space_{self.device_unique_id}",
+                    "state_topic": self.topic_state,
+                    "device": {"identifiers": self.device_unique_id},
+                    "value_template": "{{value_json.raw_result_without_space}}",
+                },
+            },
+            {
+                "name": "left_number",
+                "payload": {
+                    "name": "left number",
+                    "device_class": None,
+                    "unique_id": f"left_number_{self.device_unique_id}",
+                    "state_topic": self.topic_state,
+                    "device": {"identifiers": self.device_unique_id},
+                    "value_template": "{{value_json.left_number}}",
+                },
+            },
+            {
+                "name": "integer_digit",
+                "payload": {
+                    "name": "integer digit",
+                    "device_class": None,
+                    "unique_id": f"integer_digit_{self.device_unique_id}",
+                    "state_topic": self.topic_state,
+                    "device": {"identifiers": self.device_unique_id},
+                    "value_template": "{{value_json.integer_digit}}",
+                },
+            },
+            {
+                "name": "integer_uom",
+                "payload": {
+                    "name": "integer uom",
+                    "device_class": None,
+                    "unique_id": f"integer_uom_{self.device_unique_id}",
+                    "state_topic": self.topic_state,
+                    "device": {"identifiers": self.device_unique_id},
+                    "value_template": "{{value_json.integer_uom}}",
+                },
+            },
+            {
+                "name": "left_number_to_liters",
+                "payload": {
+                    "name": "left number to liters",
+                    "device_class": None,
+                    "unique_id": f"left_number_to_liters{self.device_unique_id}",
+                    "state_topic": self.topic_state,
+                    "device": {"identifiers": self.device_unique_id},
+                    "value_template": "{{value_json.left_number_to_liters}}",
+                },
+            },
+            {
+                "name": "right_number",
+                "payload": {
+                    "name": "right number",
+                    "device_class": None,
+                    "unique_id": f"right_number{self.device_unique_id}",
+                    "state_topic": self.topic_state,
+                    "device": {"identifiers": self.device_unique_id},
+                    "value_template": "{{value_json.right_number}}",
+                },
+            },
+            {
+                "name": "decimal_digit",
+                "payload": {
+                    "name": "decimal digit",
+                    "device_class": None,
+                    "unique_id": f"decimal_digit{self.device_unique_id}",
+                    "state_topic": self.topic_state,
+                    "device": {"identifiers": self.device_unique_id},
+                    "value_template": "{{value_json.decimal_digit}}",
+                },
+            },
+            {
+                "name": "decimal_uom",
+                "payload": {
+                    "name": "decimal uom",
+                    "device_class": None,
+                    "unique_id": f"decimal_uom{self.device_unique_id}",
+                    "state_topic": self.topic_state,
+                    "device": {"identifiers": self.device_unique_id},
+                    "value_template": "{{value_json.decimal_uom}}",
+                },
+            },
+            {
+                "name": "right_number_to_liters",
+                "payload": {
+                    "name": "right number to liters",
+                    "device_class": None,
+                    "unique_id": f"right_number_to_liters{self.device_unique_id}",
+                    "state_topic": self.topic_state,
+                    "device": {"identifiers": self.device_unique_id},
+                    "value_template": "{{value_json.right_number_to_liters}}",
+                },
+            },
+            {
+                "name": "main_uom",
+                "payload": {
+                    "name": "main uom",
+                    "device_class": None,
+                    "unique_id": f"main_uom{self.device_unique_id}",
+                    "state_topic": self.topic_state,
+                    "device": {"identifiers": self.device_unique_id},
+                    "value_template": "{{value_json.main_uom}}",
+                },
+            },
+        ]
 
-        result_water = self.publish_payload(
-            topic=f"{self.topic}/watermeter/config",
-            payload=json.dumps(payload_water),
-            qos=0,
-            retain=True,
-        )
+        global_result = []
 
-        global_result.append({"water": result_water.is_published()})
-        payload_raw = {
-            "name": "raw value",
-            "device_class": None,
-            "unique_id": f"raw_{self.device_unique_id}",
-            "state_topic": self.topic_state,
-            "device": {"identifiers": self.device_unique_id},
-            "value_template": "{{value_json.raw}}",
-        }
+        for s in sensors:
+            name = s.get("name")
+            payload = s.get("payload")
+            pub = self.publish_payload(
+                topic=f"{self.topic}/{name}/config",
+                payload=json.dumps(payload),
+                qos=0,
+                retain=True,
+            )
+            global_result.append({name: pub.is_published()})
 
-        result_raw = self.publish_payload(
-            topic=f"{self.topic}/rawvalue/config",
-            payload=json.dumps(payload_raw),
-            qos=0,
-            retain=True,
-        )
-        global_result.append({"raw": result_raw.is_published()})
         return global_result
 
-    def send_value(self, value, measurement: str):
+    def send_value(self, values: dict):
 
-        if value:
-            payload = {measurement: value}
+        if values:
             response = self.publish_payload(
-                topic=self.topic_state, payload=json.dumps(payload)
+                topic=self.topic_state, payload=json.dumps(values)
             )
             return response
 
-        raise ValueError("Value is Null or None")
+        raise ValueError("Values is Null or None")
