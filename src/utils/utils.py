@@ -60,17 +60,29 @@ def generate_result(raw_result: str):
     raw_result_without_space = raw_result.replace(" ", "")
     print(raw_result_without_space)
 
-    if "." in raw_result:
+    if "." in raw_result_without_space:
         print("dot detected")
         parts = raw_result.split(".")
-        left_number = int(parts[0])
-        right_number = int(parts[1])
         print(parts)
-    else:
-        print("no dot detected")
-        left_number = int(raw_result_without_space[:integer_digit])
-        right_number = int(raw_result_without_space[decimal_digit:])
+        try:
+            left_number = int(parts[0])
+            right_number = int(parts[1])
+        except Exception as e:
+            print(e)
+            raise ValueError(f"Can't convert parts: {parts} to integers")
 
+    else:
+        try:
+            print("no dot detected")
+            left_number = int(raw_result_without_space[:integer_digit])
+            print(len(raw_result_without_space))
+            decimal_digit = len(raw_result_without_space) - integer_digit
+            right_number = int(raw_result_without_space[decimal_digit:])
+        except Exception as e:
+            print(e)
+            raise ValueError(
+                f"Can't convert lef and right numbers: {left_number,right_number} to integers"
+            )
     print(left_number, right_number)
     left_number_to_liters = volume_converter(
         number=left_number, from_unit=integer_uom, to_unit=main_uom

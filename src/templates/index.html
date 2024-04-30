@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Your APP</title>
     <style src="{{url_for('static', filename='css/style.css')}}"></style>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
 </head>
 
 <body>
@@ -15,16 +16,29 @@
     <button onclick="toggleVideoFeed()">Toggle Video Feed</button>
     <img id="videoFeed" src="{{ url_for('video_feed') }}" width="50%" style="display: none;" controls autoplay>
     <br>
-    <button onclick="startProcess()">Start Process</button>
+    <button onclick="StartProcess()">Start Process</button>
     <br>
     <button onclick="CreateHomeAssistantMqttSensor()">Create MQTT sensor</button>
+    <br>
+    <button onclick="LoadImprovedFrame()">Load improved frame</button>
     <br>
     <div id="mqttStatus"></div>
     <br>
     <div id="tableResult"></div>
     <img id="sourceFrame" src="" alt="Source Frame" width="50%">
-    <img id="improveFrame" src="" alt="Improve Frame" width="50%">
-    <img id="azureVision" src="" alt="Azure Vision" width="50%">
+    <img id=" azureVision" src="" alt="Azure Vision" width="50%">
+    <h1>Select ROI</h1>
+    <div>
+        <label for="rectangleSelector">Select unit:</label>
+        <select id="rectangleSelector" onchange="selectRectangle()">
+            <option value="1">All</option>
+            <option value="2">Integer</option>
+            <option value="3">Digit</option>
+        </select>
+    </div>
+    <div id="coordinates"></div>
+    <canvas id="canvas"></canvas>
+    <button onclick="SendCoordinates()">Send coordinates</button>
 
     <script src="{{url_for('static', filename='js/main.js')}}"></script>
 </body>

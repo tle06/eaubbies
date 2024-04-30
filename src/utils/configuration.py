@@ -41,6 +41,12 @@ class YamlConfigLoader:
                 "region": {"current": None, "previous": None},
                 "integer": {"digit": 6, "unit_of_measurement": "m3"},
                 "decimal": {"digit": 5, "unit_of_measurement": "cl"},
+                "coordinates": {
+                    "active": False,
+                    "all": {"height": None, "width": None, "x": None, "y": None},
+                    "digit": {"height": None, "width": None, "x": None, "y": None},
+                    "integer": {"height": None, "width": None, "x": None, "y": None},
+                },
             },
             "rtsp": {"url": None},
             "mqtt": {

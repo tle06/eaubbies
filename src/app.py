@@ -7,19 +7,22 @@ from flask import (
     make_response,
     redirect,
     url_for,
+    send_file,
 )
 from utils.rtsp_client import RTSPClient
 from utils.azure_client import AzureClient
 from utils.utils import volume_converter, time_to_cron, register_cron_task
 from utils.configuration import YamlConfigLoader
 from utils.mqtt import MqttCLient
-from service import service_process
+from service import service_process, create_improved_frame
+from PIL import Image
 import cv2
 import os
 import time
 import logging
 import base64
 import json
+import io
 
 app = Flask(__name__)
 configuration = YamlConfigLoader()
@@ -99,6 +102,16 @@ def run_process():
     return json.dumps(result)
 
 
+@app.route("/load_improved_frame")
+def load_improved_frame():
+    # create_improved_frame()
+    default_folder = configuration.get_param("frame", "storage_path")
+    image_path = f"{default_folder}/improve.jpg"  # Provide the path to your image
+    # with open(image_path, "rb") as f:
+    #     image_bytes = io.BytesIO(f.read())
+    return json.dumps(image_path)
+
+
 @app.route("/create_sensor")
 def create_sensor():
     client_mqtt = MqttCLient()
@@ -113,6 +126,34 @@ def create_sensor():
     )
 
     return result
+
+
+@app.route("/upload", methods=["POST"])
+def upload():
+    if "image" not in request.files:
+        return "No file part"
+
+    image = request.files["image"]
+    roi = request.form["roi"].split(",")
+    roi = [int(coord) for coord in roi]
+
+    # Perform OCR on the specified ROI coordinates using Azure Vision
+
+    return "ROI coordinates received: " + str(roi)
+
+
+@app.route("/send_coordinates", methods=["POST"])
+def receive_coordinates():
+    data = request.json
+    # Process the received coordinates here
+    print("Received coordinates:", data)
+
+    for d in data:
+        configuration.set_param(
+            "vision", "coordinates", d["name"], value=d["coordinates"]
+        )
+    # Optionally, you can return a response to acknowledge the successful receipt of coordinates
+    return jsonify({"message": "Coordinates received successfully"})
 
 
 if __name__ == "__main__":
