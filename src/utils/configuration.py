@@ -12,7 +12,7 @@ class YamlConfigLoader:
         self.data = self.load_config()
 
     def load_config(self):
-        if not os.path.exists(self.filename):
+        if not os.path.exists(self.filename) or os.path.getsize(self.filename) == 0:
             os.makedirs(os.path.dirname(self.filename), exist_ok=True)
             default_config = self.generate_default_config()
 
