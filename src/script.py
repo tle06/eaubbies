@@ -54,4 +54,3 @@
 from service import service_process, create_improved_frame
 
 data = service_process()
-print(data)

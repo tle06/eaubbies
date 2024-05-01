@@ -8,6 +8,7 @@ from flask import (
     redirect,
     url_for,
     send_file,
+    send_from_directory,
 )
 from utils.rtsp_client import RTSPClient
 from utils.azure_client import AzureClient
@@ -26,6 +27,7 @@ import io
 
 app = Flask(__name__)
 configuration = YamlConfigLoader()
+frames_directory = "static/img/frames"
 
 
 @app.route("/")
@@ -43,6 +45,18 @@ def index():
 @app.route("/config")
 def config():
     return render_template("config.html", config=configuration.data)
+
+
+@app.route("/frames")
+def frames():
+
+    files = os.listdir(frames_directory)
+    return render_template("files.html", files=files)
+
+
+@app.route("/download/<path:filename>")
+def download_file(filename):
+    return send_from_directory(frames_directory, filename, as_attachment=True)
 
 
 @app.route("/save_config", methods=["POST"])
@@ -102,11 +116,18 @@ def run_process():
     return json.dumps(result)
 
 
-@app.route("/load_improved_frame")
-def load_improved_frame():
-    # create_improved_frame()
+@app.route("/load_frame")
+def load_frame():
+    rtsp_url = configuration.get_param("rtsp", "url")
+    client_rtsp = RTSPClient(rtsp_url=rtsp_url)
+
+    # capture frame
     default_folder = configuration.get_param("frame", "storage_path")
-    image_path = f"{default_folder}/improve.jpg"  # Provide the path to your image
+    client_rtsp.set_default_folder(default_folder=default_folder)
+    client_rtsp.get_frame()
+
+    default_folder = configuration.get_param("frame", "storage_path")
+    image_path = f"{default_folder}/origine.jpg"
     # with open(image_path, "rb") as f:
     #     image_bytes = io.BytesIO(f.read())
     return json.dumps(image_path)
@@ -126,20 +147,6 @@ def create_sensor():
     )
 
     return result
-
-
-@app.route("/upload", methods=["POST"])
-def upload():
-    if "image" not in request.files:
-        return "No file part"
-
-    image = request.files["image"]
-    roi = request.form["roi"].split(",")
-    roi = [int(coord) for coord in roi]
-
-    # Perform OCR on the specified ROI coordinates using Azure Vision
-
-    return "ROI coordinates received: " + str(roi)
 
 
 @app.route("/send_coordinates", methods=["POST"])

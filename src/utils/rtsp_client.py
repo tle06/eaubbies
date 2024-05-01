@@ -369,3 +369,34 @@ class RTSPClient:
                     kernel[i, j] = 1.0 / kernel_size
 
         return kernel
+
+    def fill_image_except_rectangle(self, x, y, width, height, filename="frame_filled"):
+        """
+        Fill the image with white color except for a specified rectangle.
+
+        Parameters:
+            image (numpy.ndarray): Input image.
+            x (int): x-coordinate of the top-left corner of the rectangle.
+            y (int): y-coordinate of the top-left corner of the rectangle.
+            width (int): Width of the rectangle.
+            height (int): Height of the rectangle.
+
+        Returns:
+            numpy.ndarray: Image with filled white color except for the specified rectangle.
+        """
+        filled_image = np.full_like(
+            self.improve_frame, 255
+        )  # Fill the entire image with white color
+
+        self.write_output_file(name=f"{filename}_1", frame=filled_image)
+        # Retain the original pixel values within the specified rectangle
+        filled_image[y : y + height, x : x + width] = self.improve_frame[
+            y : y + height, x : x + width
+        ]
+        self.write_output_file(name=f"{filename}_2", frame=filled_image)
+        self.improve_frame = filled_image
+
+        if self.save_frame:
+            self.write_output_file(name=filename, frame=self.improve_frame)
+
+        return self.improve_frame

@@ -11,33 +11,40 @@ function createTableFromObject(obj) {
 
     // Add header row
     var headerRow = table.insertRow();
-    for (var key in obj) {
-        var th = document.createElement('th');
-        th.textContent = key;
-        headerRow.appendChild(th);
-    }
+    var th1 = document.createElement('th');
+    th1.textContent = "Property";
+    headerRow.appendChild(th1);
+    var th2 = document.createElement('th');
+    th2.textContent = "Value";
+    headerRow.appendChild(th2);
 
     // Add data rows
-    var dataRow = table.insertRow();
     for (var key in obj) {
-        var td = document.createElement('td');
-        td.textContent = obj[key];
-        dataRow.appendChild(td);
+        var dataRow = table.insertRow();
+        var propertyNameCell = dataRow.insertCell();
+        propertyNameCell.textContent = key;
+        var propertyValueCell = dataRow.insertCell();
+        propertyValueCell.textContent = obj[key];
     }
 
     return table;
 }
 
-function startProcess() {
+function StartProcess() {
+    document.getElementById('loader').style.display = 'block';
+    document.getElementById('tableResult').innerHTML = '';
     fetch('/run_process')
         .then(response => response.json())
         .then(data => {
+            console.log(data)
             document.getElementById('sourceFrame').src = data.images.image_source;
             document.getElementById('improveFrame').src = data.images.image_improve;
             document.getElementById('azureVision').src = data.images.image_vision;
             console.log(data.result);
             var tableContainer = document.getElementById('tableResult');
             tableContainer.appendChild(createTableFromObject(data.result));
+
+            document.getElementById('loader').style.display = 'none';
         });
 
 
@@ -60,8 +67,9 @@ function CreateHomeAssistantMqttSensor() {
 
 
 
-function LoadImprovedFrame() {
-    fetch('/load_improved_frame')
+function LoadFrame() {
+    document.getElementById('loader').style.display = 'block';
+    fetch('/load_frame')
         .then(response => response.json())
         .then(data => {
             console.log(rectangles);
@@ -123,6 +131,7 @@ function LoadImprovedFrame() {
 
 
             img.src = data;
+            document.getElementById('loader').style.display = 'none';
         });
 }
 

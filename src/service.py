@@ -19,21 +19,27 @@ def create_improved_frame():
     frame_to_process = client_rtsp.get_frame()
 
     # improve frame
-    contrast_active = configuration.get_param("rtsp", "image", "contrast", "active")
+    contrast_active = bool(
+        configuration.get_param("rtsp", "image", "contrast", "active")
+    )
     contrast_alpha = configuration.get_param("rtsp", "image", "contrast", "alpha")
     contrast_beta = configuration.get_param("rtsp", "image", "contrast", "beta")
-    sharpen_active = configuration.get_param("rtsp", "image", "sharpen", "active")
+    sharpen_active = bool(configuration.get_param("rtsp", "image", "sharpen", "active"))
     sharpen_amount = configuration.get_param("rtsp", "image", "sharpen", "amount")
     sharpen_threshold = configuration.get_param("rtsp", "image", "sharpen", "threshold")
-    exposure_active = configuration.get_param("rtsp", "image", "exposure", "active")
+    exposure_active = bool(
+        configuration.get_param("rtsp", "image", "exposure", "active")
+    )
     exposure_in_range = tuple(
         configuration.get_param("rtsp", "image", "exposure", "in_range")
     )
     exposure_out_range = tuple(
         configuration.get_param("rtsp", "image", "exposure", "out_range")
     )
-    convert_to_grey = configuration.get_param("rtsp", "image", "convert_to_grey")
-    convert_to_bgr = configuration.get_param("rtsp", "image", "convert_to_bgr")
+    convert_to_grey = bool(configuration.get_param("rtsp", "image", "convert_to_grey"))
+    convert_to_bgr = bool(configuration.get_param("rtsp", "image", "convert_to_bgr"))
+
+    fill_image = bool(configuration.get_param("rtsp", "image", "fill_image", "active"))
 
     if convert_to_bgr:
         frame_to_process = client_rtsp.convert_rgb2bgr()
@@ -53,22 +59,46 @@ def create_improved_frame():
             amount=sharpen_amount, threshold=sharpen_threshold
         )
 
+    if fill_image:
+        coordinates_selection = configuration.get_param(
+            "rtsp", "image", "fill_image", "coordinates"
+        )
+        coordinates = configuration.get_param(
+            "vision", "coordinates", coordinates_selection
+        )
+        print(coordinates_selection, coordinates)
+        if (
+            int(coordinates["x"])
+            and int(coordinates["y"])
+            and int(coordinates["width"])
+            and int(coordinates["height"])
+        ):
+            frame_to_process = client_rtsp.fill_image_except_rectangle(
+                x=int(coordinates["x"]),
+                y=int(coordinates["y"]),
+                width=int(coordinates["width"]),
+                height=int(coordinates["height"]),
+            )
     client_rtsp.write_output_file(name="improve", frame=frame_to_process)
     return frame_to_process
 
 
-def service_process():
+def service_process(increase_cron_count: bool = False):
 
     frame_to_process = create_improved_frame()
     # init Azure client
     default_folder = configuration.get_param("frame", "storage_path")
     subscription_key = configuration.get_param("vision", "key")
     endpoint = configuration.get_param("vision", "endpoint")
+
     client_azure = AzureClient(vision_key=subscription_key, endpoint_url=endpoint)
     client_azure.default_folder = default_folder
 
     # call azure vision api
     result = client_azure.process_image(frame=frame_to_process)
+
+    vision_counter = int(configuration.get_param("vision", "counter"))
+    configuration.set_param("vision", "counter", value=vision_counter + 1)
     text_regions = client_azure.get_regions(result=result)
     image_vision = client_azure.draw_text_boxes(
         text_regions=text_regions, frame=frame_to_process, output_image_name="vision"
@@ -114,5 +144,11 @@ def service_process():
         },
         "result": result_values,
     }
+
+    if increase_cron_count:
+        curent_count = int(configuration.get_param("service", "counter"))
+        print(f"curent_count: {curent_count}")
+        print(f"new count: {curent_count+1}")
+        configuration.set_param("service", "counter", value=curent_count + 1)
 
     return data

@@ -35,6 +35,7 @@ class YamlConfigLoader:
             },
             "result": {"current": None, "previous": None, "unit": "l"},
             "vision": {
+                "counter": 0,
                 "endpoint": None,
                 "key": None,
                 "line_with_data": 0,
@@ -48,7 +49,21 @@ class YamlConfigLoader:
                     "integer": {"height": None, "width": None, "x": None, "y": None},
                 },
             },
-            "rtsp": {"url": None},
+            "rtsp": {
+                "url": None,
+                "image": {
+                    "contrast": {"active": False, "alpha": 1.2, "beta": 1},
+                    "convert_to_bgr": True,
+                    "convert_to_grey": False,
+                    "exposure": {
+                        "active": True,
+                        "in_range": [0, 129],
+                        "out_range": [0, 255],
+                    },
+                    "fill_image": {"active": True, "coordinates": "integer"},
+                    "sharpen": {"active": False, "amount": 30, "threshold": 3},
+                },
+            },
             "mqtt": {
                 "server": None,
                 "user": None,
@@ -61,7 +76,7 @@ class YamlConfigLoader:
                     "unique_id": generate_unique_id(),
                 },
             },
-            "service": {"cron": None},
+            "service": {"cron": None, "counter": 0},
         }
 
         return default_config
