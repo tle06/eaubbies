@@ -30,8 +30,6 @@ class YamlConfigLoader:
         default_config = {
             "frame": {
                 "storage_path": "static/img/frames",
-                "exposure": None,
-                "brightness": None,
             },
             "result": {"current": None, "previous": None, "unit": "l"},
             "vision": {

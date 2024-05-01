@@ -19,6 +19,32 @@
         <label for="endpoint_url">Azure vision endpoint URL:</label>
         <input type="text" id="endpoint_url" name="endpoint_url" value="{{ config['vision']['endpoint'] }}"><br><br>
 
+        <label for="vision_integer_digit">Vision integer digit:</label>
+        <input type="text" id="vision_integer_digit" name="vision_integer_digit"
+            value="{{ config['vision']['integer']['digit'] }}"><br><br>
+        <label for="vision_integer_unit_of_measurement">Vision integer unit of measurement</label>
+        <select id="vision_integer_unit_of_measurement" name="vision_integer_unit_of_measurement">
+            {% for unit in ["l","cl","dl","hl","m3"] %}
+            <option value="{{ unit }}" {% if unit==config['vision']['integer']['unit_of_measurement'] %}selected{% endif
+                %}>{{
+                unit }}</option>
+
+            {% endfor %}
+        </select><br><br>
+
+        <label for="vision_decimal_digit">Vision decimal digit:</label>
+        <input type="text" id="vision_decimal_digit" name="vision_decimal_digit"
+            value="{{ config['vision']['decimal']['digit'] }}"><br><br>
+        <label for="vision_decimal_unit_of_measurement">Vision decimal unit of measurement</label>
+        <select id="vision_decimal_unit_of_measurement" name="vision_decimal_unit_of_measurement">
+            {% for unit in ["l","cl","dl","hl","m3"] %}
+            <option value="{{ unit }}" {% if unit==config['vision']['decimal']['unit_of_measurement'] %}selected{% endif
+                %}>{{
+                unit }}</option>
+
+            {% endfor %}
+        </select><br><br>
+
         <label for="rtsp_url">RTSP URL:</label>
         <input type="text" id="rtsp_url" name="rtsp_url" value="{{ config['rtsp']['url'] }}"><br><br>
 
@@ -30,6 +56,29 @@
 
         <label for="mqtt_password">MQTT password:</label>
         <input type="password" id="mqtt_password" name="mqtt_password" value="********************************"><br><br>
+        <label for="mqtt_device_name">MQTT device name:</label>
+        <input type="text" id="mqtt_device_name" name="mqtt_device_name"
+            value="{{ config['mqtt']['device']['name'] }}"><br><br>
+
+        <label for="mqtt_device_node_id">MQTT device node ID:</label>
+        <input type="text" id="mqtt_device_node_id" name="mqtt_device_node_id"
+            value="{{ config['mqtt']['device']['node_id'] }}"><br><br>
+
+        <label for="mqtt_device_unique_id">MQTT device unique ID:</label>
+        <input type="text" id="mqtt_device_unique_id" name="mqtt_device_unique_id"
+            value="{{ config['mqtt']['device']['unique_id'] }}"><br><br>
+        <label for="mqtt_discovery_prefix">MQTT dicovery prefix:</label>
+        <input type="text" id="mqtt_discovery_prefix" name="mqtt_discovery_prefix"
+            value="{{ config['mqtt']['discovery_prefix'] }}"><br><br>
+        <label for="mqtt_sensors_water_unit_of_measurement">MQTT water sensor unit of measurement</label>
+        <select id="mqtt_sensors_water_unit_of_measurement" name="mqtt_sensors_water_unit_of_measurement">
+            {% for unit in ["l","cl","dl","hl","m3"] %}
+            <option value="{{ unit }}" {% if unit==config['mqtt']['sensors']['water']['unit_of_measurement']
+                %}selected{% endif %}>{{
+                unit }}</option>
+
+            {% endfor %}
+        </select><br><br>
         <label for="cron_time">Cron Time:</label>
         <select id="cron_time" name="cron_time">
             <!-- Generate options for every 10-minute interval -->
@@ -41,8 +90,9 @@
 
             {% endfor %}
             {% endfor %}
-        </select>
-        <br><br>
+        </select><br><br>
+
+
 
         <input type="submit" value="Save">
     </form>

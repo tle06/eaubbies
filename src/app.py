@@ -27,7 +27,6 @@ import io
 
 app = Flask(__name__)
 configuration = YamlConfigLoader()
-frames_directory = "static/img/frames"
 
 
 @app.route("/")
@@ -50,13 +49,15 @@ def config():
 @app.route("/frames")
 def frames():
 
-    files = os.listdir(frames_directory)
+    files = os.listdir(configuration.get_param("frame", "storage_path"))
     return render_template("files.html", files=files)
 
 
 @app.route("/download/<path:filename>")
 def download_file(filename):
-    return send_from_directory(frames_directory, filename, as_attachment=True)
+    return send_from_directory(
+        configuration.get_param("frame", "storage_path"), filename, as_attachment=True
+    )
 
 
 @app.route("/save_config", methods=["POST"])
@@ -75,6 +76,32 @@ def save_config():
     endpoint_url = request.form["endpoint_url"]
     configuration.set_param("vision", "endpoint", value=endpoint_url)
 
+    vision_integer_digit = request.form["vision_integer_digit"]
+    configuration.set_param("vision", "integer", "digit", value=vision_integer_digit)
+
+    vision_integer_unit_of_measurement = request.form[
+        "vision_integer_unit_of_measurement"
+    ]
+    configuration.set_param(
+        "vision",
+        "integer",
+        "unit_of_measurement",
+        value=vision_integer_unit_of_measurement,
+    )
+
+    vision_decimal_digit = request.form["vision_decimal_digit"]
+    configuration.set_param("vision", "decimal", "digit", value=vision_decimal_digit)
+    vision_decimal_unit_of_measurement = request.form[
+        "vision_decimal_unit_of_measurement"
+    ]
+
+    configuration.set_param(
+        "vision",
+        "decimal",
+        "unit_of_measurement",
+        value=vision_decimal_unit_of_measurement,
+    )
+
     # RTSP config
     rtsp_url = request.form["rtsp_url"]
     configuration.set_param("rtsp", "url", value=rtsp_url)
@@ -85,6 +112,25 @@ def save_config():
     mqtt_user = request.form["mqtt_user"]
     configuration.set_param("mqtt", "user", value=mqtt_user)
     mqtt_password = request.form["mqtt_password"]
+    mqtt_device_name = request.form["mqtt_device_name"]
+    configuration.set_param("mqtt", "device", "name", value=mqtt_device_name)
+    mqtt_device_node_id = request.form["mqtt_device_node_id"]
+    configuration.set_param("mqtt", "device", "node_id", value=mqtt_device_node_id)
+    mqtt_device_unique_id = request.form["mqtt_device_unique_id"]
+    configuration.set_param("mqtt", "device", "unique_id", value=mqtt_device_unique_id)
+    mqtt_discovery_prefix = request.form["mqtt_discovery_prefix"]
+    configuration.set_param("mqtt", "discovery_prefix", value=mqtt_discovery_prefix)
+    mqtt_sensors_water_unit_of_measurement = request.form[
+        "mqtt_sensors_water_unit_of_measurement"
+    ].lower()
+    configuration.set_param(
+        "mqtt",
+        "sensors",
+        "water",
+        "unit_of_measurement",
+        value=mqtt_sensors_water_unit_of_measurement,
+    )
+
     if (
         mqtt_password != configuration.get_param("mqtt", "password")
         and mqtt_password != "********************************"
