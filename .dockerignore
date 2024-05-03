@@ -1,0 +1,4 @@
+/src/data
+/src/static/img/frames
+.env
+__pycache__

@@ -213,4 +213,5 @@ if __name__ == "__main__":
     app = Flask(__name__)
     app._static_folder = ""
     app.debug = True
+    app.host = "0.0.0.0"
     app.run()

@@ -18,11 +18,11 @@
 ## Build
 
 ```cmd
-docker build --build-arg BUILD_FROM="homeassistant/amd64-base:latest" -t eaubbies:local .
+docker build --build-arg BUILD_FROM="homeassistant/amd64-base-debian:latest" -t eaubbies:local .
 ```
 
 ## Run
 
 ```cmd
-docker run --rm eaubbies:local
+docker run --rm -p 8099:8099 eaubbies:local
 ```

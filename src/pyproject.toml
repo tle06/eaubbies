@@ -13,12 +13,13 @@ black = "^24.4.0"
 flake8 = "^7.0.0"
 numpy = "^1.26.4"
 opencv-python = "^4.9.0.80"
-scikit-image = "^0.23.1"
 pyyaml = "^6.0.1"
 flask = "^3.0.3"
 aiortc = "^1.8.0"
 python-crontab = "^3.0.0"
 paho-mqtt = "^2.0.0"
+gunicorn = "^22.0.0"
+scikit-image = "^0.23.2"
 
 
 [build-system]
