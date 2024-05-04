@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your APP</title>
+    <style src="{{url_for('static', filename='css/style.css')}}"></style>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+</head>
+
+<body>
+    <div id="healthCheck">
+
+    </div>
+    <button onclick="toggleVideoFeed()">Toggle Video Feed</button>
+    <img id="videoFeed" src="{{ url_for('video_feed') }}" width="50%" style="display: none;" controls autoplay>
+    <br>
+
+    <br>
+    <button onclick="CreateHomeAssistantMqttSensor()">Create MQTT sensor</button>
+    <br>
+    <button onclick="LoadFrame()">Load frame</button>
+    <br>
+    <div id="mqttStatus"></div>
+    <br>
+
+    <h1>Select ROI</h1>
+    <div>
+        <label for="rectangleSelector">Select unit:</label>
+        <select id="rectangleSelector" onchange="selectRectangle()">
+            <option value="1">All</option>
+            <option value="2">Integer</option>
+            <option value="3">Digit</option>
+        </select>
+    </div>
+    <div>
+        <button onclick="SendCoordinates()">Send coordinates</button>
+        <div id="coordinates"></div>
+
+        <canvas id="canvas"></canvas>
+    </div>
+    <div>
+        <button onclick="StartProcess()">Process Image</button>
+        <div id="tableResult"></div>
+        <img id="sourceFrame" src="" alt="Source Frame" width="20%">
+        <img id="improveFrame" src="" alt="Source Frame" width="20%">
+        <img id="azureVision" src="" alt="Azure Vision" width="20%">
+    </div>
+    <!-- Loader HTML -->
+    <div id="loader" style="display: none;">
+        <p>Loading...</p>
+    </div>
+
+
+    <script src="{{url_for('static', filename='js/main.js')}}"></script>
+</body>
+
+</html>
