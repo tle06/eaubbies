@@ -56,7 +56,4 @@ jobs:
         uses: ./
         with:
           args: |
-            --${{ matrix.architecture }} \
-            --target / \
-            --cosign \
-            --generic $GIT_TAG_NAME
+            --${{ matrix.architecture }}
