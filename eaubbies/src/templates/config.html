@@ -38,9 +38,9 @@
         <label for="vision_decimal_unit_of_measurement">Vision decimal unit of measurement</label>
         <select id="vision_decimal_unit_of_measurement" name="vision_decimal_unit_of_measurement">
             {% for unit in ["l","cl","dl","hl","m3"] %}
-            <option value="{{ unit }}" {% if unit==config['vision']['decimal']['unit_of_measurement'] %}selected{% endif
-                %}>{{
-                unit }}</option>
+            <option value="{{ unit }}" {% if unit==config['vision']['decimal']['unit_of_measurement'] %}selected{%
+                endif%}>
+                {{unit }}</option>
 
             {% endfor %}
         </select><br><br>

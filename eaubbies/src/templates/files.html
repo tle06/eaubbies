@@ -1,22 +1,25 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
-
-<head>
+  <head>
     <title>Frames</title>
-    <!DOCTYPE html>
+    <!doctype html>
     <html>
-
-    <head>
+      <head>
         <title>Frames</title>
-    </head>
+      </head>
 
-<body>
-    <h1>Frames</h1>
-    <ul>
-        {% for file in files %}
-        <li><a href="{{ url_for('download_file', filename=file) }}">{{ file }}</a></li>
-        {% endfor %}
-    </ul>
-</body>
-
+      <body>
+        <h1>Frames</h1>
+        <ul>
+          {% for file in files %}
+          <li>
+            <a href="{{ url_for('download_file', filename=file) }}"
+              >{{ file }}</a
+            >
+          </li>
+          {% endfor %}
+        </ul>
+      </body>
+    </html>
+  </head>
 </html>
