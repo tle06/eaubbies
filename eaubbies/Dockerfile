@@ -16,8 +16,7 @@ COPY /etc /etc
 
 RUN chmod a+x /entrypoint/entrypoint.sh && \
     chmod a+x /entrypoint/entrypoint.d/*.sh && \
-    ln -s /etc/nginx/sites-available/app.conf /etc/nginx/sites-enabled/ && \
-    chown -R www-data:www-data /var/lib/nginx/
+    ln -s /etc/nginx/sites-available/app.conf /etc/nginx/sites-enabled/
 
 RUN pip3 install --no-cache-dir setuptools supervisor supervisord-dependent-startup
 COPY /src/poetry.lock /app/poetry.lock
@@ -30,6 +29,8 @@ RUN /root/.local/share/pypoetry/venv/bin/poetry config virtualenvs.create false 
 COPY /src /app
 
 RUN apt-get clean && rm -rf /var/lib/apt/lists/* && \
-    chown www-data:www-data -R /app
+    mkdir -p /var/lib/nginx/body && \
+    chown -R www-data:www-data /app && \
+    chown -R www-data:www-data /var/lib/nginx/
 
 ENTRYPOINT ["/bin/bash", "/entrypoint/entrypoint.sh"]
