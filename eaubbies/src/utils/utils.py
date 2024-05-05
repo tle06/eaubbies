@@ -28,11 +28,27 @@ def time_to_cron(selected_time):
 
 
 def register_cron_task(command, selected_time):
+
     cron = CronTab(user=True)
     cron_expression = time_to_cron(selected_time)
-    job = cron.new(command=command)
-    job.setall(cron_expression)
-    cron.write()
+    exist_cron = None
+    for job in cron:
+        # Check if the job matches your criteria, for example, if you want to update a specific command
+        if job.command == command:
+            # Modify the job as needed
+            job.setall(
+                cron_expression
+            )  # Example: change the schedule to every 5 minutes
+
+            # Write changes to crontab
+            cron.write()
+            print("Cron job updated successfully.")
+            break  # Stop iteration if the job is found and updated
+    else:
+
+        job = cron.new(command=command)
+        job.setall(cron_expression)
+        cron.write()
 
 
 def generate_unique_id():

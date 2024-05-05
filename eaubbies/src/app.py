@@ -27,6 +27,10 @@ import io
 
 app = Flask(__name__)
 configuration = YamlConfigLoader()
+command = "/root/.local/share/pypoetry/venv/bin/poetry run python /app/cron.py"
+register_cron_task(
+    command=command, selected_time=configuration.get_param("service", "cron")
+)
 
 
 @app.route("/")
@@ -141,7 +145,7 @@ def save_config():
     cron_time = request.form["cron_time"]
     configuration.set_param("service", "cron", value=cron_time)
     print(time_to_cron(cron_time))
-    command = "echo hello_world"
+
     register_cron_task(command=command, selected_time=cron_time)
     return redirect(url_for("config"))
 

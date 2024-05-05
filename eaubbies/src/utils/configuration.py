@@ -74,7 +74,7 @@ class YamlConfigLoader:
                     "unique_id": generate_unique_id(),
                 },
             },
-            "service": {"cron": None, "counter": 0},
+            "service": {"cron": "01:00", "counter": 0},
         }
 
         return default_config
