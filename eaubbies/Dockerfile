@@ -1,5 +1,4 @@
-# https://developers.home-assistant.io/docs/add-ons/configuration#add-on-dockerfile
-ARG BUILD_FROM
+# hadolint global ignore=DL3013,DL4006,DL3008,DL3006,DL3009
 FROM $BUILD_FROM
 WORKDIR /app
 
@@ -19,7 +18,7 @@ RUN chmod a+x /entrypoint/entrypoint.sh && \
     ln -s /etc/nginx/sites-available/app.conf /etc/nginx/sites-enabled/ && \
     chown -R www-data:www-data /var/lib/nginx/
 
-RUN pip3 install setuptools supervisor supervisord-dependent-startup
+RUN pip3 install --no-cache-dir setuptools supervisor supervisord-dependent-startup
 COPY /src/poetry.lock /app/poetry.lock
 COPY /src/pyproject.toml /app/pyproject.toml
 

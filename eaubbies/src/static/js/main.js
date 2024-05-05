@@ -173,10 +173,3 @@ function SendCoordinates() {
             console.error('Error sending coordinates:', error);
         });
 }
-
-
-
-
-
-
-
