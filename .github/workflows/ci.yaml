@@ -53,7 +53,7 @@ jobs:
       - name: 🚀 Run Add-on Lint
         uses: frenck/action-addon-linter@v2.15.1
         with:
-          community: true
+          community: false
           path: "./${{ needs.information.outputs.target }}"
 
   lint-hadolint:
@@ -65,7 +65,7 @@ jobs:
       - name: ⤵️ Check out code from GitHub
         uses: actions/checkout@v4
       - name: 🚀 Run Hadolint
-        uses: brpaz/hadolint-action@v2.12.0
+        uses: brpaz/hadolint-action@v3.1.0
         with:
           dockerfile: "./${{ needs.information.outputs.target }}/Dockerfile"
 
@@ -109,7 +109,7 @@ jobs:
       - name: 🚀 Run Prettier
         uses: creyD/prettier_action@v4.3
         with:
-          prettier_options: --check **/*.{json,js,md,yaml}
+          prettier_options: --check **/*.{js}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

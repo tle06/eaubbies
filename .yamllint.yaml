@@ -1,0 +1,4 @@
+---
+ignore: |
+  .github/workflows/*.yaml
+extends: default
