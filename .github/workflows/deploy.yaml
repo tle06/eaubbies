@@ -10,7 +10,7 @@ on:
 jobs:
   ci:
     name: CI
-    uses: tle06/eaubbies/blob/main/.github/workflows/ci.yaml@main
+    uses: ./.github/workflows/ci.yaml@main
   publish:
     name: Publish
     runs-on: ubuntu-latest
