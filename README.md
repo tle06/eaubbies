@@ -15,14 +15,28 @@
 
 # Docker
 
-## Build
+## Build local
 
 ```cmd
-docker build --build-arg BUILD_FROM="homeassistant/amd64-base-debian:latest" -t eaubbies:local .
+cd eaubbies
+docker build --build-arg BUILD_FROM="homeassistant/amd64-base-debian:bookworm" -t eaubbies:local .
 ```
 
-## Run
+## Home assistant build
 
 ```cmd
-docker run --rm -p 8099:8099 eaubbies:local
+docker run \
+	--rm \
+	--privileged \
+	-v ~/.docker:/root/.docker \
+	-v .:/data \
+    ghcr.io/home-assistant/amd64-builder:latest \
+		--all \
+		-t /data/eaubbies
+```
+
+## Run local build
+
+```cmd
+docker run --name test --rm -p 8099:8099 eaubbies:local
 ```

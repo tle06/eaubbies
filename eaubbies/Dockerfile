@@ -16,7 +16,8 @@ COPY /etc /etc
 
 RUN chmod a+x /entrypoint/entrypoint.sh && \
     chmod a+x /entrypoint/entrypoint.d/*.sh && \
-    ln -s /etc/nginx/sites-available/app.conf /etc/nginx/sites-enabled/
+    ln -s /etc/nginx/sites-available/app.conf /etc/nginx/sites-enabled/ && \
+    chown -R www-data:www-data /var/lib/nginx/
 
 RUN pip3 install setuptools supervisor supervisord-dependent-startup
 COPY /src/poetry.lock /app/poetry.lock

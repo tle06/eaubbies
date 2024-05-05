@@ -1,17 +1,15 @@
 # https://developers.home-assistant.io/docs/add-ons/configuration#add-on-config
 name: Eaubbies
-version: "0.0.1"
+version: "0.0.2"
 slug: eaubbies
 description: Water meter OCR with Azure vision and tapo camera
 url: "https://github.com/tle06/eaubbies"
 arch:
-  - aarch64
   - amd64
+  - aarch64
 init: false
 map:
   - share:rw
-options:
-  message: "Hello world..."
 schema:
   message: "str?"
 image: "tlnk/{arch}-addon-eaubbies"
