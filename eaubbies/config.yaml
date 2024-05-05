@@ -1,6 +1,6 @@
 ---
 name: Eaubbies
-version: "dev-0.0.2"
+version: "v0.0.2"
 slug: eaubbies
 description: Water meter OCR with Azure vision and tapo camera
 url: "https://github.com/tle06/eaubbies"
