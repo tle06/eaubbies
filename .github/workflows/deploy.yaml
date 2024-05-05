@@ -13,7 +13,7 @@ jobs:
     uses: ./.github/workflows/ci.yaml
   publish:
     name: Publish
-    needs: CI
+    needs: ci
     runs-on: ubuntu-latest
     steps:
       - name: Checkout the repository
