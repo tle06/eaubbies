@@ -50,11 +50,16 @@ def config():
     return render_template("config.html", config=configuration.data)
 
 
+@app.route("/video")
+def video():
+    return render_template("video.html")
+
+
 @app.route("/frames")
 def frames():
 
     files = os.listdir(configuration.get_param("frame", "storage_path"))
-    return render_template("files.html", files=files)
+    return render_template("frames.html", files=files)
 
 
 @app.route("/download/<path:filename>")
