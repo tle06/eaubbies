@@ -100,13 +100,14 @@ function LoadFrame() {
       };
 
       function startDrawing(e) {
-        console.log(currentRectangleIndex);
 
         // Update coordinates when drawing starts
         var rectBounds = canvas.getBoundingClientRect();
+        var scaleX = canvas.width / rectBounds.width;
+        var scaleY = canvas.height / rectBounds.height;
         var rect = {
-          x: e.clientX - rectBounds.left,
-          y: e.clientY - rectBounds.top,
+          x: (e.clientX - rectBounds.left) * scaleX,
+          y: (e.clientY - rectBounds.top) * scaleY,
           width: 0,
           height: 0,
         };
@@ -119,8 +120,11 @@ function LoadFrame() {
         //if (rectangles.length === 0) return;
         var rect = rectangles[currentRectangleIndex].coordinates;
         var rectBounds = canvas.getBoundingClientRect();
-        rect.width = e.clientX - rectBounds.left - rect.x;
-        rect.height = e.clientY - rectBounds.top - rect.y;
+        var scaleX = canvas.width / rectBounds.width;
+        var scaleY = canvas.height / rectBounds.height;
+
+        rect.width = (e.clientX - rectBounds.left) * scaleX - rect.x;
+        rect.height = (e.clientY - rectBounds.top) * scaleY - rect.y;
         drawRectangles();
       }
 
