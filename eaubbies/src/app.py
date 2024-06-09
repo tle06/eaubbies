@@ -168,6 +168,9 @@ def video_feed():
 @app.route("/run_process")
 def run_process():
     result = service_process()
+    if isinstance(result, ValueError):
+        result = {"error": str(result)}
+    print(result)
     return json.dumps(result)
 
 

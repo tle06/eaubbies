@@ -69,36 +69,52 @@ def generate_result(raw_result: str):
     decimal_uom = configuration.get_param(
         "vision", "decimal", "unit_of_measurement"
     ).lower()
+
+    vision_integer = configuration.get_param("vision", "coordinates", "integer")
+    vision_digit = configuration.get_param("vision", "coordinates", "digit")
+    vision_all = configuration.get_param("vision", "coordinates", "digit")
+
     main_uom = configuration.get_param(
         "mqtt", "sensors", "water", "unit_of_measurement"
     ).lower()
     print(integer_digit, integer_uom, decimal_digit, decimal_uom, main_uom)
     raw_result_without_space = raw_result.replace(" ", "")
     print(raw_result_without_space)
+    right_number = 0
+    left_number = 0
 
-    if "." in raw_result_without_space:
-        print("dot detected")
-        parts = raw_result.split(".")
-        print(parts)
-        try:
-            left_number = int(parts[0])
-            right_number = int(parts[1])
-        except Exception as e:
-            print(e)
-            raise ValueError(f"Can't convert parts: {parts} to integers")
+    if vision_all:
 
-    else:
-        try:
-            print("no dot detected")
-            left_number = int(raw_result_without_space[:integer_digit])
-            print(len(raw_result_without_space))
-            decimal_digit = len(raw_result_without_space) - integer_digit
-            right_number = int(raw_result_without_space[decimal_digit:])
-        except Exception as e:
-            print(e)
-            raise ValueError(
-                f"Can't convert lef and right numbers: {left_number,right_number} to integers"
-            )
+        if "." in raw_result_without_space:  # review the logix to get both numbers
+            print("dot detected")
+            parts = raw_result.split(".")
+            print(parts)
+            try:
+                left_number = int(parts[0])
+                right_number = int(parts[1])
+            except Exception as e:
+                print(e)
+                raise ValueError(f"Can't convert parts: {parts} to integers")
+
+        else:
+            try:
+                print("no dot detected")
+                left_number = int(raw_result_without_space[:integer_digit])
+                print(len(raw_result_without_space))
+                decimal_digit = len(raw_result_without_space) - integer_digit
+                right_number = int(raw_result_without_space[decimal_digit:])
+            except Exception as e:
+                print(e)
+                left_number = int(raw_result_without_space)
+                right_number = 0
+    if vision_integer:
+        left_number = int(
+            raw_result_without_space
+        )  # review the logic to get the left number
+
+    if vision_digit:
+        right_number = 0  # implement the logic to get the right number
+
     print(left_number, right_number)
     left_number_to_liters = volume_converter(
         number=left_number, from_unit=integer_uom, to_unit=main_uom
