@@ -56,7 +56,7 @@
         <canvas class="img-fluid" id="canvas"></canvas>
 
 
-        <div id="loader" class="spinner-border text-primary loader" role="status">
+        <div id="loader-frame" class="spinner-border text-primary loader" role="status">
           <span class="visually-hidden">Loading...</span>
         </div>
       </div>
@@ -70,7 +70,11 @@
             <i class="bx bx-reset d-block d-sm-none"></i>
             <span class="d-none d-sm-block">Start process</span>
           </button>
+          <div id="loader-process" class="spinner-border text-primary loader loader-process" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
         </div>
+        <div id="error-message-process" class="alert alert-danger error-message" role="alert"></div>
         <hr class="my-0">
         <table id="process-table-result" class="table table-bordered">
           <thead>

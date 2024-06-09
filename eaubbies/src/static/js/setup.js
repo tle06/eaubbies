@@ -5,15 +5,16 @@ var rectangles = [
 ];
 var currentRectangleIndex = 0;
 
-function ShowLoader() {
-  document.getElementById('loader').style.display = 'block';
+function ShowLoader(loaderid, display = 'block') {
+  document.getElementById(loaderid).style.display = display;
 }
 
-function HideLoader() {
-  document.getElementById('loader').style.display = 'none';
+function HideLoader(loaderid) {
+  document.getElementById(loaderid).style.display = 'none';
 }
 
-function createTableFromObject(table, obj) {
+
+function updateTableFromObject(table, obj) {
   // Add data rows
   for (var key in obj) {
     var dataRow = table.insertRow();
@@ -22,32 +23,50 @@ function createTableFromObject(table, obj) {
     var propertyValueCell = dataRow.insertCell();
     propertyValueCell.textContent = obj[key];
   }
-
-  return table;
 }
 
-function emptyTableBody(bodyid) {
+function ShowErrorMessages(errorMessages) {
+  document.getElementById(errorid).style.display = "block";
+  document.getElementById(errorid).textContent = errorMessages;
+}
+
+function ResetErrorMessages(errorid) {
+  document.getElementById(errorid).style.display = "none";
+  document.getElementById(errorid).textContent = "";
+}
+
+function EmptyTableBody(bodyid) {
   tbody = document.getElementById(bodyid);
   rows = tbody.querySelectorAll('tr');
   rows.forEach(row => row.remove());
 }
 function StartProcess() {
-  ShowLoader();
-  // empty table
-  emptyTableBody("process-table-result-body")
+  ShowLoader("loader-process", "inline");
+  ResetErrorMessages("error-message-process")
+  EmptyTableBody("process-table-result-body")
+
 
   fetch("/run_process")
     .then((response) => response.json())
     .then((data) => {
-      console.log(data);
-      document.getElementById("sourceFrame").src = data.images.image_source;
-      document.getElementById("improveFrame").src = data.images.image_improve;
-      document.getElementById("azureVision").src = data.images.image_vision;
-      console.log(data.result);
-      var table = document.getElementById("process-table-result");
-      table.appendChild(createTableFromObject(table, data.result));
+      if (data.hasOwnProperty('error')) {
+        HideLoader("loader-process");
+        console.log('Error:', data.error);
+        ShowErrorMessages("error-message-process")
 
-      HideLoader();
+      } else {
+        HideLoader("loader-process");
+        console.log(data);
+        document.getElementById("sourceFrame").src = data.images.image_source;
+        document.getElementById("improveFrame").src = data.images.image_improve;
+        document.getElementById("azureVision").src = data.images.image_vision;
+        console.log(data.result);
+        var table = document.getElementById("process-table-result");
+        table.appendChild(updateTableFromObject(table, data.result));
+      }
+
+
+
     });
 }
 
@@ -76,12 +95,12 @@ function EmptyCanvas(canvasid) {
 
 function LoadFrame() {
   EmptyCanvas("canvas");
-  ShowLoader();
+  ShowLoader("loader-frame");
 
   fetch("/load_frame")
     .then((response) => response.json())
     .then((data) => {
-      HideLoader();
+      HideLoader("loader-frame");
       console.log(rectangles);
 
       var img = new Image();
