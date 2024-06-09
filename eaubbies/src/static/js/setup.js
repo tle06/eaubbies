@@ -13,7 +13,7 @@ function HideLoader() {
   document.getElementById('loader').style.display = 'none';
 }
 
-function createTableFromObject(obj) {
+function createTableFromObject(table, obj) {
   // Add data rows
   for (var key in obj) {
     var dataRow = table.insertRow();
@@ -45,7 +45,7 @@ function StartProcess() {
       document.getElementById("azureVision").src = data.images.image_vision;
       console.log(data.result);
       var table = document.getElementById("process-table-result");
-      table.appendChild(createTableFromObject(data.result));
+      table.appendChild(createTableFromObject(table, data.result));
 
       HideLoader();
     });
