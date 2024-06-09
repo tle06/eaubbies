@@ -68,13 +68,13 @@ function CreateHomeAssistantMqttSensor() {
   fetch("/create_sensor")
     .then((response) => response.json())
     .then((data) => {
-      console.log(data.mqtt[0]["water"]);
-      if (data.mqtt[0]["water"]) {
+      console.log(data);
+      if (data.mqtt[1]["water"]) {
         document.getElementById("mqttStatus").innerHTML =
-          "MQTT sensors created in home assistant";
+          "🟢 MQTT sensors created in home assistant";
       } else {
         document.getElementById("mqttStatus").innerHTML =
-          "MQTT sensors creation error, check the logs";
+          "🔴MQTT sensors creation error, check the logs";
       }
     });
 }
