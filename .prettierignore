@@ -4,3 +4,7 @@ coverage
 
 # Ignore all HTML files:
 **/*.html
+# Ignore imported JS files:
+eaubbies/src/static/vendor/**/*.js
+eaubbies/src/static/js/*.js
+!eaubbies/src/static/js/setup.js

@@ -5,14 +5,13 @@ var rectangles = [
 ];
 var currentRectangleIndex = 0;
 
-function ShowLoader(loaderid, display = 'block') {
+function ShowLoader(loaderid, display = "block") {
   document.getElementById(loaderid).style.display = display;
 }
 
 function HideLoader(loaderid) {
-  document.getElementById(loaderid).style.display = 'none';
+  document.getElementById(loaderid).style.display = "none";
 }
-
 
 function updateTableFromObject(table, obj) {
   // Add data rows
@@ -37,23 +36,21 @@ function ResetErrorMessages(errorid) {
 
 function EmptyTableBody(bodyid) {
   tbody = document.getElementById(bodyid);
-  rows = tbody.querySelectorAll('tr');
-  rows.forEach(row => row.remove());
+  rows = tbody.querySelectorAll("tr");
+  rows.forEach((row) => row.remove());
 }
 function StartProcess() {
   ShowLoader("loader-process", "inline");
-  ResetErrorMessages("error-message-process")
-  EmptyTableBody("process-table-result-body")
-
+  ResetErrorMessages("error-message-process");
+  EmptyTableBody("process-table-result-body");
 
   fetch("/run_process")
     .then((response) => response.json())
     .then((data) => {
-      if (data.hasOwnProperty('error')) {
+      if (data.hasOwnProperty("error")) {
         HideLoader("loader-process");
-        console.log('Error:', data.error);
-        ShowErrorMessages("error-message-process")
-
+        console.log("Error:", data.error);
+        ShowErrorMessages("error-message-process");
       } else {
         HideLoader("loader-process");
         console.log(data);
@@ -64,9 +61,6 @@ function StartProcess() {
         var table = document.getElementById("process-table-result");
         table.appendChild(updateTableFromObject(table, data.result));
       }
-
-
-
     });
 }
 
@@ -107,7 +101,6 @@ function LoadFrame() {
       var canvas = document.getElementById("canvas");
       var ctx = canvas.getContext("2d");
 
-
       img.onload = function () {
         canvas.width = img.width;
         canvas.height = img.height;
@@ -119,7 +112,6 @@ function LoadFrame() {
       };
 
       function startDrawing(e) {
-
         // Update coordinates when drawing starts
         var rectBounds = canvas.getBoundingClientRect();
         var scaleX = canvas.width / rectBounds.width;
