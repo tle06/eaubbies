@@ -247,6 +247,7 @@ class MqttCLient:
                 retain=True,
             )
             global_result.append({name: pub.is_published()})
+        print(global_result)
 
         return global_result
 

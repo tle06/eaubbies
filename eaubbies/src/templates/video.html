@@ -1,0 +1,16 @@
+{% extends 'core.html' %}
+{% block content %}
+<div class="row">
+  <div class="col-md-12">
+    <div class="card mb-4">
+      <h5 class="card-header">Video feed</h5>
+
+      <hr class="my-0">
+
+      <img class="card-img-bottom" id="videoFeed" src="{{ url_for('video_feed') }}" width="50%" controls autoplay />
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}

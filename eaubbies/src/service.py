@@ -75,9 +75,9 @@ def create_improved_frame():
         ):
             frame_to_process = client_rtsp.fill_image_except_rectangle(
                 x=int(coordinates["x"]),
-                y=int(coordinates["y"]),
-                width=int(coordinates["width"]),
-                height=int(coordinates["height"]),
+                y=int(coordinates["y"]) - 50,
+                width=int(coordinates["width"]) + 20,
+                height=int(coordinates["height"]) + 50,
             )
     client_rtsp.write_output_file(name="improve", frame=frame_to_process)
     return frame_to_process
@@ -91,11 +91,17 @@ def service_process(increase_cron_count: bool = False):
     subscription_key = configuration.get_param("vision", "key")
     endpoint = configuration.get_param("vision", "endpoint")
 
+    vision_integer = configuration.get_param("vision", "coordinates", "integer")
+    vision_digit = configuration.get_param("vision", "coordinates", "digit")
+    vision_all = configuration.get_param("vision", "coordinates", "digit")
+
     client_azure = AzureClient(vision_key=subscription_key, endpoint_url=endpoint)
     client_azure.default_folder = default_folder
 
     # call azure vision api
-    result = client_azure.process_image(frame=frame_to_process)
+    result = client_azure.process_image(
+        frame=frame_to_process
+    )  # implement logic for integer, digit or all
 
     vision_counter = int(configuration.get_param("vision", "counter"))
     configuration.set_param("vision", "counter", value=vision_counter + 1)
@@ -114,7 +120,7 @@ def service_process(increase_cron_count: bool = False):
         result_values = generate_result(raw_result=raw_result)
     except Exception as e:
         print(e)
-        raise ValueError("couldn't get the digitalisation of the meter")
+        return ValueError("couldn't get the digitalisation of the meter")
 
     # save result
     current_value = float(result_values.get("total_liters"))
@@ -124,8 +130,8 @@ def service_process(increase_cron_count: bool = False):
         previous_value = current_value
 
     if previous_value > current_value:
-        raise ValueError(
-            "previous value {previous_value} is > to current value {current_value}"
+        return ValueError(
+            f"previous value {previous_value} is > to current value {current_value}"
         )
     configuration.set_param("result", "current", value=current_value)
 

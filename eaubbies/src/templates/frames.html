@@ -1,0 +1,27 @@
+{% extends 'core.html' %}
+
+{% block content %}
+
+<div class="row">
+  <div class="col-md-12">
+    <div class="card mb-4">
+      <h5 class="card-header">Frames</h5>
+      <hr class="my-0">
+      <div class="card-body">
+        <ul>
+          {% for file in files %}
+          <li>
+            <a href="{{ url_for('download_file', filename=file) }}">{{ file }}</a>
+          </li>
+          {% endfor %}
+        </ul>
+
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+{% endblock %}

@@ -1,63 +1,128 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Your APP</title>
-    <style src="{{url_for('static', filename='css/style.css')}}"></style>
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-  </head>
+{% extends 'core.html' %}
 
-  <body>
-    <div id="healthCheck"></div>
-    <button onclick="toggleVideoFeed()">Toggle Video Feed</button>
-    <img
-      id="videoFeed"
-      src="{{ url_for('video_feed') }}"
-      width="50%"
-      style="display: none"
-      controls
-      autoplay
-    />
-    <br />
+{% block content %}
+<div class="row">
+  <div class="col-md-12">
+    <div class="card mb-4">
+      <h5 class="card-header">Setup</h5>
+      <!-- Account -->
+      <div class="card-body">
+        <div class="d-flex align-items-start align-items-sm-center gap-4">
+          <div class="button-wrapper">
+            <button onclick="CreateHomeAssistantMqttSensor()" type="button" class="btn btn-primary mb-4">
+              <i class="bx bx-reset d-block d-sm-none"></i>
+              <span class="d-none d-sm-block">Create MQTT Sensor</span>
+            </button>
 
-    <br />
-    <button onclick="CreateHomeAssistantMqttSensor()">
-      Create MQTT sensor
-    </button>
-    <br />
-    <button onclick="LoadFrame()">Load frame</button>
-    <br />
-    <div id="mqttStatus"></div>
-    <br />
+          </div>
+        </div>
+        <small id="mqttStatus" class="text-light fw-medium d-block"></small>
 
-    <h1>Select ROI</h1>
-    <div>
-      <label for="rectangleSelector">Select unit:</label>
-      <select id="rectangleSelector" onchange="selectRectangle()">
-        <option value="1">All</option>
-        <option value="2">Integer</option>
-        <option value="3">Digit</option>
-      </select>
+      </div>
+      <hr class="my-0">
+      <div class="card-body">
+        <div class="button-wrapper">
+          <button onclick="LoadFrame()" type="button" class="btn btn-primary mb-4">
+            <i class="bx bx-reset d-block d-sm-none"></i>
+            <span class="d-none d-sm-block">Load frame</span>
+          </button>
+        </div>
+      </div>
+
+      <hr class="my-0">
+      <div class="card-body">
+        <div class="d-flex align-items-start align-items-sm-center gap-4">
+          <div class="mb-3 col-md-6">
+            <label class="form-label" for="rectangleSelector">Select unit:</label>
+            <select class="form-control" id="rectangleSelector" onchange="selectRectangle()">
+              <option value="1">All</option>
+              <option value="2">Integer</option>
+              <option value="3">Digit</option>
+            </select>
+          </div>
+          <div class="mb-3 col-md-6">
+            <div id="coordinates"></div>
+          </div>
+        </div>
+        <div class="mt-2">
+          <button onclick="SendCoordinates()" type="button" class="btn btn-primary me-2">
+            <i class="bx bx-reset d-block d-sm-none"></i>
+            <span class="d-none d-sm-block">Send Coordinates</span>
+          </button>
+        </div>
+      </div>
+      <hr class="my-0">
+      <div class="canvas">
+        <canvas class="img-fluid" id="canvas"></canvas>
+
+
+        <div id="loader-frame" class="spinner-border text-primary loader" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+      </div>
+
+
+
+      <hr class="my-0">
+      <div class="card-body">
+        <div class="button-wrapper">
+          <button onclick="StartProcess()" type="button" class="btn btn-primary mb-4">
+            <i class="bx bx-reset d-block d-sm-none"></i>
+            <span class="d-none d-sm-block">Start process</span>
+          </button>
+          <div id="loader-process" class="spinner-border text-primary loader loader-process" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+        </div>
+        <div id="error-message-process" class="alert alert-danger error-message" role="alert"></div>
+        <hr class="my-0">
+        <table id="process-table-result" class="table table-bordered">
+          <thead>
+            <tr>
+              <th>Properties</th>
+              <th>Values</th>
+            </tr>
+          </thead>
+          <tbody class="table-border-bottom-0" id="process-table-result-body">
+
+          </tbody>
+        </table>
+
+      </div>
+      <hr class="my-0">
+      <div class="card-body">
+        <table id="process-table-result" class="table table-bordered">
+          <thead>
+            <th>Source</th>
+            <th>improve</th>
+            <th>Azure vision</th>
+          </thead>
+          <tbody>
+            <tr>
+              <td><img id="sourceFrame" src="{{url_for('static', filename='img/frames/origine.jpg')}}" width="100%"
+                  alt="Source Frame" /></td>
+              <td>
+                <img id="improveFrame" src="{{url_for('static', filename='img/frames/improve.jpg')}}" width="100%"
+                  alt="Source Frame" />
+
+              </td>
+              <td>
+                <img id="azureVision" src="{{url_for('static', filename='img/frames/vision.jpg')}}" width="100%"
+                  alt="Azure Vision" />
+
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+
     </div>
-    <div>
-      <button onclick="SendCoordinates()">Send coordinates</button>
-      <div id="coordinates"></div>
+  </div>
+</div>
 
-      <canvas id="canvas"></canvas>
-    </div>
-    <div>
-      <button onclick="StartProcess()">Process Image</button>
-      <div id="tableResult"></div>
-      <img id="sourceFrame" src="" alt="Source Frame" width="20%" />
-      <img id="improveFrame" src="" alt="Source Frame" width="20%" />
-      <img id="azureVision" src="" alt="Azure Vision" width="20%" />
-    </div>
-    <!-- Loader HTML -->
-    <div id="loader" style="display: none">
-      <p>Loading...</p>
-    </div>
+{% endblock content %}
 
-    <script src="{{url_for('static', filename='js/main.js')}}"></script>
-  </body>
-</html>
+{% block extra_script %}
+<script src="{{url_for('static', filename='js/setup.js')}}"></script>
+{% endblock extra_script %}
