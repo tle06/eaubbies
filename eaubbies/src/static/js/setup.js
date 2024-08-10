@@ -24,7 +24,7 @@ function updateTableFromObject(table, obj) {
   }
 }
 
-function ShowErrorMessages(errorMessages) {
+function ShowErrorMessages(errorid, errorMessages) {
   document.getElementById(errorid).style.display = "block";
   document.getElementById(errorid).textContent = errorMessages;
 }
@@ -39,28 +39,53 @@ function EmptyTableBody(bodyid) {
   rows = tbody.querySelectorAll("tr");
   rows.forEach((row) => row.remove());
 }
+
 function StartProcess() {
   ShowLoader("loader-process", "inline");
   ResetErrorMessages("error-message-process");
   EmptyTableBody("process-table-result-body");
 
-  fetch("/run_process")
-    .then((response) => response.json())
+  var fileInput = document.getElementById("import-file");
+  var formData = new FormData();
+
+  var requestUrl = "/run_process";
+  var requestMethod = "GET";
+  var fetchOptions = { method: requestMethod };
+
+  if (fileInput.files.length > 0) {
+    // Send file via POST request
+    requestMethod = "POST";
+    formData.append("file", fileInput.files[0]);
+    fetchOptions = {
+      method: requestMethod,
+      body: formData
+    };
+  }
+
+  fetch(requestUrl, fetchOptions)
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      return response.json();
+    })
     .then((data) => {
+      HideLoader("loader-process");
       if (data.hasOwnProperty("error")) {
-        HideLoader("loader-process");
         console.log("Error:", data.error);
-        ShowErrorMessages("error-message-process");
+        ShowErrorMessages("error-message-process", data.error);
       } else {
-        HideLoader("loader-process");
         console.log(data);
         document.getElementById("sourceFrame").src = data.images.image_source;
         document.getElementById("improveFrame").src = data.images.image_improve;
         document.getElementById("azureVision").src = data.images.image_vision;
         console.log(data.result);
         var table = document.getElementById("process-table-result");
-        table.appendChild(updateTableFromObject(table, data.result));
+        updateTableFromObject(table, data.result);
       }
+    })
+    .catch((error) => {
+      console.error("Error sending file:", error);
     });
 }
 
@@ -91,80 +116,125 @@ function LoadFrame() {
   EmptyCanvas("canvas");
   ShowLoader("loader-frame");
 
-  fetch("/load_frame")
-    .then((response) => response.json())
-    .then((data) => {
-      HideLoader("loader-frame");
-      console.log(rectangles);
+  var fileInput = document.getElementById("import-file");
+  var img = new Image();
+  var ctx = canvas.getContext("2d");
 
-      var img = new Image();
-      var canvas = document.getElementById("canvas");
-      var ctx = canvas.getContext("2d");
+  var data;
+  if (fileInput.files.length > 0) {
+    // File upload
+    var file = fileInput.files[0];
+    var reader = new FileReader();
+    reader.onload = function (e) {
+      data = e.target.result;
+      loadImage(data);
+    };
+    reader.readAsDataURL(file);
+  } else {
+    // API call
+    fetch("/load_frame")
+      .then((response) => response.json())
+      .then((data) => {
+        data = data
+        loadImage(data);
+      });
+  }
 
-      img.onload = function () {
-        canvas.width = img.width;
-        canvas.height = img.height;
-        ctx.drawImage(img, 0, 0, img.width, img.height);
+  function loadImage(data) {
+    HideLoader("loader-frame");
+    console.log(rectangles);
 
-        // Listen for mouse events
-        canvas.addEventListener("mousedown", startDrawing);
-        canvas.addEventListener("mouseup", stopDrawing);
-      };
 
-      function startDrawing(e) {
-        // Update coordinates when drawing starts
-        var rectBounds = canvas.getBoundingClientRect();
-        var scaleX = canvas.width / rectBounds.width;
-        var scaleY = canvas.height / rectBounds.height;
-        var rect = {
-          x: (e.clientX - rectBounds.left) * scaleX,
-          y: (e.clientY - rectBounds.top) * scaleY,
-          width: 0,
-          height: 0,
-        };
-        rectangles[currentRectangleIndex].coordinates = rect;
-        canvas.addEventListener("mousemove", drawRectangle);
-      }
+    var canvas = document.getElementById("canvas");
 
-      function drawRectangle(e) {
-        // Update coordinates while drawing
-        //if (rectangles.length === 0) return;
-        var rect = rectangles[currentRectangleIndex].coordinates;
-        var rectBounds = canvas.getBoundingClientRect();
-        var scaleX = canvas.width / rectBounds.width;
-        var scaleY = canvas.height / rectBounds.height;
 
-        rect.width = (e.clientX - rectBounds.left) * scaleX - rect.x;
-        rect.height = (e.clientY - rectBounds.top) * scaleY - rect.y;
-        drawRectangles();
-      }
+    img.onload = function () {
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx.drawImage(img, 0, 0, img.width, img.height);
 
-      function drawRectangles() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(img, 0, 0, img.width, img.height);
-        rectangles.forEach(function (rect, index) {
-          console.log(index);
-          var coordinates = rect.coordinates;
-          ctx.strokeStyle = rect.color;
-          ctx.lineWidth = 2; // Set stroke width
-          ctx.strokeRect(
-            coordinates.x + 0.5,
-            coordinates.y + 0.5,
-            coordinates.width,
-            coordinates.height,
-          ); // Draw rectangle's edge
-        });
-      }
+      // Listen for mouse events
+      canvas.addEventListener("mousedown", startDrawing);
+      canvas.addEventListener("mouseup", stopDrawing);
+    };
 
-      function stopDrawing() {
-        // Stop drawing and remove mousemove event listener
-        canvas.removeEventListener("mousemove", drawRectangle);
-        updateCoordinates(); // Update coordinates on mouse up
-      }
+    img.src = data;
+  }
 
-      img.src = data;
+  function drawImageWithRotation(angle) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear the canvas
+
+    // Move the canvas origin to the center
+    ctx.translate(canvas.width / 2, canvas.height / 2);
+
+    // Rotate the canvas
+    ctx.rotate(angle * Math.PI / 180);
+
+    // Draw the rotated image, centered
+    ctx.drawImage(img, -img.width / 2, -img.height / 2);
+
+    // Reset the canvas transformation
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+    // Redraw any rectangles (assuming they are drawn after rotation)
+    rectangles.forEach(function (rect, index) {
+      var coordinates = rect.coordinates;
+      ctx.strokeStyle = rect.color;
+      ctx.lineWidth = 2;
+      ctx.strokeRect(
+        coordinates.x,
+        coordinates.y,
+        coordinates.width,
+        coordinates.height
+      );
     });
-}
+  }
+
+  function startDrawing(e) {
+    // Update coordinates when drawing starts
+    var rectBounds = canvas.getBoundingClientRect();
+    var scaleX = canvas.width / rectBounds.width;
+    var scaleY = canvas.height / rectBounds.height;
+    var rect = {
+      x: (e.clientX - rectBounds.left) * scaleX,
+      y: (e.clientY - rectBounds.top) * scaleY,
+      width: 0,
+      height: 0,
+    };
+    rectangles[currentRectangleIndex].coordinates = rect;
+    canvas.addEventListener("mousemove", drawRectangle);
+  }
+
+  function drawRectangle(e) {
+    // Update coordinates while drawing
+    //if (rectangles.length === 0) return;
+    var rect = rectangles[currentRectangleIndex].coordinates;
+    var rectBounds = canvas.getBoundingClientRect();
+    var scaleX = canvas.width / rectBounds.width;
+    var scaleY = canvas.height / rectBounds.height;
+
+    rect.width = (e.clientX - rectBounds.left) * scaleX - rect.x;
+    rect.height = (e.clientY - rectBounds.top) * scaleY - rect.y;
+    drawImageWithRotation(parseFloat(document.getElementById("rotate-image").value) || 0);
+  }
+
+
+  function stopDrawing() {
+    // Stop drawing and remove mousemove event listener
+    canvas.removeEventListener("mousemove", drawRectangle);
+    updateCoordinates(); // Update coordinates on mouse up
+  }
+
+
+
+  document.getElementById("rotate-image").addEventListener("change", function () {
+    const angle = parseFloat(this.value) || 0;
+    drawImageWithRotation(angle);
+  });
+
+  //img.src = data;
+};
+
 
 function selectRectangle() {
   currentRectangleIndex =
@@ -203,9 +273,15 @@ function updateCoordinates() {
   });
 }
 
-function SendCoordinates() {
+function SendEdit() {
   // Send the coordinates stored in the global variable 'rectangles' to the Flask backend
-  fetch("/send_coordinates", {
+  var rotateValue = parseFloat(document.getElementById("rotate-image").value) || 0;
+  rectangles.forEach(function (rect) {
+    rect.rotate = rotateValue;
+  });
+  console.log(rectangles);
+
+  fetch("/send_edit", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

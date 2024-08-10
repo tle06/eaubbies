@@ -233,6 +233,17 @@ class MqttCLient:
                     "value_template": "{{value_json.main_uom}}",
                 },
             },
+            {
+                "name": "rotate",
+                "payload": {
+                    "name": "rotate",
+                    "device_class": None,
+                    "unique_id": f"rotate{self.device_unique_id}",
+                    "state_topic": self.topic_state,
+                    "device": {"identifiers": self.device_unique_id},
+                    "value_template": "{{value_json.rotate}}",
+                },
+            },
         ]
 
         global_result = []

@@ -165,13 +165,36 @@ def video_feed():
     )
 
 
-@app.route("/run_process")
+@app.route("/run_process", methods=["GET", "POST"])
 def run_process():
-    result = service_process()
-    if isinstance(result, ValueError):
-        result = {"error": str(result)}
-    print(result)
-    return json.dumps(result)
+    use_file = False
+    file = None
+
+    if request.method == "POST":
+        # Handle file upload via POST
+        if "file" not in request.files:
+            return jsonify({"error": "No file part"}), 400
+
+        file = request.files["file"]
+        if file.filename == "":
+            return jsonify({"error": "No selected file"}), 400
+
+        # Process the file (e.g., save it, process its contents, etc.)
+        # Here you would handle the uploaded file, for example:
+        # file.save(os.path.join('/path/to/save', file.filename))
+
+        print("File received:", file.filename)
+        use_file = True
+
+    # Call your service function
+    try:
+        result = service_process(use_file=use_file, file=file)
+        if isinstance(result, ValueError):
+            return jsonify({"error": str(result)})
+        print(result)
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/load_frame")
@@ -207,7 +230,7 @@ def create_sensor():
     return result
 
 
-@app.route("/send_coordinates", methods=["POST"])
+@app.route("/send_edit", methods=["POST"])
 def receive_coordinates():
     data = request.json
     # Process the received coordinates here
@@ -217,6 +240,8 @@ def receive_coordinates():
         configuration.set_param(
             "vision", "coordinates", d["name"], value=d["coordinates"]
         )
+        configuration.set_param("vision", "rotate", value=d["rotate"])
+
     # Optionally, you can return a response to acknowledge the successful receipt of coordinates
     return jsonify({"message": "Coordinates received successfully"})
 

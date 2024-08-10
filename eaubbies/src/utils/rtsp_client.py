@@ -33,8 +33,12 @@ class RTSPClient:
         self.improve_frame = self.frame.copy()
         return self.frame
 
-    def load_frame_from_file(self, file: str):
-        self.frame = cv2.imread(file, cv2.IMREAD_COLOR)
+    def load_frame_from_file(self, file: str, filename: str = "file_origine"):
+        file_bytes = file.read()
+        np_array = np.frombuffer(file_bytes, np.uint8)
+        self.frame = cv2.imdecode(np_array, cv2.IMREAD_COLOR)
+        if self.save_frame:
+            self.write_output_file(name=filename, frame=self.frame)
         self.improve_frame = self.frame.copy()
 
         return self.frame
@@ -395,6 +399,32 @@ class RTSPClient:
         ]
         self.write_output_file(name=f"{filename}_2", frame=filled_image)
         self.improve_frame = filled_image
+
+        if self.save_frame:
+            self.write_output_file(name=filename, frame=self.improve_frame)
+
+        return self.improve_frame
+
+    def rotate_frame(self, angle: float = 0.0, filename: str = "frame_rotated"):
+        """
+        Rotate the frame by a specified angle.
+
+        Parameters:
+            frame (numpy.ndarray): Input frame.
+            angle (float): Angle of rotation in degrees.
+
+        Returns:
+            numpy.ndarray: Rotated frame.
+        """
+        # Get the height and width of the frame
+        height, width = self.improve_frame.shape[:2]
+        # Calculate the rotation matrix
+        rotation_matrix = cv2.getRotationMatrix2D((width / 2, height / 2), angle, 1.0)
+        # Apply the rotation matrix to the frame
+        rotated_image = cv2.warpAffine(
+            self.improve_frame, rotation_matrix, (width, height)
+        )
+        self.improve_frame = rotated_image
 
         if self.save_frame:
             self.write_output_file(name=filename, frame=self.improve_frame)

@@ -8,15 +8,30 @@ import json
 configuration = YamlConfigLoader()
 
 
-def create_improved_frame():
+def create_improved_frame(use_file: bool = False, file=None):
     # init rtsp client
-    rtsp_url = configuration.get_param("rtsp", "url")
+    rtsp_url = None
+    if use_file:
+        rtsp_url = configuration.get_param("rtsp", "url")
     client_rtsp = RTSPClient(rtsp_url=rtsp_url)
 
     # capture frame
     default_folder = configuration.get_param("frame", "storage_path")
     client_rtsp.set_default_folder(default_folder=default_folder)
-    frame_to_process = client_rtsp.get_frame()
+
+    if use_file:
+        if file:
+            print(file.filename)
+            frame_to_process = client_rtsp.load_frame_from_file(file=file)
+    else:
+        frame_to_process = client_rtsp.get_frame()
+
+    # rotate frame
+    rotate = configuration.get_param("vision", "rotate")
+    print(rotate)
+    if rotate > 0:
+        print(f"rotate image to {rotate} degres")
+        frame_to_process = client_rtsp.rotate_frame(angle=rotate)
 
     # improve frame
     contrast_active = bool(
@@ -63,6 +78,10 @@ def create_improved_frame():
         coordinates_selection = configuration.get_param(
             "rtsp", "image", "fill_image", "coordinates"
         )
+
+        coordinates_selection = coordinates_selection.lower().strip()
+
+        print(coordinates_selection)
         coordinates = configuration.get_param(
             "vision", "coordinates", coordinates_selection
         )
@@ -83,9 +102,11 @@ def create_improved_frame():
     return frame_to_process
 
 
-def service_process(increase_cron_count: bool = False):
+def service_process(
+    increase_cron_count: bool = False, use_file: bool = False, file=None
+):
 
-    frame_to_process = create_improved_frame()
+    frame_to_process = create_improved_frame(use_file=use_file, file=file)
     # init Azure client
     default_folder = configuration.get_param("frame", "storage_path")
     subscription_key = configuration.get_param("vision", "key")

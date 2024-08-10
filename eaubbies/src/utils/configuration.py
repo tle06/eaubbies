@@ -34,6 +34,7 @@ class YamlConfigLoader:
             "result": {"current": None, "previous": None, "unit": "l"},
             "vision": {
                 "counter": 0,
+                "rotate": 0.0,
                 "endpoint": None,
                 "key": None,
                 "line_with_data": 0,
