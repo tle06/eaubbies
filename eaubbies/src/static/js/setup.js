@@ -58,14 +58,14 @@ function StartProcess() {
     formData.append("file", fileInput.files[0]);
     fetchOptions = {
       method: requestMethod,
-      body: formData
+      body: formData,
     };
   }
 
   fetch(requestUrl, fetchOptions)
     .then((response) => {
       if (!response.ok) {
-        throw new Error('Network response was not ok');
+        throw new Error("Network response was not ok");
       }
       return response.json();
     })
@@ -140,7 +140,7 @@ function LoadFrame() {
     fetch("/load_frame")
       .then((response) => response.json())
       .then((data) => {
-        data = data
+        data = data;
         loadImage(data);
       });
   }
@@ -149,9 +149,7 @@ function LoadFrame() {
     HideLoader("loader-frame");
     console.log(rectangles);
 
-
     var canvas = document.getElementById("canvas");
-
 
     img.onload = function () {
       canvas.width = img.width;
@@ -173,7 +171,7 @@ function LoadFrame() {
     ctx.translate(canvas.width / 2, canvas.height / 2);
 
     // Rotate the canvas
-    ctx.rotate(angle * Math.PI / 180);
+    ctx.rotate((angle * Math.PI) / 180);
 
     // Draw the rotated image, centered
     ctx.drawImage(img, -img.width / 2, -img.height / 2);
@@ -190,7 +188,7 @@ function LoadFrame() {
         coordinates.x,
         coordinates.y,
         coordinates.width,
-        coordinates.height
+        coordinates.height,
       );
     });
   }
@@ -220,9 +218,10 @@ function LoadFrame() {
 
     rect.width = (e.clientX - rectBounds.left) * scaleX - rect.x;
     rect.height = (e.clientY - rectBounds.top) * scaleY - rect.y;
-    drawImageWithRotation(parseFloat(document.getElementById("rotate-image").value) || 0);
+    drawImageWithRotation(
+      parseFloat(document.getElementById("rotate-image").value) || 0,
+    );
   }
-
 
   function stopDrawing() {
     // Stop drawing and remove mousemove event listener
@@ -230,16 +229,15 @@ function LoadFrame() {
     updateCoordinates(); // Update coordinates on mouse up
   }
 
-
-
-  document.getElementById("rotate-image").addEventListener("change", function () {
-    const angle = parseFloat(this.value) || 0;
-    drawImageWithRotation(angle);
-  });
+  document
+    .getElementById("rotate-image")
+    .addEventListener("change", function () {
+      const angle = parseFloat(this.value) || 0;
+      drawImageWithRotation(angle);
+    });
 
   //img.src = data;
-};
-
+}
 
 function selectRectangle() {
   currentRectangleIndex =
@@ -278,7 +276,8 @@ function updateCoordinates() {
 
 function SendEdit() {
   // Send the coordinates stored in the global variable 'rectangles' to the Flask backend
-  var rotateValue = parseFloat(document.getElementById("rotate-image").value) || 0;
+  var rotateValue =
+    parseFloat(document.getElementById("rotate-image").value) || 0;
   rectangles.forEach(function (rect) {
     rect.rotate = rotateValue;
   });
@@ -309,11 +308,12 @@ function SendConfig() {
 
   fetch("/save_config", {
     method: "POST",
-    body: formData
+    body: formData,
   })
     .then((response) => {
-      document.querySelector('div[data-target="#create-mqtt-sensor"] .step-trigger').click();
-
+      document
+        .querySelector('div[data-target="#create-mqtt-sensor"] .step-trigger')
+        .click();
     })
     .catch((error) => {
       console.error("Error saving config:", error);
@@ -322,7 +322,10 @@ function SendConfig() {
 
 document.addEventListener("DOMContentLoaded", function () {
   // Check if the current URL path is '/index'
-  if (window.location.pathname === "/index" || window.location.pathname === "/") {
+  if (
+    window.location.pathname === "/index" ||
+    window.location.pathname === "/"
+  ) {
     // Get the canvas element and its context
     const canvas = document.getElementById("canvas");
     const ctx = canvas.getContext("2d");
