@@ -45,6 +45,12 @@ def index():
     return render_template("index.html")
 
 
+@app.route("/init")
+def init():
+
+    return render_template("init.html", config=configuration.data)
+
+
 @app.route("/config")
 def config():
     return render_template("config.html", config=configuration.data)
@@ -147,11 +153,11 @@ def save_config():
         print("MQTT user password changed")
         configuration.set_param("mqtt", "password", value=mqtt_password)
 
-    cron_time = request.form["cron_time"]
-    configuration.set_param("service", "cron", value=cron_time)
-    print(time_to_cron(cron_time))
-
-    register_cron_task(command=command, selected_time=cron_time)
+    if request.form.get("con_time"):
+        cron_time = request.form["cron_time"]
+        configuration.set_param("service", "cron", value=cron_time)
+        print(time_to_cron(cron_time))
+        register_cron_task(command=command, selected_time=cron_time)
     return redirect(url_for("config"))
 
 

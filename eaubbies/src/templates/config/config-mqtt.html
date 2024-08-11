@@ -1,0 +1,47 @@
+<div class="mb-3 col-md-6">
+  <label class="form-label" for="mqtt_server">MQTT server:</label>
+  <input class="form-control" type="text" id="mqtt_server" name="mqtt_server" value="{{ config['mqtt']['server'] }}">
+</div>
+<div class="mb-3 col-md-6">
+  <label class="form-label" for="mqtt_user">MQTT user:</label>
+  <input class="form-control" type="text" id="mqtt_user" name="mqtt_user" value="{{ config['mqtt']['user'] }}">
+</div>
+<div class="mb-3 col-md-6">
+  <label class="form-label" for="mqtt_password">MQTT password:</label>
+  <input class="form-control" type="password" id="mqtt_password" name="mqtt_password"
+    value="********************************">
+</div>
+<div class="mb-3 col-md-6">
+  <label class="form-label" for="mqtt_device_name">MQTT device name:</label>
+  <input class="form-control" type="text" id="mqtt_device_name" name="mqtt_device_name"
+    value="{{ config['mqtt']['device']['name'] }}">
+</div>
+<div class="mb-3 col-md-6">
+  <label class="form-label" for="mqtt_device_node_id">MQTT device node ID:</label>
+  <input class="form-control" type="text" id="mqtt_device_node_id" name="mqtt_device_node_id"
+    value="{{ config['mqtt']['device']['node_id'] }}">
+</div>
+<div class="mb-3 col-md-6">
+  <label class="form-label" for="mqtt_device_unique_id">MQTT device unique ID:</label>
+  <input class="form-control" type="text" id="mqtt_device_unique_id" name="mqtt_device_unique_id"
+    value="{{ config['mqtt']['device']['unique_id'] }}">
+</div>
+<div class="mb-3 col-md-6">
+  <label class="form-label" for="mqtt_discovery_prefix">MQTT dicovery prefix:</label>
+  <input class="form-control" type="text" id="mqtt_discovery_prefix" name="mqtt_discovery_prefix"
+    value="{{ config['mqtt']['discovery_prefix'] }}">
+</div>
+<div class="mb-3 col-md-6">
+  <label class="form-label" for="mqtt_sensors_water_unit_of_measurement">MQTT water sensor
+    unit of
+    measurement</label>
+  <select class="form-control" id="mqtt_sensors_water_unit_of_measurement"
+    name="mqtt_sensors_water_unit_of_measurement">
+    {% for unit in ["l","cl","dl","hl","m3"] %}
+    <option value="{{ unit }}" {% if unit==config['mqtt']['sensors']['water']['unit_of_measurement'] %}selected{% endif
+      %}>{{
+      unit }}</option>
+
+    {% endfor %}
+  </select>
+</div>
