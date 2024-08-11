@@ -4,103 +4,11 @@
 <div class="row">
   <div class="col-md-12">
     <div class="card mb-4">
-      <h5 class="card-header">Setup</h5>
-      <!-- Account -->
+      <h5 class="card-header">Index</h5>
       <div class="card-body">
-        <div class="d-flex align-items-start align-items-sm-center gap-4">
-          <div class="button-wrapper">
-            <button onclick="CreateHomeAssistantMqttSensor()" type="button" class="btn btn-primary mb-4">
-              <i class="bx bx-reset d-block d-sm-none"></i>
-              <span class="d-none d-sm-block">Create MQTT Sensor</span>
-            </button>
-
-          </div>
-        </div>
-        <small id="mqttStatus" class="text-light fw-medium d-block"></small>
-
-      </div>
-      <hr class="my-0">
-      <div class="card-body">
-
-        <div class="mb-3 col-md-6">
-          <input type="file" class="form-control" id="import-file" aria-label="Upload">
-        </div>
-
-        <div class="button-wrapper">
-          <button onclick="LoadFrame()" type="button" class="btn btn-primary mb-4">
-            <i class="bx bx-reset d-block d-sm-none"></i>
-            <span class="d-none d-sm-block">Load frame</span>
-          </button>
-        </div>
+        {% include 'config/config-frame.html' %}
       </div>
 
-      <div class="card-body">
-        <div class="form-group">
-          <label for="rotate-image">Rotate image</label>
-          <input type="number" step="0.01" class="form-control" id="rotate-image" placeholder="Enter rotate angle">
-        </div>
-      </div>
-
-      <hr class="my-0">
-      <div class="card-body">
-        <div class="d-flex align-items-start align-items-sm-center gap-4">
-          <div class="mb-3 col-md-6">
-            <label class="form-label" for="rectangleSelector">Select unit:</label>
-            <select class="form-control" id="rectangleSelector" onchange="selectRectangle()">
-              <option value="1">All</option>
-              <option value="2">Integer</option>
-              <option value="3">Digit</option>
-            </select>
-          </div>
-          <div class="mb-3 col-md-6">
-            <div id="coordinates"></div>
-          </div>
-        </div>
-        <div class="mt-2">
-          <button onclick="SendEdit()" type="button" class="btn btn-primary me-2">
-            <i class="bx bx-reset d-block d-sm-none"></i>
-            <span class="d-none d-sm-block">Send edit</span>
-          </button>
-        </div>
-      </div>
-      <hr class="my-0">
-      <div class="canvas">
-        <canvas class="img-fluid" id="canvas"></canvas>
-
-
-        <div id="loader-frame" class="spinner-border text-primary loader" role="status">
-          <span class="visually-hidden">Loading...</span>
-        </div>
-      </div>
-
-
-
-      <hr class="my-0">
-      <div class="card-body">
-        <div class="button-wrapper">
-          <button onclick="StartProcess()" type="button" class="btn btn-primary mb-4">
-            <i class="bx bx-reset d-block d-sm-none"></i>
-            <span class="d-none d-sm-block">Start process</span>
-          </button>
-          <div id="loader-process" class="spinner-border text-primary loader loader-process" role="status">
-            <span class="visually-hidden">Loading...</span>
-          </div>
-        </div>
-        <div id="error-message-process" class="alert alert-danger error-message" role="alert"></div>
-        <hr class="my-0">
-        <table id="process-table-result" class="table table-bordered">
-          <thead>
-            <tr>
-              <th>Properties</th>
-              <th>Values</th>
-            </tr>
-          </thead>
-          <tbody class="table-border-bottom-0" id="process-table-result-body">
-
-          </tbody>
-        </table>
-
-      </div>
       <hr class="my-0">
       <div class="card-body">
         <table id="process-table-result" class="table table-bordered">

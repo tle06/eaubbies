@@ -101,6 +101,11 @@ function CreateHomeAssistantMqttSensor() {
         document.getElementById("mqttStatus").innerHTML =
           "🔴MQTT sensors creation error, check the logs";
       }
+    })
+    .catch((error) => {
+      console.error("Error creating mqtt sensor:", error);
+      document.getElementById("mqttStatus").innerHTML =
+        "🔴MQTT sensors creation error, check the logs";
     });
 }
 
@@ -243,9 +248,8 @@ function selectRectangle() {
 }
 
 function updateCoordinates() {
-  // Display coordinates in a div
-  var coordinatesDiv = document.getElementById("coordinates");
-  coordinatesDiv.innerHTML = "";
+  var table = document.getElementById("coordinates-table-body");
+  EmptyTableBody("coordinates-table-body");
 
   rectangles.forEach(function (rect, index) {
     var coordinates = rect.coordinates;
@@ -256,19 +260,18 @@ function updateCoordinates() {
       coordinates.width !== undefined &&
       coordinates.height !== undefined
     ) {
-      // Display coordinates only if they are defined
-      coordinatesDiv.innerHTML +=
-        name +
-        ": Position (" +
-        coordinates.x +
-        ", " +
-        coordinates.y +
-        "), Size (" +
-        coordinates.width +
-        ", " +
-        coordinates.height +
-        ")" +
-        "<br>";
+      // Create a new row
+      var row = table.insertRow();
+      var nameCell = row.insertCell();
+      nameCell.textContent = name;
+      var xCell = row.insertCell();
+      xCell.textContent = coordinates.x;
+      var yCell = row.insertCell();
+      yCell.textContent = coordinates.y;
+      var widthCell = row.insertCell();
+      widthCell.textContent = coordinates.width;
+      var heightCell = row.insertCell();
+      heightCell.textContent = coordinates.height;
     }
   });
 }
@@ -288,7 +291,10 @@ function SendEdit() {
     },
     body: JSON.stringify(rectangles),
   })
-    .then((response) => response.json())
+    .then((response) => {
+      console.log("Coordinates sent successfully:", response);
+      window.location.href = response.url;
+    })
     .then((data) => {
       console.log("Coordinates sent successfully:", data);
     })
@@ -296,3 +302,38 @@ function SendEdit() {
       console.error("Error sending coordinates:", error);
     });
 }
+
+function SendConfig() {
+  var form = document.getElementById("init-config-form");
+  var formData = new FormData(form);
+
+  fetch("/save_config", {
+    method: "POST",
+    body: formData
+  })
+    .then((response) => {
+      document.querySelector('div[data-target="#create-mqtt-sensor"] .step-trigger').click();
+
+    })
+    .catch((error) => {
+      console.error("Error saving config:", error);
+    });
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+  // Check if the current URL path is '/index'
+  if (window.location.pathname === "/index" || window.location.pathname === "/") {
+    // Get the canvas element and its context
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+
+    // Create a new image
+    const img = new Image();
+    img.src = "static/img/frames/origine.jpg"; // Replace with your image path
+
+    // Draw the image onto the canvas once it has loaded
+    img.onload = function () {
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    };
+  }
+});

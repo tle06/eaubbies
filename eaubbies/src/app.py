@@ -34,21 +34,24 @@ register_cron_task(
 
 
 @app.route("/")
+@app.route("/index")
 def index():
-    # statut_azure_vision = "Azure visition is not connected"
-    # client_azure = AzureClient(vision_key=subscription_key, endpoint_url=endpoint)
-    # print(client_azure.verify_credentials())
-    # if client_azure.verify_credentials():
-    #     statut_azure_vision = "Azure visition is connected"
-    # print(statut_azure_vision)
+    conf = YamlConfigLoader()
+    init_config = bool(conf.get_param("setup", "init_config"))
 
-    return render_template("index.html")
+    print(f"init_config value in index: {init_config}")
+
+    if not init_config:
+        print("redirect to init")
+        return redirect(url_for("init"))
+
+    return render_template("index.html", config=configuration.data)
 
 
 @app.route("/init")
 def init():
 
-    return render_template("init.html", config=configuration.data)
+    return render_template("init-config.html", config=configuration.data)
 
 
 @app.route("/config")
@@ -79,85 +82,113 @@ def download_file(filename):
 def save_config():
 
     # Azure vision config
-    vision_key = request.form["vision_key"]
+    if request.form.get("vision_key"):
+        vision_key = request.form["vision_key"]
 
-    if (
-        vision_key != configuration.get_param("vision", "key")
-        and vision_key != "********************************"
-    ):
-        print("Vision key changed")
-        configuration.set_param("vision", "key", value=vision_key)
+        if (
+            vision_key != configuration.get_param("vision", "key")
+            and vision_key != "********************************"
+        ):
+            print("Vision key changed")
+            configuration.set_param("vision", "key", value=vision_key)
 
-    endpoint_url = request.form["endpoint_url"]
-    configuration.set_param("vision", "endpoint", value=endpoint_url)
+    if request.form.get("endpoint_url"):
+        endpoint_url = request.form["endpoint_url"]
+        configuration.set_param("vision", "endpoint", value=endpoint_url)
 
-    vision_integer_digit = request.form["vision_integer_digit"]
-    configuration.set_param("vision", "integer", "digit", value=vision_integer_digit)
+    if request.form.get("vision_integer_digit"):
+        vision_integer_digit = request.form["vision_integer_digit"]
+        configuration.set_param(
+            "vision", "integer", "digit", value=vision_integer_digit
+        )
 
-    vision_integer_unit_of_measurement = request.form[
-        "vision_integer_unit_of_measurement"
-    ]
-    configuration.set_param(
-        "vision",
-        "integer",
-        "unit_of_measurement",
-        value=vision_integer_unit_of_measurement,
-    )
+    if request.form.get("vision_integer_unit_of_measurement"):
+        vision_integer_unit_of_measurement = request.form[
+            "vision_integer_unit_of_measurement"
+        ]
+        configuration.set_param(
+            "vision",
+            "integer",
+            "unit_of_measurement",
+            value=vision_integer_unit_of_measurement,
+        )
 
-    vision_decimal_digit = request.form["vision_decimal_digit"]
-    configuration.set_param("vision", "decimal", "digit", value=vision_decimal_digit)
-    vision_decimal_unit_of_measurement = request.form[
-        "vision_decimal_unit_of_measurement"
-    ]
+    if request.form.get("vision_decimal_digit"):
+        vision_decimal_digit = request.form["vision_decimal_digit"]
+        configuration.set_param(
+            "vision", "decimal", "digit", value=vision_decimal_digit
+        )
+    if request.form.get("vision_decimal_unit_of_measurement"):
+        vision_decimal_unit_of_measurement = request.form[
+            "vision_decimal_unit_of_measurement"
+        ]
 
-    configuration.set_param(
-        "vision",
-        "decimal",
-        "unit_of_measurement",
-        value=vision_decimal_unit_of_measurement,
-    )
+        configuration.set_param(
+            "vision",
+            "decimal",
+            "unit_of_measurement",
+            value=vision_decimal_unit_of_measurement,
+        )
 
     # RTSP config
-    rtsp_url = request.form["rtsp_url"]
-    configuration.set_param("rtsp", "url", value=rtsp_url)
+    if request.form.get("rtsp_url"):
+        rtsp_url = request.form["rtsp_url"]
+        configuration.set_param("rtsp", "url", value=rtsp_url)
 
     # MQTT config
-    mqtt_server = request.form["mqtt_server"]
-    configuration.set_param("mqtt", "server", value=mqtt_server)
-    mqtt_user = request.form["mqtt_user"]
-    configuration.set_param("mqtt", "user", value=mqtt_user)
-    mqtt_password = request.form["mqtt_password"]
-    mqtt_device_name = request.form["mqtt_device_name"]
-    configuration.set_param("mqtt", "device", "name", value=mqtt_device_name)
-    mqtt_device_node_id = request.form["mqtt_device_node_id"]
-    configuration.set_param("mqtt", "device", "node_id", value=mqtt_device_node_id)
-    mqtt_device_unique_id = request.form["mqtt_device_unique_id"]
-    configuration.set_param("mqtt", "device", "unique_id", value=mqtt_device_unique_id)
-    mqtt_discovery_prefix = request.form["mqtt_discovery_prefix"]
-    configuration.set_param("mqtt", "discovery_prefix", value=mqtt_discovery_prefix)
-    mqtt_sensors_water_unit_of_measurement = request.form[
-        "mqtt_sensors_water_unit_of_measurement"
-    ].lower()
-    configuration.set_param(
-        "mqtt",
-        "sensors",
-        "water",
-        "unit_of_measurement",
-        value=mqtt_sensors_water_unit_of_measurement,
-    )
+    if request.form.get("mqtt_server"):
+        mqtt_server = request.form["mqtt_server"]
+        configuration.set_param("mqtt", "server", value=mqtt_server)
 
-    if (
-        mqtt_password != configuration.get_param("mqtt", "password")
-        and mqtt_password != "********************************"
-    ):
-        print("MQTT user password changed")
-        configuration.set_param("mqtt", "password", value=mqtt_password)
+    if request.form.get("mqtt_user"):
+        mqtt_user = request.form["mqtt_user"]
+        configuration.set_param("mqtt", "user", value=mqtt_user)
+
+    if request.form.get("mqtt_password"):
+        mqtt_password = request.form["mqtt_password"]
+        if (
+            mqtt_password != configuration.get_param("mqtt", "password")
+            and mqtt_password != "********************************"
+        ):
+            print("MQTT user password changed")
+            configuration.set_param("mqtt", "password", value=mqtt_password)
+    if request.form.get("mqtt_device_name"):
+        mqtt_device_name = request.form["mqtt_device_name"]
+        configuration.set_param("mqtt", "device", "name", value=mqtt_device_name)
+
+    if request.form.get("mqtt_device_node_id"):
+        mqtt_device_node_id = request.form["mqtt_device_node_id"]
+        configuration.set_param("mqtt", "device", "node_id", value=mqtt_device_node_id)
+
+    if request.form.get("mqtt_device_unique_id"):
+        mqtt_device_unique_id = request.form["mqtt_device_unique_id"]
+        configuration.set_param(
+            "mqtt", "device", "unique_id", value=mqtt_device_unique_id
+        )
+    if request.form.get("mqtt_discovery_prefix"):
+        mqtt_discovery_prefix = request.form["mqtt_discovery_prefix"]
+        configuration.set_param("mqtt", "discovery_prefix", value=mqtt_discovery_prefix)
+    if request.form.get("mqtt_sensors_water_unit_of_measurement"):
+        mqtt_sensors_water_unit_of_measurement = request.form[
+            "mqtt_sensors_water_unit_of_measurement"
+        ].lower()
+        configuration.set_param(
+            "mqtt",
+            "sensors",
+            "water",
+            "unit_of_measurement",
+            value=mqtt_sensors_water_unit_of_measurement,
+        )
 
     if request.form.get("con_time"):
         cron_time = request.form["cron_time"]
         configuration.set_param("service", "cron", value=cron_time)
         print(time_to_cron(cron_time))
         register_cron_task(command=command, selected_time=cron_time)
+
+    if request.referrer.endswith("/init"):
+        return Response(status=200)
+
     return redirect(url_for("config"))
 
 
@@ -224,16 +255,20 @@ def load_frame():
 def create_sensor():
     client_mqtt = MqttCLient()
 
-    response = client_mqtt.mqtt_publish_device()
-    print(response)
+    try:
+        response = client_mqtt.mqtt_publish_device()
+        print(response)
 
-    result = json.dumps(
-        {
-            "mqtt": response,
-        }
-    )
+        result = json.dumps(
+            {
+                "mqtt": response,
+            }
+        )
 
-    return result
+        return result
+    except Exception as e:
+        print(e)
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/send_edit", methods=["POST"])
@@ -248,8 +283,12 @@ def receive_coordinates():
         )
         configuration.set_param("vision", "rotate", value=d["rotate"])
 
-    # Optionally, you can return a response to acknowledge the successful receipt of coordinates
-    return jsonify({"message": "Coordinates received successfully"})
+    init_config = bool(configuration.get_param("setup", "init_config"))
+    print(f"init_config value in send_edit: {init_config}")
+    if not init_config:
+        configuration.set_param("setup", "init_config", value=True)
+
+    return redirect(url_for("index"), code=302)
 
 
 if __name__ == "__main__":

@@ -76,6 +76,7 @@ class YamlConfigLoader:
                 },
             },
             "service": {"cron": "01:00", "counter": 0},
+            "setup": {"init_config": False},
         }
 
         return default_config
