@@ -45,4 +45,8 @@
 
 {% block extra_script %}
 <script src="{{url_for('static', filename='js/setup.js')}}"></script>
+<script>
+  var coordinates_from_flask = {{ config["vision"]["coordinates"] | tojson | safe}};
+  var rotate_from_flask = {{ config["vision"]["rotate"] | tojson | safe}};
+</script>
 {% endblock extra_script %}

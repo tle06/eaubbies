@@ -3,6 +3,8 @@ var rectangles = [
   { name: "integer", coordinates: {}, color: "red" },
   { name: "digit", coordinates: {}, color: "green" },
 ];
+
+
 var currentRectangleIndex = 0;
 
 function ShowLoader(loaderid, display = "block") {
@@ -334,9 +336,52 @@ document.addEventListener("DOMContentLoaded", function () {
     const img = new Image();
     img.src = "static/img/frames/origine.jpg"; // Replace with your image path
 
+    // Function to draw the image with rotation
+    function drawImageWithRotation(angle) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear the canvas
+
+      // Move the canvas origin to the center
+      ctx.translate(canvas.width / 2, canvas.height / 2);
+
+      // Rotate the canvas
+      ctx.rotate((angle * Math.PI) / 180);
+
+      // Draw the rotated image, centered
+      ctx.drawImage(img, -img.width / 2, -img.height / 2, canvas.width, canvas.height);
+
+      // Reset the canvas transformation
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+      // Transforming the object into the desired format
+      rectangles.forEach(rect => {
+        if (coordinates_from_flask[rect.name]) {
+          rect.coordinates = {
+            x: coordinates_from_flask[rect.name].x,
+            y: coordinates_from_flask[rect.name].y,
+            width: coordinates_from_flask[rect.name].width,
+            height: coordinates_from_flask[rect.name].height
+          };
+        }
+      });
+
+      rectangles.forEach(function (rect) {
+        var coordinates = rect.coordinates;
+        ctx.strokeStyle = rect.color;
+        ctx.lineWidth = 2;
+        ctx.strokeRect(
+          coordinates.x,
+          coordinates.y,
+          coordinates.width,
+          coordinates.height
+        );
+      });
+    }
     // Draw the image onto the canvas once it has loaded
     img.onload = function () {
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      console.log(rotate_from_flask);
+      canvas.width = img.width;
+      canvas.height = img.height;
+      drawImageWithRotation(rotate_from_flask);
     };
   }
 });
