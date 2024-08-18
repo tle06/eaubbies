@@ -4,7 +4,6 @@ var rectangles = [
   { name: "digit", coordinates: {}, color: "green" },
 ];
 
-
 var currentRectangleIndex = 0;
 
 function ShowLoader(loaderid, display = "block") {
@@ -53,11 +52,16 @@ function drawImageWithRotation(ctx, img, angle, canvas) {
   ctx.rotate((angle * Math.PI) / 180);
 
   // Draw the rotated image, centered
-  ctx.drawImage(img, -img.width / 2, -img.height / 2, canvas.width, canvas.height);
+  ctx.drawImage(
+    img,
+    -img.width / 2,
+    -img.height / 2,
+    canvas.width,
+    canvas.height,
+  );
 
   // Reset the canvas transformation
   ctx.setTransform(1, 0, 0, 1, 0, 0);
-
 
   rectangles.forEach(function (rect) {
     var coordinates = rect.coordinates;
@@ -67,7 +71,7 @@ function drawImageWithRotation(ctx, img, angle, canvas) {
       coordinates.x,
       coordinates.y,
       coordinates.width,
-      coordinates.height
+      coordinates.height,
     );
   });
 }
@@ -159,7 +163,6 @@ function LoadFrame() {
   var ctx = canvas.getContext("2d");
   var data;
 
-
   if (fileInput.files.length > 0) {
     // File upload
     var file = fileInput.files[0];
@@ -170,7 +173,6 @@ function LoadFrame() {
     };
     reader.readAsDataURL(file);
   } else {
-
     // API call
     fetch("/load_frame")
       .then((response) => response.json())
@@ -182,11 +184,12 @@ function LoadFrame() {
         console.error("Error loading image from API:", error);
       });
   }
+
   document.getElementById("input-rotate-image").disabled = false;
   document.getElementById("select-rectangle").disabled = false;
-  document.getElementById("button-send-edit").disabled = false;
-
-
+  if (document.getElementById("button-send-edit")) {
+    document.getElementById("button-send-edit").disabled = false;
+  }
 
   function loadImage(data) {
     HideLoader("loader-frame");
@@ -204,9 +207,6 @@ function LoadFrame() {
 
     img.src = data;
   }
-
-
-
 
   function startDrawing(e) {
     // Update coordinates when drawing starts
@@ -233,8 +233,14 @@ function LoadFrame() {
 
     rect.width = (e.clientX - rectBounds.left) * scaleX - rect.x;
     rect.height = (e.clientY - rectBounds.top) * scaleY - rect.y;
-    var angle = parseFloat(document.getElementById("input-rotate-image").value) || 0
-    drawImageWithRotation(ctx = ctx, img = img, angle = angle, canvas = canvas);
+    var angle =
+      parseFloat(document.getElementById("input-rotate-image").value) || 0;
+    drawImageWithRotation(
+      (ctx = ctx),
+      (img = img),
+      (angle = angle),
+      (canvas = canvas),
+    );
   }
 
   function stopDrawing() {
@@ -247,7 +253,12 @@ function LoadFrame() {
     .getElementById("input-rotate-image")
     .addEventListener("input", function () {
       var angle = parseFloat(this.value) || 0;
-      drawImageWithRotation(ctx = ctx, img = img, angle = angle, canvas = canvas);
+      drawImageWithRotation(
+        (ctx = ctx),
+        (img = img),
+        (angle = angle),
+        (canvas = canvas),
+      );
     });
 
   //img.src = data;
@@ -334,9 +345,6 @@ function SendConfig() {
     });
 }
 
-
-
-
 document.addEventListener("DOMContentLoaded", function () {
   // Check if the current URL path is '/index'
   if (
@@ -353,13 +361,13 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Transforming the object into the desired format
     if (coordinates_from_flask) {
-      rectangles.forEach(rect => {
+      rectangles.forEach((rect) => {
         if (coordinates_from_flask[rect.name]) {
           rect.coordinates = {
             x: coordinates_from_flask[rect.name].x,
             y: coordinates_from_flask[rect.name].y,
             width: coordinates_from_flask[rect.name].width,
-            height: coordinates_from_flask[rect.name].height
+            height: coordinates_from_flask[rect.name].height,
           };
         }
       });
@@ -369,8 +377,12 @@ document.addEventListener("DOMContentLoaded", function () {
       console.log(rotate_from_flask);
       canvas.width = img.width;
       canvas.height = img.height;
-      drawImageWithRotation(ctx = ctx, img = img, angle = rotate_from_flask, canvas = canvas);
-
+      drawImageWithRotation(
+        (ctx = ctx),
+        (img = img),
+        (angle = rotate_from_flask),
+        (canvas = canvas),
+      );
     };
   }
 });
