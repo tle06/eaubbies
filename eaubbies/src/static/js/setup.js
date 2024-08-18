@@ -27,12 +27,19 @@ function updateTableFromObject(table, obj) {
 
 function ShowErrorMessages(errorid, errorMessages) {
   document.getElementById(errorid).style.display = "block";
-  document.getElementById(errorid).textContent = errorMessages;
+  var errorElement = document.getElementById(errorid);
+  var existingParagraph = errorElement.querySelector("p");
+  existingParagraph.textContent = errorMessages;
+  document.getElementById(errorid).appendChild(existingParagraph);
 }
 
 function ResetErrorMessages(errorid) {
   document.getElementById(errorid).style.display = "none";
-  document.getElementById(errorid).textContent = "";
+  var errorElement = document.getElementById(errorid);
+  var existingParagraph = errorElement.querySelector("p");
+  if (existingParagraph) {
+    existingParagraph.textContent = "";
+  }
 }
 
 function EmptyTableBody(bodyid) {
@@ -87,7 +94,7 @@ function StartProcess() {
 
   var requestUrl = "/run_process";
   var requestMethod = "GET";
-  var fetchOptions = { method: requestMethod };
+  var fetchOptions = { method: requestMethod, signal: AbortSignal.timeout(30000) };
 
   if (fileInput.files.length > 0) {
     // Send file via POST request
@@ -101,8 +108,9 @@ function StartProcess() {
 
   fetch(requestUrl, fetchOptions)
     .then((response) => {
+      console.log("Response:", response);
       if (!response.ok) {
-        throw new Error("Network response was not ok");
+        ShowErrorMessages("error-message-process", response);
       }
       return response.json();
     })

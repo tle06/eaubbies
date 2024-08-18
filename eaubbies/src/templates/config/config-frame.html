@@ -78,9 +78,14 @@
         </div>
         {% if request.path == '/' or request.path == '/index'%}
         <div class="form-group my-4">
-          <button {{ disabled_filed }} class="btn btn-primary d-grid w-100 my-2" onclick="SendEdit()"
+          <button {{ disabled_filed }} class="btn btn-secondary d-grid w-100 my-2" onclick="SendEdit()"
             id="button-send-edit">
             <span class="d-flex align-items-center justify-content-center text-nowrap">Update config</span>
+          </button>
+        </div>
+        <div class="form-group my-4">
+          <button class="btn btn-primary d-grid w-100 my-2" onclick="StartProcess()" id="button-send-edit">
+            <span class="d-flex align-items-center justify-content-center text-nowrap">Test reading</span>
           </button>
         </div>
         {% endif %}

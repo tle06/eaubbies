@@ -11,16 +11,26 @@
 
       <hr class="my-0">
       <div class="card-body">
+        <div id="loader-process" class="spinner-border text-primary loader" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+        <div class="alert alert-danger alert-dismissible" role="alert" id="error-message-process"
+          style="display: none;">
+          <h4 class="alert-heading d-flex align-items-center"><span class="alert-icon rounded-circle"><i
+                class="bx bx-error"></i></span>Error!!</h4>
+          <p></p>
+        </div>
         <table id="process-table-result" class="table table-bordered">
           <thead>
             <th>Source</th>
             <th>improve</th>
             <th>Azure vision</th>
           </thead>
-          <tbody>
+          <tbody id="process-table-result-body">
             <tr>
-              <td><img id="sourceFrame" src="{{url_for('static', filename='img/frames/origine.jpg')}}" width="100%"
-                  alt="Source Frame" /></td>
+              <td><img id=" sourceFrame" src="{{url_for('static', filename='img/frames/origine.jpg')}}" width="100%"
+                  alt="Source Frame" />
+              </td>
               <td>
                 <img id="improveFrame" src="{{url_for('static', filename='img/frames/improve.jpg')}}" width="100%"
                   alt="Source Frame" />
@@ -34,6 +44,7 @@
             </tr>
           </tbody>
         </table>
+
       </div>
 
 
