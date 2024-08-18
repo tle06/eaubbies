@@ -42,6 +42,37 @@ function EmptyTableBody(bodyid) {
   rows.forEach((row) => row.remove());
 }
 
+// Function to draw the image with rotation
+function drawImageWithRotation(ctx, img, angle, canvas) {
+  ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear the canvas
+
+  // Move the canvas origin to the center
+  ctx.translate(canvas.width / 2, canvas.height / 2);
+
+  // Rotate the canvas
+  ctx.rotate((angle * Math.PI) / 180);
+
+  // Draw the rotated image, centered
+  ctx.drawImage(img, -img.width / 2, -img.height / 2, canvas.width, canvas.height);
+
+  // Reset the canvas transformation
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+
+  rectangles.forEach(function (rect) {
+    var coordinates = rect.coordinates;
+    ctx.strokeStyle = rect.color;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(
+      coordinates.x,
+      coordinates.y,
+      coordinates.width,
+      coordinates.height
+    );
+  });
+}
+
+// functions triggered by UI
 function StartProcess() {
   ShowLoader("loader-process", "inline");
   ResetErrorMessages("error-message-process");
@@ -126,8 +157,9 @@ function LoadFrame() {
   var fileInput = document.getElementById("import-file");
   var img = new Image();
   var ctx = canvas.getContext("2d");
-
   var data;
+
+
   if (fileInput.files.length > 0) {
     // File upload
     var file = fileInput.files[0];
@@ -138,19 +170,26 @@ function LoadFrame() {
     };
     reader.readAsDataURL(file);
   } else {
+
     // API call
     fetch("/load_frame")
       .then((response) => response.json())
       .then((data) => {
         data = data;
         loadImage(data);
+      })
+      .catch((error) => {
+        console.error("Error loading image from API:", error);
       });
   }
+  document.getElementById("input-rotate-image").disabled = false;
+  document.getElementById("select-rectangle").disabled = false;
+  document.getElementById("button-send-edit").disabled = false;
+
+
 
   function loadImage(data) {
     HideLoader("loader-frame");
-    console.log(rectangles);
-
     var canvas = document.getElementById("canvas");
 
     img.onload = function () {
@@ -166,34 +205,8 @@ function LoadFrame() {
     img.src = data;
   }
 
-  function drawImageWithRotation(angle) {
-    ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear the canvas
 
-    // Move the canvas origin to the center
-    ctx.translate(canvas.width / 2, canvas.height / 2);
 
-    // Rotate the canvas
-    ctx.rotate((angle * Math.PI) / 180);
-
-    // Draw the rotated image, centered
-    ctx.drawImage(img, -img.width / 2, -img.height / 2);
-
-    // Reset the canvas transformation
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-
-    // Redraw any rectangles (assuming they are drawn after rotation)
-    rectangles.forEach(function (rect, index) {
-      var coordinates = rect.coordinates;
-      ctx.strokeStyle = rect.color;
-      ctx.lineWidth = 2;
-      ctx.strokeRect(
-        coordinates.x,
-        coordinates.y,
-        coordinates.width,
-        coordinates.height,
-      );
-    });
-  }
 
   function startDrawing(e) {
     // Update coordinates when drawing starts
@@ -220,9 +233,8 @@ function LoadFrame() {
 
     rect.width = (e.clientX - rectBounds.left) * scaleX - rect.x;
     rect.height = (e.clientY - rectBounds.top) * scaleY - rect.y;
-    drawImageWithRotation(
-      parseFloat(document.getElementById("rotate-image").value) || 0,
-    );
+    var angle = parseFloat(document.getElementById("input-rotate-image").value) || 0
+    drawImageWithRotation(ctx = ctx, img = img, angle = angle, canvas = canvas);
   }
 
   function stopDrawing() {
@@ -232,10 +244,10 @@ function LoadFrame() {
   }
 
   document
-    .getElementById("rotate-image")
-    .addEventListener("change", function () {
-      const angle = parseFloat(this.value) || 0;
-      drawImageWithRotation(angle);
+    .getElementById("input-rotate-image")
+    .addEventListener("input", function () {
+      var angle = parseFloat(this.value) || 0;
+      drawImageWithRotation(ctx = ctx, img = img, angle = angle, canvas = canvas);
     });
 
   //img.src = data;
@@ -243,7 +255,7 @@ function LoadFrame() {
 
 function selectRectangle() {
   currentRectangleIndex =
-    parseInt(document.getElementById("rectangleSelector").value) - 1;
+    parseInt(document.getElementById("select-rectangle").value) - 1;
   updateCoordinates();
 }
 
@@ -279,7 +291,7 @@ function updateCoordinates() {
 function SendEdit() {
   // Send the coordinates stored in the global variable 'rectangles' to the Flask backend
   var rotateValue =
-    parseFloat(document.getElementById("rotate-image").value) || 0;
+    parseFloat(document.getElementById("input-rotate-image").value) || 0;
   rectangles.forEach(function (rect) {
     rect.rotate = rotateValue;
   });
@@ -322,6 +334,9 @@ function SendConfig() {
     });
 }
 
+
+
+
 document.addEventListener("DOMContentLoaded", function () {
   // Check if the current URL path is '/index'
   if (
@@ -329,30 +344,15 @@ document.addEventListener("DOMContentLoaded", function () {
     window.location.pathname === "/"
   ) {
     // Get the canvas element and its context
-    const canvas = document.getElementById("canvas");
-    const ctx = canvas.getContext("2d");
+    var canvas = document.getElementById("canvas");
+    var ctx = canvas.getContext("2d");
 
     // Create a new image
-    const img = new Image();
+    var img = new Image();
     img.src = "static/img/frames/origine.jpg"; // Replace with your image path
 
-    // Function to draw the image with rotation
-    function drawImageWithRotation(angle) {
-      ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear the canvas
-
-      // Move the canvas origin to the center
-      ctx.translate(canvas.width / 2, canvas.height / 2);
-
-      // Rotate the canvas
-      ctx.rotate((angle * Math.PI) / 180);
-
-      // Draw the rotated image, centered
-      ctx.drawImage(img, -img.width / 2, -img.height / 2, canvas.width, canvas.height);
-
-      // Reset the canvas transformation
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-
-      // Transforming the object into the desired format
+    // Transforming the object into the desired format
+    if (coordinates_from_flask) {
       rectangles.forEach(rect => {
         if (coordinates_from_flask[rect.name]) {
           rect.coordinates = {
@@ -363,25 +363,14 @@ document.addEventListener("DOMContentLoaded", function () {
           };
         }
       });
-
-      rectangles.forEach(function (rect) {
-        var coordinates = rect.coordinates;
-        ctx.strokeStyle = rect.color;
-        ctx.lineWidth = 2;
-        ctx.strokeRect(
-          coordinates.x,
-          coordinates.y,
-          coordinates.width,
-          coordinates.height
-        );
-      });
     }
     // Draw the image onto the canvas once it has loaded
     img.onload = function () {
       console.log(rotate_from_flask);
       canvas.width = img.width;
       canvas.height = img.height;
-      drawImageWithRotation(rotate_from_flask);
+      drawImageWithRotation(ctx = ctx, img = img, angle = rotate_from_flask, canvas = canvas);
+
     };
   }
 });
