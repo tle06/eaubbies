@@ -2,9 +2,11 @@
 ARG BUILD_FROM
 FROM $BUILD_FROM
 WORKDIR /app
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
 
 RUN apt-get update -y && \
-    apt-get install --no-install-recommends -y nano python3 ffmpeg nginx python3-pip python3-dev supervisor && \
+    apt-get install --no-install-recommends -y nano python3 ffmpeg nginx python3-pip python3-dev supervisor cron && \
     rm /usr/lib/python3.11/EXTERNALLY-MANAGED
 
 RUN curl -sSL https://install.python-poetry.org | python3 -
