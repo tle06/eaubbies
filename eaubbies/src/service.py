@@ -21,16 +21,16 @@ def create_improved_frame(use_file: bool = False, file=None):
 
     if use_file:
         if file:
-            print(file.filename)
+            app.logger.info(file.filename)
             frame_to_process = client_rtsp.load_frame_from_file(file=file)
     else:
         frame_to_process = client_rtsp.get_frame()
 
     # rotate frame
     rotate = configuration.get_param("vision", "rotate")
-    print(rotate)
+    app.logger.info(rotate)
     if rotate > 0:
-        print(f"rotate image to {rotate} degres")
+        app.logger.info(f"rotate image to {rotate} degres")
         frame_to_process = client_rtsp.rotate_frame(angle=rotate)
 
     # improve frame
@@ -81,11 +81,11 @@ def create_improved_frame(use_file: bool = False, file=None):
 
         coordinates_selection = coordinates_selection.lower().strip()
 
-        print(coordinates_selection)
+        app.logger.info(coordinates_selection)
         coordinates = configuration.get_param(
             "vision", "coordinates", coordinates_selection
         )
-        print(coordinates_selection, coordinates)
+        app.logger.info(coordinates_selection, coordinates)
         if (
             int(coordinates["x"])
             and int(coordinates["y"])
@@ -133,14 +133,14 @@ def service_process(
 
     # process the result of vision
     line_with_data = configuration.get_param("vision", "line_with_data") or 0
-    print(line_with_data)
+    app.logger.info(line_with_data)
     raw_result = result[0].lines[line_with_data].text
-    print(raw_result)
+    app.logger.info(raw_result)
 
     try:
         result_values = generate_result(raw_result=raw_result)
     except Exception as e:
-        print(e)
+        app.logger.info(e)
         return ValueError("couldn't get the digitalisation of the meter")
 
     # save result
@@ -174,8 +174,8 @@ def service_process(
 
     if increase_cron_count:
         curent_count = int(configuration.get_param("service", "counter"))
-        print(f"curent_count: {curent_count}")
-        print(f"new count: {curent_count+1}")
+        app.logger.info(f"curent_count: {curent_count}")
+        app.logger.info(f"new count: {curent_count+1}")
         configuration.set_param("service", "counter", value=curent_count + 1)
 
     return data

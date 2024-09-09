@@ -39,10 +39,10 @@ def index():
     conf = YamlConfigLoader()
     init_config = bool(conf.get_param("setup", "init_config"))
 
-    print(f"init_config value in index: {init_config}")
+    app.logger.info(f"init_config value in index: {init_config}")
 
     if not init_config:
-        print("redirect to init")
+        app.logger.info("redirect to init")
         return redirect(url_for("init"))
 
     return render_template("index.html", config=configuration.data)
@@ -89,7 +89,7 @@ def save_config():
             vision_key != configuration.get_param("vision", "key")
             and vision_key != "********************************"
         ):
-            print("Vision key changed")
+            app.logger.info("Vision key updated")
             configuration.set_param("vision", "key", value=vision_key)
 
     if request.form.get("endpoint_url"):
@@ -150,7 +150,7 @@ def save_config():
             mqtt_password != configuration.get_param("mqtt", "password")
             and mqtt_password != "********************************"
         ):
-            print("MQTT user password changed")
+            app.logger.info("MQTT user password changed")
             configuration.set_param("mqtt", "password", value=mqtt_password)
     if request.form.get("mqtt_device_name"):
         mqtt_device_name = request.form["mqtt_device_name"]
@@ -183,7 +183,7 @@ def save_config():
     if request.form.get("con_time"):
         cron_time = request.form["cron_time"]
         configuration.set_param("service", "cron", value=cron_time)
-        print(time_to_cron(cron_time))
+        app.logger.info(f"cron time update: {time_to_cron(cron_time)}")
         register_cron_task(command=command, selected_time=cron_time)
 
     if request.referrer.endswith("/init"):
@@ -220,7 +220,8 @@ def run_process():
         # Here you would handle the uploaded file, for example:
         # file.save(os.path.join('/path/to/save', file.filename))
 
-        print("File received:", file.filename)
+        app.logger.info("[RUN PROCESS] File mode will be used")
+        app.logger.info(f"[RUN PROCESS] File received: {file.filename}")
         use_file = True
 
     # Call your service function
@@ -228,7 +229,7 @@ def run_process():
         result = service_process(use_file=use_file, file=file)
         if isinstance(result, ValueError):
             return jsonify({"error": str(result)})
-        print(result)
+        app.logger.info(result)
         return jsonify(result)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -257,7 +258,7 @@ def create_sensor():
 
     try:
         response = client_mqtt.mqtt_publish_device()
-        print(response)
+        app.logger.info(f"MQTT response: {response}")
 
         result = json.dumps(
             {
@@ -267,7 +268,7 @@ def create_sensor():
 
         return result
     except Exception as e:
-        print(e)
+        app.logger.info("Error: {e}")
         return jsonify({"error": str(e)}), 500
 
 
@@ -275,7 +276,7 @@ def create_sensor():
 def receive_coordinates():
     data = request.json
     # Process the received coordinates here
-    print("Received coordinates:", data)
+    app.logger.info("Received coordinates:", data)
 
     for d in data:
         configuration.set_param(
@@ -284,7 +285,7 @@ def receive_coordinates():
         configuration.set_param("vision", "rotate", value=d["rotate"])
 
     init_config = bool(configuration.get_param("setup", "init_config"))
-    print(f"init_config value in send_edit: {init_config}")
+    app.logger.info(f"init_config value in send_edit: {init_config}")
     if not init_config:
         configuration.set_param("setup", "init_config", value=True)
 
