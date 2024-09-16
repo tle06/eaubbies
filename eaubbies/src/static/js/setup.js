@@ -94,7 +94,10 @@ function StartProcess() {
 
   var requestUrl = "/run_process";
   var requestMethod = "GET";
-  var fetchOptions = { method: requestMethod, signal: AbortSignal.timeout(30000) };
+  var fetchOptions = {
+    method: requestMethod,
+    signal: AbortSignal.timeout(30000),
+  };
 
   if (fileInput.files.length > 0) {
     // Send file via POST request
