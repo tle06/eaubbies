@@ -1,3 +1,4 @@
+---
 services:
   homeassistant:
     profiles:
@@ -13,7 +14,6 @@ services:
     privileged: true
     ports:
       - 8123:8123
-  
   eaubbies:
     profiles:
       - ""
