@@ -27,6 +27,9 @@ import io
 
 app = Flask(__name__)
 configuration = YamlConfigLoader()
+path_frame_folder = configuration.get_param("frame", "storage_path")
+app.logger.info(f"Frame folder path: {path_frame_folder}")
+os.makedirs(path_frame_folder, exist_ok=True)
 command = "/root/.local/share/pypoetry/venv/bin/poetry run python /app/cron.py"
 register_cron_task(
     command=command, selected_time=configuration.get_param("service", "cron")
