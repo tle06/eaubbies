@@ -1,4 +1,8 @@
 /src/data
 /src/static/img/frames
+/src/.venv
 .env
 __pycache__
+.venv
+.venv/
+.flaskenv

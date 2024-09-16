@@ -1,0 +1,181 @@
+{% extends 'core.html' %}
+
+{% block content %}
+<!-- Default Wizard -->
+<div class="col-12 mb-4">
+  <div class="bs-stepper wizard-numbered mt-2">
+    <div class="bs-stepper-header">
+      <div class="step active" data-target="#mqtt-config">
+        <button type="button" class="step-trigger" aria-selected="true">
+          <span class="bs-stepper-circle">1</span>
+          <span class="bs-stepper-label">
+            <span class="bs-stepper-title">MQTT sensor</span>
+            <span class="bs-stepper-subtitle">Setup MQTT sensor</span>
+          </span>
+        </button>
+      </div>
+      <div class="line">
+        <i class="bx bx-chevron-right"></i>
+      </div>
+      <div class="step" data-target="#rtsp-config">
+        <button type="button" class="step-trigger" aria-selected="false">
+          <span class="bs-stepper-circle">2</span>
+          <span class="bs-stepper-label">
+            <span class="bs-stepper-title">RTSP</span>
+            <span class="bs-stepper-subtitle">Setup RTSP url</span>
+          </span>
+
+        </button>
+      </div>
+      <div class="line">
+        <i class="bx bx-chevron-right"></i>
+      </div>
+      <div class="step" data-target="#azure-vision-config">
+        <button type="button" class="step-trigger" aria-selected="false">
+          <span class="bs-stepper-circle">3</span>
+          <span class="bs-stepper-label">
+            <span class="bs-stepper-title">Azure Vision</span>
+            <span class="bs-stepper-subtitle">Setup azure vision</span>
+          </span>
+        </button>
+      </div>
+
+      <div class="line">
+        <i class="bx bx-chevron-right"></i>
+      </div>
+      <div class="step" data-target="#create-mqtt-sensor">
+        <button type="button" class="step-trigger" aria-selected="false">
+          <span class="bs-stepper-circle">4</span>
+          <span class="bs-stepper-label">
+            <span class="bs-stepper-title">Create MQTT sensor</span>
+            <span class="bs-stepper-subtitle">Create the MQTT sensor</span>
+          </span>
+
+        </button>
+      </div>
+      <div class="line">
+        <i class="bx bx-chevron-right"></i>
+      </div>
+      <div class="step" data-target="#frame-config">
+        <button type="button" class="step-trigger" aria-selected="false">
+          <span class="bs-stepper-circle">5</span>
+          <span class="bs-stepper-label">
+            <span class="bs-stepper-title">Frame config</span>
+            <span class="bs-stepper-subtitle">Config frame options</span>
+          </span>
+
+        </button>
+      </div>
+    </div>
+    <div class="bs-stepper-content">
+      <form onsubmit="return false" id="init-config-form">
+        <!-- MQTT config -->
+        <div id="mqtt-config" class="content active dstepper-block">
+          <div class="content-header mb-4">
+            <h6 class="mb-0">MQTT config</h6>
+            <small>Enter the MQTT sensors configuration</small>
+          </div>
+          <div class="row g-6">
+            {% include 'config/config-mqtt.html' %}
+            <div class="col-12 d-flex justify-content-between mt-4">
+              <button class="btn btn-label-secondary btn-prev" disabled="">
+                <i class="bx bx-left-arrow-alt bx-sm ms-sm-n2 me-sm-2"></i>
+                <span class="align-middle d-sm-inline-block d-none">Previous</span>
+              </button>
+              <button class="btn btn-primary btn-next">
+                <span class="align-middle d-sm-inline-block d-none me-sm-2">Next</span>
+                <i class="bx bx-chevron-right bx-sm me-sm-n2"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+        <!-- RTSP -->
+        <div id="rtsp-config" class="content">
+          <div class="content-header mb-4">
+            <h6 class="mb-0">RTSP config</h6>
+            <small>Enter the RTSP config with the format <b>rtsp://username:password@hostname:port/path</b></small><br>
+            <small>Example: <b>rtsp://home-assistant:home-assistant@192.168.1.200:554/stream1</b></small>
+          </div>
+          <div class="row g-6">
+            {% include 'config/config-rtsp.html' %}
+            <div class="col-12 d-flex justify-content-between mt-4">
+              <button class="btn btn-primary btn-prev">
+                <i class="bx bx-left-arrow-alt bx-sm ms-sm-n2 me-sm-2"></i>
+                <span class="align-middle d-sm-inline-block d-none">Previous</span>
+              </button>
+              <button class="btn btn-primary btn-next">
+                <span class="align-middle d-sm-inline-block d-none me-sm-2">Next</span>
+                <i class="bx bx-chevron-right bx-sm me-sm-n2"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+        <!-- Azure vision -->
+        <div id="azure-vision-config" class="content">
+          <div class="content-header mb-4">
+            <h6 class="mb-0">A Vision config</h6>
+            <small>Enter Azure vision configuration</small>
+          </div>
+          <div class="row g-6">
+            {% include 'config/config-azure-vision.html' %}
+            <div class="col-12 d-flex justify-content-between mt-4">
+              <button class="btn btn-primary btn-prev">
+                <i class="bx bx-left-arrow-alt bx-sm ms-sm-n2 me-sm-2"></i>
+                <span class="align-middle d-sm-inline-block d-none">Previous</span>
+              </button>
+              <button class="btn btn-success btn-submit" onclick=SendConfig()>Submit</button>
+            </div>
+          </div>
+        </div>
+      </form>
+
+      <!-- Create MQTT sensor -->
+      <div id="create-mqtt-sensor" class="content">
+        <div class="content-header mb-4">
+          <h6 class="mb-0">Create MQTT sensor</h6>
+          <small>Click on the button to create the MQTT sensor</small>
+          <small id="mqttStatus" class="text-light fw-medium d-block"></small>
+        </div>
+        <div class="row g-6">
+
+          <div class="col-12 d-flex justify-content-between mt-4">
+            <button class="btn btn-primary btn-prev">
+              <i class="bx bx-left-arrow-alt bx-sm ms-sm-n2 me-sm-2"></i>
+              <span class="align-middle d-sm-inline-block d-none">Previous</span>
+            </button>
+            <button class="btn btn-success btn-submit" onclick=CreateHomeAssistantMqttSensor()>Create sensor</button>
+
+          </div>
+        </div>
+      </div>
+      <!-- Frame config -->
+      <div id="frame-config" class="content">
+        <div class="content-header mb-4">
+          <h6 class="mb-0">Frame config</h6>
+          <small>Configure the frame options</small>
+        </div>
+        <div class="row g-6">
+          {% include 'config/config-frame.html' %}
+          <div class="col-12 d-flex justify-content-between mt-4">
+            <button class="btn btn-primary btn-prev">
+              <i class="bx bx-left-arrow-alt bx-sm ms-sm-n2 me-sm-2"></i>
+              <span class="align-middle d-sm-inline-block d-none">Previous</span>
+            </button>
+            <button class="btn btn-success btn-submit" onclick="SendEdit()">Submit</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- /Default Wizard -->
+
+
+
+{% endblock content %}
+
+{% block extra_script %}
+<script src="{{url_for('static', filename='vendor/libs/bs-stepper/bs-stepper.js')}}"></script>
+<script src="{{url_for('static', filename='js/form-wizard-numbered.js')}}"></script>
+<script src="{{url_for('static', filename='js/setup.js')}}"></script>
+{% endblock extra_script %}

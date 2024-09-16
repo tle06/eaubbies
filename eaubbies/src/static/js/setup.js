@@ -3,6 +3,7 @@ var rectangles = [
   { name: "integer", coordinates: {}, color: "red" },
   { name: "digit", coordinates: {}, color: "green" },
 ];
+
 var currentRectangleIndex = 0;
 
 function ShowLoader(loaderid, display = "block") {
@@ -24,14 +25,21 @@ function updateTableFromObject(table, obj) {
   }
 }
 
-function ShowErrorMessages(errorMessages) {
+function ShowErrorMessages(errorid, errorMessages) {
   document.getElementById(errorid).style.display = "block";
-  document.getElementById(errorid).textContent = errorMessages;
+  var errorElement = document.getElementById(errorid);
+  var existingParagraph = errorElement.querySelector("p");
+  existingParagraph.textContent = errorMessages;
+  document.getElementById(errorid).appendChild(existingParagraph);
 }
 
 function ResetErrorMessages(errorid) {
   document.getElementById(errorid).style.display = "none";
-  document.getElementById(errorid).textContent = "";
+  var errorElement = document.getElementById(errorid);
+  var existingParagraph = errorElement.querySelector("p");
+  if (existingParagraph) {
+    existingParagraph.textContent = "";
+  }
 }
 
 function EmptyTableBody(bodyid) {
@@ -39,28 +47,93 @@ function EmptyTableBody(bodyid) {
   rows = tbody.querySelectorAll("tr");
   rows.forEach((row) => row.remove());
 }
+
+// Function to draw the image with rotation
+function drawImageWithRotation(ctx, img, angle, canvas) {
+  ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear the canvas
+
+  // Move the canvas origin to the center
+  ctx.translate(canvas.width / 2, canvas.height / 2);
+
+  // Rotate the canvas
+  ctx.rotate((angle * Math.PI) / 180);
+
+  // Draw the rotated image, centered
+  ctx.drawImage(
+    img,
+    -img.width / 2,
+    -img.height / 2,
+    canvas.width,
+    canvas.height,
+  );
+
+  // Reset the canvas transformation
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+  rectangles.forEach(function (rect) {
+    var coordinates = rect.coordinates;
+    ctx.strokeStyle = rect.color;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(
+      coordinates.x,
+      coordinates.y,
+      coordinates.width,
+      coordinates.height,
+    );
+  });
+}
+
+// functions triggered by UI
 function StartProcess() {
   ShowLoader("loader-process", "inline");
   ResetErrorMessages("error-message-process");
   EmptyTableBody("process-table-result-body");
 
-  fetch("/run_process")
-    .then((response) => response.json())
+  var fileInput = document.getElementById("import-file");
+  var formData = new FormData();
+
+  var requestUrl = "/run_process";
+  var requestMethod = "GET";
+  var fetchOptions = {
+    method: requestMethod,
+    signal: AbortSignal.timeout(30000),
+  };
+
+  if (fileInput.files.length > 0) {
+    // Send file via POST request
+    requestMethod = "POST";
+    formData.append("file", fileInput.files[0]);
+    fetchOptions = {
+      method: requestMethod,
+      body: formData,
+    };
+  }
+
+  fetch(requestUrl, fetchOptions)
+    .then((response) => {
+      console.log("Response:", response);
+      if (!response.ok) {
+        ShowErrorMessages("error-message-process", response);
+      }
+      return response.json();
+    })
     .then((data) => {
+      HideLoader("loader-process");
       if (data.hasOwnProperty("error")) {
-        HideLoader("loader-process");
         console.log("Error:", data.error);
-        ShowErrorMessages("error-message-process");
+        ShowErrorMessages("error-message-process", data.error);
       } else {
-        HideLoader("loader-process");
         console.log(data);
         document.getElementById("sourceFrame").src = data.images.image_source;
         document.getElementById("improveFrame").src = data.images.image_improve;
         document.getElementById("azureVision").src = data.images.image_vision;
         console.log(data.result);
         var table = document.getElementById("process-table-result");
-        table.appendChild(updateTableFromObject(table, data.result));
+        updateTableFromObject(table, data.result);
       }
+    })
+    .catch((error) => {
+      console.error("Error sending file:", error);
     });
 }
 
@@ -76,6 +149,11 @@ function CreateHomeAssistantMqttSensor() {
         document.getElementById("mqttStatus").innerHTML =
           "🔴MQTT sensors creation error, check the logs";
       }
+    })
+    .catch((error) => {
+      console.error("Error creating mqtt sensor:", error);
+      document.getElementById("mqttStatus").innerHTML =
+        "🔴MQTT sensors creation error, check the logs";
     });
 }
 
@@ -91,91 +169,121 @@ function LoadFrame() {
   EmptyCanvas("canvas");
   ShowLoader("loader-frame");
 
-  fetch("/load_frame")
-    .then((response) => response.json())
-    .then((data) => {
-      HideLoader("loader-frame");
-      console.log(rectangles);
+  var fileInput = document.getElementById("import-file");
+  var img = new Image();
+  var ctx = canvas.getContext("2d");
+  var data;
 
-      var img = new Image();
-      var canvas = document.getElementById("canvas");
-      var ctx = canvas.getContext("2d");
+  if (fileInput.files.length > 0) {
+    // File upload
+    var file = fileInput.files[0];
+    var reader = new FileReader();
+    reader.onload = function (e) {
+      data = e.target.result;
+      loadImage(data);
+    };
+    reader.readAsDataURL(file);
+  } else {
+    // API call
+    fetch("/load_frame")
+      .then((response) => response.json())
+      .then((data) => {
+        data = data;
+        loadImage(data);
+      })
+      .catch((error) => {
+        console.error("Error loading image from API:", error);
+      });
+  }
 
-      img.onload = function () {
-        canvas.width = img.width;
-        canvas.height = img.height;
-        ctx.drawImage(img, 0, 0, img.width, img.height);
+  document.getElementById("input-rotate-image").disabled = false;
+  document.getElementById("select-rectangle").disabled = false;
+  if (document.getElementById("button-send-edit")) {
+    document.getElementById("button-send-edit").disabled = false;
+  }
 
-        // Listen for mouse events
-        canvas.addEventListener("mousedown", startDrawing);
-        canvas.addEventListener("mouseup", stopDrawing);
-      };
+  function loadImage(data) {
+    HideLoader("loader-frame");
+    var canvas = document.getElementById("canvas");
 
-      function startDrawing(e) {
-        // Update coordinates when drawing starts
-        var rectBounds = canvas.getBoundingClientRect();
-        var scaleX = canvas.width / rectBounds.width;
-        var scaleY = canvas.height / rectBounds.height;
-        var rect = {
-          x: (e.clientX - rectBounds.left) * scaleX,
-          y: (e.clientY - rectBounds.top) * scaleY,
-          width: 0,
-          height: 0,
-        };
-        rectangles[currentRectangleIndex].coordinates = rect;
-        canvas.addEventListener("mousemove", drawRectangle);
-      }
+    img.onload = function () {
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx.drawImage(img, 0, 0, img.width, img.height);
 
-      function drawRectangle(e) {
-        // Update coordinates while drawing
-        //if (rectangles.length === 0) return;
-        var rect = rectangles[currentRectangleIndex].coordinates;
-        var rectBounds = canvas.getBoundingClientRect();
-        var scaleX = canvas.width / rectBounds.width;
-        var scaleY = canvas.height / rectBounds.height;
+      // Listen for mouse events
+      canvas.addEventListener("mousedown", startDrawing);
+      canvas.addEventListener("mouseup", stopDrawing);
+    };
 
-        rect.width = (e.clientX - rectBounds.left) * scaleX - rect.x;
-        rect.height = (e.clientY - rectBounds.top) * scaleY - rect.y;
-        drawRectangles();
-      }
+    img.src = data;
+  }
 
-      function drawRectangles() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(img, 0, 0, img.width, img.height);
-        rectangles.forEach(function (rect, index) {
-          console.log(index);
-          var coordinates = rect.coordinates;
-          ctx.strokeStyle = rect.color;
-          ctx.lineWidth = 2; // Set stroke width
-          ctx.strokeRect(
-            coordinates.x + 0.5,
-            coordinates.y + 0.5,
-            coordinates.width,
-            coordinates.height,
-          ); // Draw rectangle's edge
-        });
-      }
+  function startDrawing(e) {
+    // Update coordinates when drawing starts
+    var rectBounds = canvas.getBoundingClientRect();
+    var scaleX = canvas.width / rectBounds.width;
+    var scaleY = canvas.height / rectBounds.height;
+    var rect = {
+      x: (e.clientX - rectBounds.left) * scaleX,
+      y: (e.clientY - rectBounds.top) * scaleY,
+      width: 0,
+      height: 0,
+    };
+    rectangles[currentRectangleIndex].coordinates = rect;
+    canvas.addEventListener("mousemove", drawRectangle);
+  }
 
-      function stopDrawing() {
-        // Stop drawing and remove mousemove event listener
-        canvas.removeEventListener("mousemove", drawRectangle);
-        updateCoordinates(); // Update coordinates on mouse up
-      }
+  function drawRectangle(e) {
+    // Update coordinates while drawing
+    //if (rectangles.length === 0) return;
+    var rect = rectangles[currentRectangleIndex].coordinates;
+    var rectBounds = canvas.getBoundingClientRect();
+    var scaleX = canvas.width / rectBounds.width;
+    var scaleY = canvas.height / rectBounds.height;
 
-      img.src = data;
+    rect.width = (e.clientX - rectBounds.left) * scaleX - rect.x;
+    rect.height = (e.clientY - rectBounds.top) * scaleY - rect.y;
+    var angle =
+      parseFloat(document.getElementById("input-rotate-image").value) || 0;
+    drawImageWithRotation(
+      (ctx = ctx),
+      (img = img),
+      (angle = angle),
+      (canvas = canvas),
+    );
+  }
+
+  function stopDrawing() {
+    // Stop drawing and remove mousemove event listener
+    canvas.removeEventListener("mousemove", drawRectangle);
+    updateCoordinates(); // Update coordinates on mouse up
+  }
+
+  document
+    .getElementById("input-rotate-image")
+    .addEventListener("input", function () {
+      var angle = parseFloat(this.value) || 0;
+      drawImageWithRotation(
+        (ctx = ctx),
+        (img = img),
+        (angle = angle),
+        (canvas = canvas),
+      );
     });
+
+  //img.src = data;
 }
 
 function selectRectangle() {
   currentRectangleIndex =
-    parseInt(document.getElementById("rectangleSelector").value) - 1;
+    parseInt(document.getElementById("select-rectangle").value) - 1;
   updateCoordinates();
 }
 
 function updateCoordinates() {
-  // Display coordinates in a div
-  var coordinatesDiv = document.getElementById("coordinates");
-  coordinatesDiv.innerHTML = "";
+  var table = document.getElementById("coordinates-table-body");
+  EmptyTableBody("coordinates-table-body");
 
   rectangles.forEach(function (rect, index) {
     var coordinates = rect.coordinates;
@@ -186,33 +294,42 @@ function updateCoordinates() {
       coordinates.width !== undefined &&
       coordinates.height !== undefined
     ) {
-      // Display coordinates only if they are defined
-      coordinatesDiv.innerHTML +=
-        name +
-        ": Position (" +
-        coordinates.x +
-        ", " +
-        coordinates.y +
-        "), Size (" +
-        coordinates.width +
-        ", " +
-        coordinates.height +
-        ")" +
-        "<br>";
+      // Create a new row
+      var row = table.insertRow();
+      var nameCell = row.insertCell();
+      nameCell.textContent = name;
+      var xCell = row.insertCell();
+      xCell.textContent = coordinates.x;
+      var yCell = row.insertCell();
+      yCell.textContent = coordinates.y;
+      var widthCell = row.insertCell();
+      widthCell.textContent = coordinates.width;
+      var heightCell = row.insertCell();
+      heightCell.textContent = coordinates.height;
     }
   });
 }
 
-function SendCoordinates() {
+function SendEdit() {
   // Send the coordinates stored in the global variable 'rectangles' to the Flask backend
-  fetch("/send_coordinates", {
+  var rotateValue =
+    parseFloat(document.getElementById("input-rotate-image").value) || 0;
+  rectangles.forEach(function (rect) {
+    rect.rotate = rotateValue;
+  });
+  console.log(rectangles);
+
+  fetch("/send_edit", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
     body: JSON.stringify(rectangles),
   })
-    .then((response) => response.json())
+    .then((response) => {
+      console.log("Coordinates sent successfully:", response);
+      window.location.href = response.url;
+    })
     .then((data) => {
       console.log("Coordinates sent successfully:", data);
     })
@@ -220,3 +337,63 @@ function SendCoordinates() {
       console.error("Error sending coordinates:", error);
     });
 }
+
+function SendConfig() {
+  var form = document.getElementById("init-config-form");
+  var formData = new FormData(form);
+
+  fetch("/save_config", {
+    method: "POST",
+    body: formData,
+  })
+    .then((response) => {
+      document
+        .querySelector('div[data-target="#create-mqtt-sensor"] .step-trigger')
+        .click();
+    })
+    .catch((error) => {
+      console.error("Error saving config:", error);
+    });
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+  // Check if the current URL path is '/index'
+  if (
+    window.location.pathname === "/index" ||
+    window.location.pathname === "/"
+  ) {
+    // Get the canvas element and its context
+    var canvas = document.getElementById("canvas");
+    var ctx = canvas.getContext("2d");
+
+    // Create a new image
+    var img = new Image();
+    img.src = "static/img/frames/origine.jpg"; // Replace with your image path
+
+    // Transforming the object into the desired format
+    if (coordinates_from_flask) {
+      rectangles.forEach((rect) => {
+        if (coordinates_from_flask[rect.name]) {
+          rect.coordinates = {
+            x: coordinates_from_flask[rect.name].x,
+            y: coordinates_from_flask[rect.name].y,
+            width: coordinates_from_flask[rect.name].width,
+            height: coordinates_from_flask[rect.name].height,
+          };
+        }
+      });
+    }
+    // Draw the image onto the canvas once it has loaded
+    img.onload = function () {
+      console.log(rotate_from_flask);
+      canvas.width = img.width;
+      canvas.height = img.height;
+      drawImageWithRotation(
+        (ctx = ctx),
+        (img = img),
+        (angle = rotate_from_flask),
+        (canvas = canvas),
+      );
+    };
+  }
+});

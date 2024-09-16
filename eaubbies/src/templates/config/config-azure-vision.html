@@ -1,0 +1,43 @@
+<div class="mb-3 col-md-6">
+  <label class="form-label" for="vision_key">Azure vision subscription Key:</label>
+  <input class="form-control" type="password" id="vision_key" name="vision_key"
+    value="********************************">
+</div>
+<div class="mb-3 col-md-6">
+  <label class="form-label" for="endpoint_url">Azure vision endpoint URL:</label>
+  <input class="form-control" type="text" id="endpoint_url" name="endpoint_url"
+    value="{{ config['vision']['endpoint'] }}">
+</div>
+<div class="mb-3 col-md-6">
+  <label class="form-label" for="vision_integer_digit">Vision integer digit:</label>
+  <input class="form-control" type="text" id="vision_integer_digit" name="vision_integer_digit"
+    value="{{ config['vision']['integer']['digit'] }}">
+</div>
+<div class="mb-3 col-md-6">
+  <label class="form-label" for="vision_integer_unit_of_measurement">Vision integer unit of
+    measurement</label>
+  <select class="form-control" id="vision_integer_unit_of_measurement" name="vision_integer_unit_of_measurement">
+    {% for unit in ["l","cl","dl","hl","m3"] %}
+    <option value="{{ unit }}" {% if unit==config['vision']['integer']['unit_of_measurement'] %}selected{% endif %}>
+      {{
+      unit }}</option>
+
+    {% endfor %}
+  </select>
+</div>
+<div class="mb-3 col-md-6">
+  <label class="form-label" for="vision_decimal_digit">Vision decimal digit:</label>
+  <input class="form-control" type="text" id="vision_decimal_digit" name="vision_decimal_digit"
+    value="{{ config['vision']['decimal']['digit'] }}">
+</div>
+<div class="mb-3 col-md-6">
+  <label class="form-label" for="vision_decimal_unit_of_measurement">Vision decimal unit of
+    measurement</label>
+  <select class="form-control" id="vision_decimal_unit_of_measurement" name="vision_decimal_unit_of_measurement">
+    {% for unit in ["l","cl","dl","hl","m3"] %}
+    <option value="{{ unit }}" {% if unit==config['vision']['decimal']['unit_of_measurement'] %}selected{% endif%}>
+      {{unit }}</option>
+
+    {% endfor %}
+  </select>
+</div>

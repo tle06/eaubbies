@@ -1,0 +1,32 @@
+---
+services:
+  homeassistant:
+    profiles:
+      - "all"
+      - "hassio"
+    container_name: homeassistant
+    image: "ghcr.io/home-assistant/home-assistant:stable"
+    volumes:
+      - ./docker-hassio-config/homeassistant:/config
+      - /etc/localtime:/etc/localtime:ro
+      - /run/dbus:/run/dbus:ro
+    restart: unless-stopped
+    privileged: true
+    ports:
+      - 8123:8123
+  eaubbies:
+    profiles:
+      - ""
+      - "all"
+      - "eaubbies"
+    container_name: eaubbies
+    build:
+      context: eaubbies
+      dockerfile: Dockerfile
+      args:
+        BUILD_FROM: "homeassistant/amd64-base-debian:bookworm"
+    volumes:
+      - ./docker-hassio-config/eaubbies:/data
+    restart: unless-stopped
+    ports:
+      - 8099:8099

@@ -77,6 +77,8 @@ def generate_result(raw_result: str):
     main_uom = configuration.get_param(
         "mqtt", "sensors", "water", "unit_of_measurement"
     ).lower()
+
+    rotate = configuration.get_param("vision", "rotate")
     print(integer_digit, integer_uom, decimal_digit, decimal_uom, main_uom)
     raw_result_without_space = raw_result.replace(" ", "")
     print(raw_result_without_space)
@@ -139,5 +141,6 @@ def generate_result(raw_result: str):
         "right_number_to_liters": right_number_to_liters,
         "main_uom": main_uom,
         "total_liters": total_liters,
+        "rotate": rotate,
     }
     return data

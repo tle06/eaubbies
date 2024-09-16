@@ -34,6 +34,7 @@ class YamlConfigLoader:
             "result": {"current": None, "previous": None, "unit": "l"},
             "vision": {
                 "counter": 0,
+                "rotate": 0.0,
                 "endpoint": None,
                 "key": None,
                 "line_with_data": 0,
@@ -75,6 +76,7 @@ class YamlConfigLoader:
                 },
             },
             "service": {"cron": "01:00", "counter": 0},
+            "setup": {"init_config": False},
         }
 
         return default_config

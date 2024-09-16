@@ -12,110 +12,11 @@
                 <form action="/save_config" method="post">
                     <div class="row">
                         <small class="text-light fw-medium d-block pt-3">Azure Vision config</small>
-                        <div class="mb-3 col-md-6">
-                            <label class="form-label" for="vision_key">Azure vision subscription Key:</label>
-                            <input class="form-control" type="password" id="vision_key" name="vision_key"
-                                value="********************************">
-                        </div>
-                        <div class="mb-3 col-md-6">
-                            <label class="form-label" for="endpoint_url">Azure vision endpoint URL:</label>
-                            <input class="form-control" type="text" id="endpoint_url" name="endpoint_url"
-                                value="{{ config['vision']['endpoint'] }}">
-                        </div>
-                        <div class="mb-3 col-md-6">
-                            <label class="form-label" for="vision_integer_digit">Vision integer digit:</label>
-                            <input class="form-control" type="text" id="vision_integer_digit"
-                                name="vision_integer_digit" value="{{ config['vision']['integer']['digit'] }}">
-                        </div>
-                        <div class="mb-3 col-md-6">
-                            <label class="form-label" for="vision_integer_unit_of_measurement">Vision integer unit of
-                                measurement</label>
-                            <select class="form-control" id="vision_integer_unit_of_measurement"
-                                name="vision_integer_unit_of_measurement">
-                                {% for unit in ["l","cl","dl","hl","m3"] %}
-                                <option value="{{ unit }}" {% if
-                                    unit==config['vision']['integer']['unit_of_measurement'] %}selected{% endif %}>
-                                    {{
-                                    unit }}</option>
-
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="mb-3 col-md-6">
-                            <label class="form-label" for="vision_decimal_digit">Vision decimal digit:</label>
-                            <input class="form-control" type="text" id="vision_decimal_digit"
-                                name="vision_decimal_digit" value="{{ config['vision']['decimal']['digit'] }}">
-                        </div>
-                        <div class="mb-3 col-md-6">
-                            <label class="form-label" for="vision_decimal_unit_of_measurement">Vision decimal unit of
-                                measurement</label>
-                            <select class="form-control" id="vision_decimal_unit_of_measurement"
-                                name="vision_decimal_unit_of_measurement">
-                                {% for unit in ["l","cl","dl","hl","m3"] %}
-                                <option value="{{ unit }}" {% if
-                                    unit==config['vision']['decimal']['unit_of_measurement'] %}selected{% endif%}>
-                                    {{unit }}</option>
-
-                                {% endfor %}
-                            </select>
-                        </div>
+                        {% include 'config/config-azure-vision.html' %}
                         <small class="text-light fw-medium d-block pt-3">RTSP config</small>
-                        <div class="mb-3 col-md-6">
-                            <label class="form-label" for="rtsp_url">RTSP URL:</label>
-                            <input class="form-control" type="text" id="rtsp_url" name="rtsp_url"
-                                value="{{ config['rtsp']['url'] }}">
-                        </div>
+                        {% include 'config/config-rtsp.html' %}
                         <small class="text-light fw-medium d-block pt-3">MQTT config</small>
-                        <div class="mb-3 col-md-6">
-                            <label class="form-label" for="mqtt_server">MQTT server:</label>
-                            <input class="form-control" type="text" id="mqtt_server" name="mqtt_server"
-                                value="{{ config['mqtt']['server'] }}">
-                        </div>
-                        <div class="mb-3 col-md-6">
-                            <label class="form-label" for="mqtt_user">MQTT user:</label>
-                            <input class="form-control" type="text" id="mqtt_user" name="mqtt_user"
-                                value="{{ config['mqtt']['user'] }}">
-                        </div>
-                        <div class="mb-3 col-md-6">
-                            <label class="form-label" for="mqtt_password">MQTT password:</label>
-                            <input class="form-control" type="password" id="mqtt_password" name="mqtt_password"
-                                value="********************************">
-                        </div>
-                        <div class="mb-3 col-md-6">
-                            <label class="form-label" for="mqtt_device_name">MQTT device name:</label>
-                            <input class="form-control" type="text" id="mqtt_device_name" name="mqtt_device_name"
-                                value="{{ config['mqtt']['device']['name'] }}">
-                        </div>
-                        <div class="mb-3 col-md-6">
-                            <label class="form-label" for="mqtt_device_node_id">MQTT device node ID:</label>
-                            <input class="form-control" type="text" id="mqtt_device_node_id" name="mqtt_device_node_id"
-                                value="{{ config['mqtt']['device']['node_id'] }}">
-                        </div>
-                        <div class="mb-3 col-md-6">
-                            <label class="form-label" for="mqtt_device_unique_id">MQTT device unique ID:</label>
-                            <input class="form-control" type="text" id="mqtt_device_unique_id"
-                                name="mqtt_device_unique_id" value="{{ config['mqtt']['device']['unique_id'] }}">
-                        </div>
-                        <div class="mb-3 col-md-6">
-                            <label class="form-label" for="mqtt_discovery_prefix">MQTT dicovery prefix:</label>
-                            <input class="form-control" type="text" id="mqtt_discovery_prefix"
-                                name="mqtt_discovery_prefix" value="{{ config['mqtt']['discovery_prefix'] }}">
-                        </div>
-                        <div class="mb-3 col-md-6">
-                            <label class="form-label" for="mqtt_sensors_water_unit_of_measurement">MQTT water sensor
-                                unit of
-                                measurement</label>
-                            <select class="form-control" id="mqtt_sensors_water_unit_of_measurement"
-                                name="mqtt_sensors_water_unit_of_measurement">
-                                {% for unit in ["l","cl","dl","hl","m3"] %}
-                                <option value="{{ unit }}" {% if
-                                    unit==config['mqtt']['sensors']['water']['unit_of_measurement'] %}selected{% endif
-                                    %}>{{
-                                    unit }}</option>
-
-                                {% endfor %}
-                            </select>
-                        </div>
+                        {% include 'config/config-mqtt.html' %}
                         <small class="text-light fw-medium d-block pt-3">Cron config</small>
                         <div class="mb-3 col-md-6">
                             <label class="form-label" for="cron_time">Cron Time:</label>

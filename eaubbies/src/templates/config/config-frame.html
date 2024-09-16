@@ -1,0 +1,100 @@
+{% if request.path == '/' or request.path == '/index'%}
+{% set disabled_filed="disabled" %}
+{% else %}
+{% set disabled_filed="" %}
+{% endif %}
+<div class="row invoice-edit">
+  <!-- Invoice Edit-->
+  <div class="col-lg-9 col-12 mb-lg-0 mb-6">
+    <div class="card invoice-preview-card p-sm-12 p-6">
+      <div class="card-body">
+        <div class="row">
+          <canvas class="img-fluid" id="canvas"></canvas>
+          <div id="loader-frame" class="spinner-border text-primary loader" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+
+        </div>
+
+
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="table table-bordered">
+            <table class="table m-0" id="coordinates-table">
+              <thead>
+                <tr>
+                  <th>Unit</th>
+                  <th>X</th>
+                  <th>Y</th>
+                  <th>Width</th>
+                  <th>Height</th>
+                </tr>
+              </thead>
+              <tbody id="coordinates-table-body">
+                {% if request.path == '/' or request.path == '/index'%}
+                {% for key, value in config['vision']['coordinates'].items() %}
+                <tr>
+                  <td>{{key}}</td>
+                  <td>{{value.x}}</td>
+                  <td>{{value.y}}</td>
+                  <td>{{value.width}}</td>
+                  <td>{{value.height}}</td>
+                </tr>
+                {% endfor %}
+                {% endif %}
+              </tbody>
+            </table>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+
+  <div class="col-lg-3 col-12">
+    <div class="card mb-6">
+      <div class="card-body">
+        <input type="file" class="form-control" id="import-file" aria-label="Upload">
+        <button class="btn btn-primary d-grid w-100 my-2" onclick="LoadFrame()">
+          <span class="d-flex align-items-center justify-content-center text-nowrap">Load Frame</span>
+        </button>
+        <div class="form-group my-4">
+          <label for="input-rotate-image">Rotate image</label>
+          <input {{ disabled_filed }} type="number" step="0.01" class="form-control" id="input-rotate-image"
+            placeholder="Enter rotate angle" value="{{ config['vision']['rotate'] }}">
+
+        </div>
+        <hr class=" my-0">
+        <div class="my-4">
+          <label class="form-label" for="select-rectangle">Select unit and draw on the frame</label>
+          <select {{ disabled_filed }} class="form-select" id="select-rectangle" onchange="selectRectangle()">
+            <option value="1">All</option>
+            <option value="2">Integer</option>
+            <option value="3">Digit</option>
+          </select>
+        </div>
+        {% if request.path == '/' or request.path == '/index'%}
+        <div class="form-group my-4">
+          <button {{ disabled_filed }} class="btn btn-secondary d-grid w-100 my-2" onclick="SendEdit()"
+            id="button-send-edit">
+            <span class="d-flex align-items-center justify-content-center text-nowrap">Update config</span>
+          </button>
+        </div>
+        <div class="form-group my-4">
+          <button class="btn btn-primary d-grid w-100 my-2" onclick="StartProcess()" id="button-send-edit">
+            <span class="d-flex align-items-center justify-content-center text-nowrap">Test reading</span>
+          </button>
+        </div>
+        {% endif %}
+
+
+
+      </div>
+    </div>
+  </div>
+  <!-- /Invoice Actions -->
+
+</div>
