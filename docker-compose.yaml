@@ -1,5 +1,8 @@
 services:
   homeassistant:
+    profiles:
+      - "all"
+      - "hassio"
     container_name: homeassistant
     image: "ghcr.io/home-assistant/home-assistant:stable"
     volumes:
@@ -11,7 +14,11 @@ services:
     ports:
       - 8123:8123
   
-  eaubies:
+  eaubbies:
+    profiles:
+      - ""
+      - "all"
+      - "eaubbies"
     container_name: eaubbies
     build:
       context: eaubbies
@@ -23,5 +30,3 @@ services:
     restart: unless-stopped
     ports:
       - 8099:8099
-    depends_on:
-      - homeassistant

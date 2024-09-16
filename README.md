@@ -6,6 +6,20 @@
 [aarch64-shield]: https://img.shields.io/badge/aarch64-yes-green.svg
 [amd64-shield]: https://img.shields.io/badge/amd64-yes-green.svg
 
+# Local dev
+
+The project use [UV](https://docs.astral.sh/uv/) package manager.
+
+## Init the project
+
+```cmd
+git clone https://github.com/tle06/eaubbies.git
+cd eaubbies/eaubbies/src
+uv venv
+uv sync --frozen
+uv run -- flask run --debug
+```
+
 # Docker
 
 ## Build local
@@ -32,4 +46,24 @@ docker run \
 
 ```cmd
 docker run --name test --rm -p 8099:8099 eaubbies:local
+```
+
+# Docker-compose
+
+The compose will start the eaubbies app by default (port 8099)
+
+```cmd
+docker-compose up
+```
+
+You can also start home-assistant container (port 8123) on top of the eaubbies app
+
+```cmd
+docker-compose --profile all up
+```
+
+## Docker-compose build
+
+```cmd
+docker-compose build
 ```
