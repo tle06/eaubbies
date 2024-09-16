@@ -67,7 +67,11 @@ def video():
 @app.route("/frames")
 def frames():
 
-    files = os.listdir(configuration.get_param("frame", "storage_path"))
+    try:
+        files = os.listdir(configuration.get_param("frame", "storage_path"))
+    except Exception as e:
+        app.logger.error(f"Error: {e}")
+        files = ""
     return render_template("frames.html", files=files)
 
 
