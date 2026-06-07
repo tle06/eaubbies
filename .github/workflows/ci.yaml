@@ -34,7 +34,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  workflows:
+  ha-addon-ci:
+    name: HA addon CI Workflows
     uses: hassio-addons/workflows/.github/workflows/addon-ci.yaml@main
   # information:
   #   name: Gather add-on information
@@ -175,8 +176,6 @@ jobs:
   test-pytest:
     name: Run pytest suite
     runs-on: ubuntu-latest
-    needs:
-      - lint-flake8
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
