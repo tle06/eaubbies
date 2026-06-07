@@ -3,11 +3,23 @@ name: CI
 
 on:
   push:
+    branches:
+      - main
+    paths:
+      - "src/**"
+      - "etc/**"
+      - "entrypoint/**"
+      - "Dockerfile"
+      - "docker-compose.yml"
+
   pull_request:
-    types:
-      - opened
-      - reopened
-      - synchronize
+    paths:
+      - "src/**"
+      - "etc/**"
+      - "entrypoint/**"
+      - "Dockerfile"
+      - "docker-compose.yml"
+
   workflow_dispatch:
   workflow_call:
 
@@ -126,3 +138,42 @@ jobs:
           prettier_options: --check **/*.js
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  formatting-black:
+    name: Formatting python file with Black
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: "Install UV and repository dependencies"
+        uses: ./.github/actions/uv
+      - name: Run Black in check mode
+        run: |
+          cd eaubbies/src/
+          uv run black . --check
+  lint-flake8:
+    name: Linting python files with flake8
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: "Install UV and repository dependencies"
+        uses: ./.github/actions/uv
+      - name: Run Flake8
+        run: |
+          uv run flake8 .
+  test-pytest:
+    name: Run pytest suite
+    runs-on: ubuntu-latest
+    needs:
+      - lint-flake8
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Install UV and repository dependencies
+        uses: ./.github/actions/uv
+
+      - name: Run tests
+        run: |
+          source eaubbies/src/.venv/bin/activate; pytest
