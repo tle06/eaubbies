@@ -17,11 +17,21 @@ class AzureClient:
     subscription_key = None
     default_folder = "../frames"
 
-    def __init__(self, vision_key: str, endpoint_url: str):
+    def __init__(self, vision_key: str, endpoint_url: str, save_frame: bool = True):
 
         self.subscription_key = vision_key
         self.endpoint = endpoint_url
         self.client = self.authentication()
+        self.save_frame = save_frame
+
+    def write_output_file(self, name: str, image):
+        filename = f"{name}.jpg"
+        path_str = f"{self.default_folder}/{filename}"
+        fullpath = Path(path_str)
+        fullpath.parent.mkdir(parents=True, exist_ok=True)
+        image.save(fullpath)
+        print("Frame saved at", str(fullpath))
+        return fullpath
 
     def authentication(self):
         client = ComputerVisionClient(
@@ -93,7 +103,7 @@ class AzureClient:
         text_regions,
         frame=None,
         image_path: str = None,
-        output_image_name: str = "result",
+        filename: str = "frame_with_boxes",
         text_color: str = "red",
         font_size: int = 24,
     ):
@@ -127,12 +137,8 @@ class AzureClient:
                 font=font,
             )
 
-        filename = f"{output_image_name}.jpg"
-        path_str = f"{self.default_folder}/{filename}"
-        fullpath = Path(path_str)
-        fullpath.parent.mkdir(parents=True, exist_ok=True)
-        image.save(str(fullpath))
-        print("Frame saved at", str(fullpath))
+        if self.save_frame:
+            self.write_output_file(image=image, name=filename)
 
         return draw
 

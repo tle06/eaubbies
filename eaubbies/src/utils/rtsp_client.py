@@ -28,9 +28,11 @@ class RTSPClient:
         self.default_folder = default_folder
         return self.default_folder
 
-    def get_frame(self):
-        self.frame = self.get_frame_from_rtsp()
+    def get_frame(self, filename: str = "origine"):
+        self.frame = self.get_frame_from_rtsp(filename=filename)
         self.improve_frame = self.frame.copy()
+        if self.save_frame:
+            self.write_output_file(name=filename, frame=self.frame)
         return self.frame
 
     def load_frame_from_file(self, file: str, filename: str = "origine"):
@@ -67,6 +69,7 @@ class RTSPClient:
 
     def get_frame_from_rtsp(
         self,
+        filename: str = "origine",
     ):
         if self.video_url:
             # Open RTSP stream
@@ -85,7 +88,7 @@ class RTSPClient:
 
             if self.save_frame:
                 # Save the frame as an image
-                self.write_output_file(name="origine", frame=frame)
+                self.write_output_file(name=filename, frame=frame)
 
             # Release the capture object
             cap.release()
@@ -93,37 +96,48 @@ class RTSPClient:
             return frame
         raise ValueError("No rtsp URL")
 
-    def convert_rgb2bgr(self):
+    def convert_rgb2bgr(self, filename: str = "frame_rgb2bgr"):
         self.improve_frame = cv2.cvtColor(self.improve_frame, cv2.COLOR_RGB2BGR)
         if self.save_frame:
-            self.write_output_file(name="frame_rgb2bgr", frame=self.improve_frame)
+            self.write_output_file(name=filename, frame=self.improve_frame)
         return self.improve_frame
 
-    def convert_bgr2gray(self):
+    def convert_bgr2gray(self, filename: str = "frame_bgr2gray"):
         self.improve_frame = cv2.cvtColor(self.improve_frame, cv2.COLOR_BGR2GRAY)
         if self.save_frame:
-            self.write_output_file(name="frame_bgr2gray", frame=self.improve_frame)
+            self.write_output_file(name=filename, frame=self.improve_frame)
         return self.improve_frame
 
     def improve_exposure_intensity(
-        self, in_range: tuple = (0, 128), out_range: tuple = (0, 255)
+        self,
+        in_range: tuple = (0, 128),
+        out_range: tuple = (0, 255),
+        filename: str = "frame_exposure_intensity",
     ):
         self.improve_frame = skimage.exposure.rescale_intensity(
             self.improve_frame, in_range=in_range, out_range=out_range
         )
-        if self.save_frame:
-            self.write_output_file(
-                name="frame_exposure_intensity", frame=self.improve_frame
+        # Convert any float (CV_64F) output from rescale_intensity back to uint8 to prevent cv2 depth errors
+        if (
+            self.improve_frame.dtype == np.float64
+            or self.improve_frame.dtype == np.float32
+        ):
+            self.improve_frame = (
+                (self.improve_frame * 255).astype(np.uint8)
+                if self.improve_frame.max() <= 1.0
+                else self.improve_frame.astype(np.uint8)
             )
+        if self.save_frame:
+            self.write_output_file(name=filename, frame=self.improve_frame)
         return self.improve_frame
 
-    def add_gaussian_blur(self):
+    def add_gaussian_blur(self, filename: str = "frame_gaussian_blur"):
         self.improve_frame = cv2.GaussianBlur(self.improve_frame, (5, 5), 0)
         if self.save_frame:
-            self.write_output_file(name="frame_gaussian_blur", frame=self.improve_frame)
+            self.write_output_file(name=filename, frame=self.improve_frame)
         return self.improve_frame
 
-    def adaptive_threshold(self):
+    def adaptive_threshold(self, filename: str = "frame_adaptive_threshold"):
         self.improve_frame = cv2.adaptiveThreshold(
             self.improve_frame,
             255,
@@ -133,19 +147,17 @@ class RTSPClient:
             2,
         )
         if self.save_frame:
-            self.write_output_file(
-                name="frame_adaptive_threshold", frame=self.improve_frame
-            )
+            self.write_output_file(name=filename, frame=self.improve_frame)
         return self.improve_frame
 
-    def improve_morphology(self):
+    def improve_morphology(self, filename: str = "frame_morphology"):
         kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
         self.improve_frame = cv2.morphologyEx(
             self.improve_frame, cv2.MORPH_CLOSE, kernel
         )
 
         if self.save_frame:
-            self.write_output_file(name="frame_morphology", frame=self.improve_frame)
+            self.write_output_file(name=filename, frame=self.improve_frame)
         return self.improve_frame
 
     def add_brightness(self, brightness_factor: int, filename="frame_brightness"):
@@ -177,6 +189,7 @@ class RTSPClient:
     def add_exposure(
         self,
         exposure_factor: int,
+        filename="frame_exposure",
     ):
 
         exposure_min = 0
@@ -196,7 +209,7 @@ class RTSPClient:
 
         self.improve_frame = cv2.add(self.improve_frame, np.array([exposure_factor]))
         if self.save_frame:
-            self.write_output_file(name="frame_exposure", frame=self.improve_frame)
+            self.write_output_file(name=filename, frame=self.improve_frame)
         return self.improve_frame
 
     def get_stream(self):
@@ -374,31 +387,21 @@ class RTSPClient:
 
         return kernel
 
-    def fill_image_except_rectangle(self, x, y, width, height, filename="frame_filled"):
+    def crope_image(self, x, y, width, height, filename="frame_cropped"):
         """
-        Fill the image with white color except for a specified rectangle.
-
-        Parameters:
-            image (numpy.ndarray): Input image.
-            x (int): x-coordinate of the top-left corner of the rectangle.
-            y (int): y-coordinate of the top-left corner of the rectangle.
-            width (int): Width of the rectangle.
-            height (int): Height of the rectangle.
-
-        Returns:
-            numpy.ndarray: Image with filled white color except for the specified rectangle.
+        UPDATED: Instead of filling with white, we crop the image down to the
+        exact rectangle specified by the coordinates.
         """
-        filled_image = np.full_like(
-            self.improve_frame, 255
-        )  # Fill the entire image with white color
+        print(
+            f"DEBUG: Current image shape is {self.improve_frame.shape} (Height, Width, Channels)"
+        )
+        print(f"DEBUG: Cropping frame to X:{x}->{x+width}, Y:{y}->{y+height}")
 
-        self.write_output_file(name=f"{filename}_1", frame=filled_image)
-        # Retain the original pixel values within the specified rectangle
-        filled_image[y : y + height, x : x + width] = self.improve_frame[
-            y : y + height, x : x + width
-        ]
-        self.write_output_file(name=f"{filename}_2", frame=filled_image)
-        self.improve_frame = filled_image
+        # 1. Directly crop the active, modified frame (preserves any prior rotation)
+        cropped_image = self.improve_frame[y : y + height, x : x + width]
+
+        # 2. Update the internal tracker to be this cropped slice
+        self.improve_frame = cropped_image
 
         if self.save_frame:
             self.write_output_file(name=filename, frame=self.improve_frame)
@@ -407,26 +410,47 @@ class RTSPClient:
 
     def rotate_frame(self, angle: float = 0.0, filename: str = "frame_rotated"):
         """
-        Rotate the frame by a specified angle.
-
-        Parameters:
-            frame (numpy.ndarray): Input frame.
-            angle (float): Angle of rotation in degrees.
-
-        Returns:
-            numpy.ndarray: Rotated frame.
+        Rotate the frame by a specified angle, expanding the bounds to prevent cropping.
         """
-        # Get the height and width of the frame
+        # 1. Get the dimensions of the frame and calculate the center
         height, width = self.improve_frame.shape[:2]
-        # Calculate the rotation matrix
-        rotation_matrix = cv2.getRotationMatrix2D((width / 2, height / 2), angle, 1.0)
-        # Apply the rotation matrix to the frame
+        cX, cY = width / 2.0, height / 2.0
+
+        # 2. Grab the rotation matrix
+        rotation_matrix = cv2.getRotationMatrix2D((cX, cY), angle, 1.0)
+
+        # 3. Calculate the absolute sine and cosine of the rotation angle
+        cos = np.abs(rotation_matrix[0, 0])
+        sin = np.abs(rotation_matrix[0, 1])
+
+        # 4. Compute the new bounding dimensions of the image
+        new_width = int((height * sin) + (width * cos))
+        new_height = int((height * cos) + (width * sin))
+
+        # 5. Adjust the rotation matrix to take into account the translation
+        rotation_matrix[0, 2] += (new_width / 2.0) - cX
+        rotation_matrix[1, 2] += (new_height / 2.0) - cY
+
+        # 6. Perform the actual rotation with the new dimensions
         rotated_image = cv2.warpAffine(
-            self.improve_frame, rotation_matrix, (width, height)
+            self.improve_frame, rotation_matrix, (new_width, new_height)
         )
         self.improve_frame = rotated_image
 
         if self.save_frame:
             self.write_output_file(name=filename, frame=self.improve_frame)
 
+        return self.improve_frame
+
+    def adaptive_threshold(self, filename="frame_adaptive_threshold"):
+        self.improve_frame = cv2.adaptiveThreshold(
+            self.improve_frame,
+            255,
+            cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+            cv2.THRESH_BINARY_INV,
+            11,
+            2,
+        )
+        if self.save_frame:
+            self.write_output_file(name=filename, frame=self.improve_frame)
         return self.improve_frame

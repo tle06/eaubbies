@@ -1,9 +1,11 @@
 from utils.rtsp_client import RTSPClient
 from utils.azure_client import AzureClient
+from utils.tesseract_client import TesseractClient
 from utils.configuration import YamlConfigLoader
 from utils.utils import volume_converter, generate_result
 from utils.mqtt import MqttCLient
 import json
+import logging
 
 configuration = YamlConfigLoader()
 
@@ -11,7 +13,7 @@ configuration = YamlConfigLoader()
 def create_improved_frame(use_file: bool = False, file=None):
     # init rtsp client
     rtsp_url = None
-    if use_file:
+    if not use_file:
         rtsp_url = configuration.get_param("rtsp", "url")
     client_rtsp = RTSPClient(rtsp_url=rtsp_url)
 
@@ -21,17 +23,17 @@ def create_improved_frame(use_file: bool = False, file=None):
 
     if use_file:
         if file:
-            app.logger.info(file.filename)
+            print(file.filename)
             frame_to_process = client_rtsp.load_frame_from_file(file=file)
     else:
-        frame_to_process = client_rtsp.get_frame()
+        frame_to_process = client_rtsp.get_frame(filename="0.frame_origine")
 
     # rotate frame
     rotate = configuration.get_param("vision", "rotate")
-    app.logger.info(rotate)
+    print(f"rotate: {rotate}")
     if rotate > 0:
-        app.logger.info(f"rotate image to {rotate} degres")
-        frame_to_process = client_rtsp.rotate_frame(angle=rotate)
+        print(f"rotate image to {rotate} degres")
+        frame_to_process = client_rtsp.rotate_frame(angle=rotate, filename="1.rotate")
 
     # improve frame
     contrast_active = bool(
@@ -57,22 +59,33 @@ def create_improved_frame(use_file: bool = False, file=None):
     fill_image = bool(configuration.get_param("rtsp", "image", "fill_image", "active"))
 
     if convert_to_bgr:
-        frame_to_process = client_rtsp.convert_rgb2bgr()
+        frame_to_process = client_rtsp.convert_rgb2bgr(
+            filename="2.improve_convert_to_bgr"
+        )
     if convert_to_grey:
-        frame_to_process = client_rtsp.convert_bgr2gray()
+        frame_to_process = client_rtsp.convert_bgr2gray(
+            filename="3.improve_convert_to_grey"
+        )
     if exposure_active:
         frame_to_process = client_rtsp.improve_exposure_intensity(
-            in_range=exposure_in_range, out_range=exposure_out_range
+            in_range=exposure_in_range,
+            out_range=exposure_out_range,
+            filename="4.improve_exposure",
         )
 
     if contrast_active:
         frame_to_process = client_rtsp.adjust_contrast(
-            alpha=contrast_alpha, beta=contrast_beta
+            alpha=contrast_alpha, beta=contrast_beta, filename="5.improve_contrast"
         )
+
     if sharpen_active:
         frame_to_process = client_rtsp.sharpen_image(
-            amount=sharpen_amount, threshold=sharpen_threshold
+            amount=sharpen_amount,
+            threshold=sharpen_threshold,
+            filename="6.improve_sharpen",
         )
+    # frame_to_process = client_rtsp.convert_bgr2gray()
+    # frame_to_process = client_rtsp.adaptive_threshold()
 
     if fill_image:
         coordinates_selection = configuration.get_param(
@@ -80,25 +93,27 @@ def create_improved_frame(use_file: bool = False, file=None):
         )
 
         coordinates_selection = coordinates_selection.lower().strip()
-
-        app.logger.info(coordinates_selection)
         coordinates = configuration.get_param(
             "vision", "coordinates", coordinates_selection
         )
-        app.logger.info(coordinates_selection, coordinates)
+        print(f"{coordinates_selection} {coordinates}")
+
         if (
-            int(coordinates["x"])
-            and int(coordinates["y"])
-            and int(coordinates["width"])
-            and int(coordinates["height"])
+            coordinates.get("x") is not None
+            and coordinates.get("y") is not None
+            and coordinates.get("width") is not None
+            and coordinates.get("height") is not None
         ):
-            frame_to_process = client_rtsp.fill_image_except_rectangle(
+            # Apply exact coordinates without offset padding
+            frame_to_process = client_rtsp.crope_image(
                 x=int(coordinates["x"]),
-                y=int(coordinates["y"]) - 50,
-                width=int(coordinates["width"]) + 20,
-                height=int(coordinates["height"]) + 50,
+                y=int(coordinates["y"]),
+                width=int(coordinates["width"]),
+                height=int(coordinates["height"]),
+                filename="6.improve_fill_image",
             )
-    client_rtsp.write_output_file(name="improve", frame=frame_to_process)
+
+    client_rtsp.write_output_file(name="7.frame_improve", frame=frame_to_process)
     return frame_to_process
 
 
@@ -107,40 +122,87 @@ def service_process(
 ):
 
     frame_to_process = create_improved_frame(use_file=use_file, file=file)
-    # init Azure client
     default_folder = configuration.get_param("frame", "storage_path")
-    subscription_key = configuration.get_param("vision", "key")
-    endpoint = configuration.get_param("vision", "endpoint")
 
-    vision_integer = configuration.get_param("vision", "coordinates", "integer")
-    vision_digit = configuration.get_param("vision", "coordinates", "digit")
-    vision_all = configuration.get_param("vision", "coordinates", "digit")
+    # Determine OCR Engine
+    try:
+        engine = configuration.get_param("vision", "engine")
+    except Exception:
+        engine = "azure"
 
-    client_azure = AzureClient(vision_key=subscription_key, endpoint_url=endpoint)
-    client_azure.default_folder = default_folder
+    if engine == "tesseract":
+        tesseract_cmd = None
+        try:
+            tesseract_cmd = configuration.get_param("vision", "tesseract_cmd")
+        except Exception:
+            pass
+        tesseract_config = "--psm 6"
+        try:
+            tesseract_config = configuration.get_param("vision", "tesseract_config")
+        except Exception:
+            pass
 
-    # call azure vision api
-    result = client_azure.process_image(
-        frame=frame_to_process
-    )  # implement logic for integer, digit or all
+        client_tesseract = TesseractClient(tesseract_cmd=tesseract_cmd)
+        result, text_regions = client_tesseract.process_image(
+            frame=frame_to_process,
+            config=tesseract_config,
+            filename="8.esseract_optimized",
+        )
+
+        # Draw text boxes mimic
+        client_azure = AzureClient(vision_key="mock", endpoint_url="mock")
+        client_azure.default_folder = default_folder
+        client_azure.draw_text_boxes(
+            text_regions=text_regions,
+            frame=frame_to_process,
+            filename="9.azure_vision_draw_boxes",
+        )
+    else:
+        # init Azure client
+        subscription_key = configuration.get_param("vision", "key")
+        endpoint = configuration.get_param("vision", "endpoint")
+        vision_integer = configuration.get_param("vision", "coordinates", "integer")
+        vision_digit = configuration.get_param("vision", "coordinates", "digit")
+        vision_all = configuration.get_param("vision", "coordinates", "digit")
+
+        client_azure = AzureClient(vision_key=subscription_key, endpoint_url=endpoint)
+        client_azure.default_folder = default_folder
+
+        # call azure vision api
+        result = client_azure.process_image(
+            frame=frame_to_process
+        )  # implement logic for integer, digit or all
+
+        text_regions = client_azure.get_regions(result=result)
+        client_azure.draw_text_boxes(
+            text_regions=text_regions,
+            frame=frame_to_process,
+            output_image_name="vision",
+            filename="10.azure_vision_draw_boxes",
+        )
 
     vision_counter = int(configuration.get_param("vision", "counter"))
     configuration.set_param("vision", "counter", value=vision_counter + 1)
     text_regions = client_azure.get_regions(result=result)
     image_vision = client_azure.draw_text_boxes(
-        text_regions=text_regions, frame=frame_to_process, output_image_name="vision"
+        text_regions=text_regions,
+        frame=frame_to_process,
+        filename="11.azure_vision_draw_boxes",
     )
 
     # process the result of vision
     line_with_data = configuration.get_param("vision", "line_with_data") or 0
-    app.logger.info(line_with_data)
-    raw_result = result[0].lines[line_with_data].text
-    app.logger.info(raw_result)
+    print(line_with_data)
 
+    if not result or len(result) == 0 or not result[0].lines:
+        return ValueError("No lines of text were recognized by the OCR engine.")
+
+    raw_result = result[0].lines[line_with_data].text
+    print(raw_result)
     try:
         result_values = generate_result(raw_result=raw_result)
     except Exception as e:
-        app.logger.info(e)
+        print(f"Error generating result from OCR text: {e}")
         return ValueError("couldn't get the digitalisation of the meter")
 
     # save result
@@ -165,17 +227,17 @@ def service_process(
     # create return object
     data = {
         "images": {
-            "image_source": f"{default_folder}/origine.jpg",
-            "image_improve": f"{default_folder}/improve.jpg",
-            "image_vision": f"{default_folder}/vision.jpg",
+            "image_source": f"{default_folder}/0.frame_origine.jpg",
+            "image_improve": f"{default_folder}/7.frame_improve.jpg",
+            "image_vision": f"{default_folder}/11.azure_vision_draw_boxes.jpg",
         },
         "result": result_values,
     }
 
     if increase_cron_count:
         curent_count = int(configuration.get_param("service", "counter"))
-        app.logger.info(f"curent_count: {curent_count}")
-        app.logger.info(f"new count: {curent_count+1}")
+        print(f"curent_count: {curent_count}")
+        print(f"new count: {curent_count+1}")
         configuration.set_param("service", "counter", value=curent_count + 1)
 
     return data
