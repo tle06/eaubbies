@@ -29,7 +29,9 @@ jobs:
       target: ${{ steps.information.outputs.target }}
     steps:
       - name: ⤵️ Check out code from GitHub
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
+      - name: "Install UV and repository dependencies"
+        uses: ./.github/actions/uv
       - name: 🚀 Run add-on information action
         id: information
         uses: frenck/action-addon-information@v1.4.2
@@ -49,9 +51,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: ⤵️ Check out code from GitHub
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
+      - name: "Install UV and repository dependencies"
+        uses: ./.github/actions/uv
       - name: 🚀 Run Add-on Lint
-        uses: frenck/action-addon-linter@v2.15.1
+        uses: frenck/action-addon-linter@v2.21
         with:
           community: false
           path: "./${{ needs.information.outputs.target }}"
@@ -63,9 +67,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: ⤵️ Check out code from GitHub
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
+      - name: "Install UV and repository dependencies"
+        uses: ./.github/actions/uv
       - name: 🚀 Run Hadolint
-        uses: hadolint/hadolint-action@v3.1.0
+        uses: hadolint/hadolint-action@v3.3.0
         with:
           dockerfile: "./${{ needs.information.outputs.target }}/Dockerfile"
 
@@ -74,7 +80,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: ⤵️ Check out code from GitHub
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
+      - name: "Install UV and repository dependencies"
+        uses: ./.github/actions/uv
       - name: 🚀 Run JQ
         run: |
           shopt -s globstar
@@ -86,6 +94,8 @@ jobs:
     steps:
       - name: ⤵️ Check out code from GitHub
         uses: actions/checkout@v4
+      - name: "Install UV and repository dependencies"
+        uses: ./.github/actions/uv
       - name: 🚀 Run Shellcheck
         uses: ludeeus/action-shellcheck@2.0.0
         env:
@@ -96,7 +106,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: ⤵️ Check out code from GitHub
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
+      - name: "Install UV and repository dependencies"
+        uses: ./.github/actions/uv
       - name: 🚀 Run YAMLLint
         uses: frenck/action-yamllint@v1.5
 
@@ -105,9 +117,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: ⤵️ Check out code from GitHub
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
+      - name: "Install UV and repository dependencies"
+        uses: ./.github/actions/uv
       - name: 🚀 Run Prettier
-        uses: creyD/prettier_action@v4.3
+        uses: creyD/prettier_action@v4.6
         with:
           prettier_options: --check **/*.js
         env:
