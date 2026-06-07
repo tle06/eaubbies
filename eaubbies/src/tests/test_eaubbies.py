@@ -5,11 +5,14 @@ import numpy as np
 import cv2
 
 # Add eaubbies/src to sys.path so we can import utils and modules directly
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../eaubbies/src")))
+sys.path.insert(
+    0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../eaubbies/src"))
+)
 
 from utils.configuration import YamlConfigLoader
 from utils.tesseract_client import TesseractClient
 from utils.utils import volume_converter, generate_result
+
 
 def test_volume_converter():
     # Test identical unit conversion
@@ -22,17 +25,20 @@ def test_volume_converter():
     with pytest.raises(ValueError):
         volume_converter(100, "unknown_unit", "l")
 
+
 def test_tesseract_client_mock():
     # Since tesseract might not be installed on the local system where tests are run (e.g. macOS host dev environment vs container)
     # we can create a simple frame and mock or verify if we can instantiate it.
     client = TesseractClient()
     assert client is not None
 
+
 def test_generate_result_all(monkeypatch):
     # Mock YamlConfigLoader to return deterministic configuration values
     class MockConfigLoader:
         def __init__(self, *args, **kwargs):
             self.data = {}
+
         def get_param(self, *keys):
             if keys == ("vision", "integer", "digit"):
                 return 6
@@ -46,7 +52,7 @@ def test_generate_result_all(monkeypatch):
                 return {
                     "integer": {"active": False},
                     "digit": {"active": False},
-                    "all": {"active": True}
+                    "all": {"active": True},
                 }
             elif keys == ("mqtt", "sensors", "water", "unit_of_measurement"):
                 return "l"
@@ -63,10 +69,12 @@ def test_generate_result_all(monkeypatch):
     # 123456 m3 = 123456000 l; 789 cl = 7.89 l => Total = 123456007.89 l
     assert res["total_liters"] == 123456007.89
 
+
 def test_generate_result_integer_only(monkeypatch):
     class MockConfigLoaderIntegerOnly:
         def __init__(self, *args, **kwargs):
             self.data = {}
+
         def get_param(self, *keys):
             if keys == ("vision", "integer", "digit"):
                 return 6
@@ -80,7 +88,7 @@ def test_generate_result_integer_only(monkeypatch):
                 return {
                     "integer": {"active": True},
                     "digit": {"active": False},
-                    "all": {"active": False}
+                    "all": {"active": False},
                 }
             elif keys == ("mqtt", "sensors", "water", "unit_of_measurement"):
                 return "l"
@@ -88,7 +96,9 @@ def test_generate_result_integer_only(monkeypatch):
                 return 0.0
             raise ValueError(f"Unknown key: {keys}")
 
-    monkeypatch.setattr("utils.configuration.YamlConfigLoader", MockConfigLoaderIntegerOnly)
+    monkeypatch.setattr(
+        "utils.configuration.YamlConfigLoader", MockConfigLoaderIntegerOnly
+    )
 
     # OCR reads only integer coordinates
     res = generate_result("001234")
