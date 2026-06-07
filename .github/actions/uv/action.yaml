@@ -12,7 +12,17 @@ runs:
       with:
         version: "latest"
     - name: Install system dependencies
-      run: sudo apt-get install --no-install-recommends -y nano gettext-base python3 ffmpeg nginx python3-pip python3-dev supervisor cron tesseract-ocr tesseract-ocr-eng
+      run: |
+        sudo apt-get update
+        sudo apt-get install --no-install-recommends -y \
+          nano \
+          gettext-base \
+          ffmpeg \
+          nginx \
+          supervisor \
+          cron \
+          tesseract-ocr \
+          tesseract-ocr-eng
       shell: bash
     - name: Install python dependencies
       shell: bash
