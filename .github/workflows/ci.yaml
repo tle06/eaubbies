@@ -6,18 +6,18 @@ on:
     branches:
       - main
     paths:
-      - "src/**"
-      - "etc/**"
-      - "entrypoint/**"
-      - "Dockerfile"
+      - "eaubbies/src/**"
+      - "eaubbies/etc/**"
+      - "eaubbies/entrypoint/**"
+      - "eaubbies/Dockerfile"
       - "docker-compose.yml"
 
   pull_request:
     paths:
-      - "src/**"
-      - "etc/**"
-      - "entrypoint/**"
-      - "Dockerfile"
+      - "eaubbies/src/**"
+      - "eaubbies/etc/**"
+      - "eaubbies/entrypoint/**"
+      - "eaubbies/Dockerfile"
       - "docker-compose.yml"
 
   workflow_dispatch:
