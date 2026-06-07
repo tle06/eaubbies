@@ -19,14 +19,17 @@ services:
       - ""
       - "all"
       - "eaubbies"
+      - "app"
     container_name: eaubbies
     build:
       context: eaubbies
       dockerfile: Dockerfile
       args:
-        BUILD_FROM: "homeassistant/amd64-base-debian:bookworm"
+        BUILD_FROM: "ghcr.io/hassio-addons/debian-base:9.3.0"
     volumes:
       - ./docker-hassio-config/eaubbies:/data
+    environment:
+      PORT: 8099
     restart: unless-stopped
     ports:
       - 8099:8099
