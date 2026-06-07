@@ -33,6 +33,9 @@ class YamlConfigLoader:
             },
             "result": {"current": None, "previous": None, "unit": "l"},
             "vision": {
+                "engine": "azure",  # Option between 'azure' or 'tesseract'
+                "tesseract_cmd": None,
+                "tesseract_config": "--psm 8 -c tessedit_char_whitelist=0123456789",
                 "counter": 0,
                 "rotate": 0.0,
                 "endpoint": None,
@@ -65,6 +68,7 @@ class YamlConfigLoader:
             },
             "mqtt": {
                 "server": None,
+                "port": 1883,
                 "user": None,
                 "password": None,
                 "discovery_prefix": "homeassistant",
