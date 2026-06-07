@@ -234,10 +234,11 @@ The application stores settings inside a YAML file: `data/config/main.yaml` (rel
 
 When modifying this repository, be extremely careful of the following patterns:
 
-*   **Poetry vs. UV:** The code references POETRY inside `app.py:33`:
-    `command = "/root/.local/share/pypoetry/venv/bin/poetry run python /app/cron.py"`
-    Ensure that any migration or runtime commands respect where Python packages are actually stored in Docker (`/app/.venv`).
-*   **No local tests:** There is no configured local test suite (`pytest` or `unittest`). Verify your changes directly by running Flask locally or testing inside the docker-compose environment.
+*   **Poetry vs. UV:** The project uses `uv` in local development and inside the Dockerfile. The cron script path command has been modernized from poetry to uv in the code:
+    `command = "/app/.venv/bin/python /app/cron.py"`
+*   **Local tests:** A local unit test suite using `pytest` is configured in `tests/`. It can be run from the root or inside the `eaubbies/src` folder:
+    `uv run pytest ../../tests/`
+*   **Dual OCR Engines:** Supports both Azure Computer Vision (cloud-based) and Tesseract OCR (local/container-based) via `vision.engine` config parameter.
 *   **Home Assistant Add-on Lifecycle:** The entrypoint script (`entrypoint.sh` -> `0.sh`) spins up supervisord, which starts Gunicorn serving the Unix socket `/app/ipc.sock`, and Nginx proxies incoming traffic from Port `8099` to Gunicorn.
 *   **CV2 Image Layouts:** Color format adjustments (RGB vs. BGR vs. Gray) inside `service.py` and `rtsp_client.py` must match Azure Vision constraints (which accepts JPEG binary byte streams).
 *   **Coordinate Math:** The region selection overlays on the web UI might output offsets that require padding adjustments in `service.py:97-99` (e.g., `- 50` on Y/height to capture full characters).
