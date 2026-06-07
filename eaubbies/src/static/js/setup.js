@@ -50,36 +50,52 @@ function EmptyTableBody(bodyid) {
 
 // Function to draw the image with rotation
 function drawImageWithRotation(ctx, img, angle, canvas) {
-  ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear the canvas
+  // 1. Invert the angle so UI rotation matches OpenCV's counter-clockwise rotation
+  var rad = (-angle * Math.PI) / 180;
 
-  // Move the canvas origin to the center
+  // 2. Calculate the NEW dimensions to fit the rotated image (matches backend logic)
+  var cos = Math.abs(Math.cos(rad));
+  var sin = Math.abs(Math.sin(rad));
+  var newWidth = img.height * sin + img.width * cos;
+  var newHeight = img.height * cos + img.width * sin;
+
+  // 3. Resize the canvas bounds to match the new image footprint
+  canvas.width = newWidth;
+  canvas.height = newHeight;
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // 4. Move the canvas origin to the center of the NEWLY sized canvas
   ctx.translate(canvas.width / 2, canvas.height / 2);
 
-  // Rotate the canvas
-  ctx.rotate((angle * Math.PI) / 180);
+  // 5. Rotate the canvas
+  ctx.rotate(rad);
 
-  // Draw the rotated image, centered
+  // 6. Draw the rotated image, perfectly centered
   ctx.drawImage(
     img,
     -img.width / 2,
     -img.height / 2,
-    canvas.width,
-    canvas.height,
+    img.width,
+    img.height
   );
 
-  // Reset the canvas transformation
+  // 7. Reset the canvas transformation so standard X/Y rectangles map correctly
   ctx.setTransform(1, 0, 0, 1, 0, 0);
 
+  // 8. Draw your bounding boxes
   rectangles.forEach(function (rect) {
     var coordinates = rect.coordinates;
-    ctx.strokeStyle = rect.color;
-    ctx.lineWidth = 2;
-    ctx.strokeRect(
-      coordinates.x,
-      coordinates.y,
-      coordinates.width,
-      coordinates.height,
-    );
+    if (coordinates.x !== undefined) {
+      ctx.strokeStyle = rect.color;
+      ctx.lineWidth = 2;
+      ctx.strokeRect(
+        coordinates.x,
+        coordinates.y,
+        coordinates.width,
+        coordinates.height
+      );
+    }
   });
 }
 
@@ -207,9 +223,11 @@ function LoadFrame() {
     var canvas = document.getElementById("canvas");
 
     img.onload = function () {
-      canvas.width = img.width;
-      canvas.height = img.height;
-      ctx.drawImage(img, 0, 0, img.width, img.height);
+      // Fetch the current rotation value from the UI
+      var angle = parseFloat(document.getElementById("input-rotate-image").value) || 0;
+
+      // Draw it with the rotation and new bounding box immediately
+      drawImageWithRotation(ctx, img, angle, canvas);
 
       // Listen for mouse events
       canvas.addEventListener("mousedown", startDrawing);
@@ -368,7 +386,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Create a new image
     var img = new Image();
-    img.src = "static/img/frames/origine.jpg"; // Replace with your image path
+    img.src = "static/img/frames/0.frame_origine.jpg"; // Replace with your image path
 
     // Transforming the object into the desired format
     if (coordinates_from_flask) {

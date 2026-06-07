@@ -26,11 +26,18 @@ import json
 import io
 
 app = Flask(__name__)
+# Configure Flask application logging handlers & level
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
+app.logger.setLevel(logging.INFO)
+# Also configure root logger so modules like 'service' output to stdout
+logging.getLogger().setLevel(logging.INFO)
 configuration = YamlConfigLoader()
 path_frame_folder = configuration.get_param("frame", "storage_path")
 app.logger.info(f"Frame folder path: {path_frame_folder}")
 os.makedirs(path_frame_folder, exist_ok=True)
-command = "/root/.local/share/pypoetry/venv/bin/poetry run python /app/cron.py"
+command = "/app/.venv/bin/python /app/cron.py"
 register_cron_task(
     command=command, selected_time=configuration.get_param("service", "cron")
 )
@@ -88,7 +95,15 @@ def download_file(filename):
 @app.route("/save_config", methods=["POST"])
 def save_config():
 
-    # Azure vision config
+    # Azure vision / Tesseract config
+    if request.form.get("vision_engine"):
+        vision_engine = request.form["vision_engine"]
+        configuration.set_param("vision", "engine", value=vision_engine)
+
+    if request.form.get("tesseract_config"):
+        tesseract_config = request.form["tesseract_config"]
+        configuration.set_param("vision", "tesseract_config", value=tesseract_config)
+
     if request.form.get("vision_key"):
         vision_key = request.form["vision_key"]
 
@@ -106,7 +121,7 @@ def save_config():
     if request.form.get("vision_integer_digit"):
         vision_integer_digit = request.form["vision_integer_digit"]
         configuration.set_param(
-            "vision", "integer", "digit", value=vision_integer_digit
+            "vision", "integer", "digit", value=int(vision_integer_digit)
         )
 
     if request.form.get("vision_integer_unit_of_measurement"):
@@ -123,7 +138,7 @@ def save_config():
     if request.form.get("vision_decimal_digit"):
         vision_decimal_digit = request.form["vision_decimal_digit"]
         configuration.set_param(
-            "vision", "decimal", "digit", value=vision_decimal_digit
+            "vision", "decimal", "digit", value=int(vision_decimal_digit)
         )
     if request.form.get("vision_decimal_unit_of_measurement"):
         vision_decimal_unit_of_measurement = request.form[
@@ -146,6 +161,10 @@ def save_config():
     if request.form.get("mqtt_server"):
         mqtt_server = request.form["mqtt_server"]
         configuration.set_param("mqtt", "server", value=mqtt_server)
+
+    if request.form.get("mqtt_port"):
+        mqtt_port = request.form["mqtt_port"]
+        configuration.set_param("mqtt", "port", value=int(mqtt_port))
 
     if request.form.get("mqtt_user"):
         mqtt_user = request.form["mqtt_user"]
@@ -250,10 +269,10 @@ def load_frame():
     # capture frame
     default_folder = configuration.get_param("frame", "storage_path")
     client_rtsp.set_default_folder(default_folder=default_folder)
-    client_rtsp.get_frame()
+    client_rtsp.get_frame(filename="0.frame_origine")
 
     default_folder = configuration.get_param("frame", "storage_path")
-    image_path = f"{default_folder}/origine.jpg"
+    image_path = f"{default_folder}/0.frame_origine.jpg"
     # with open(image_path, "rb") as f:
     #     image_bytes = io.BytesIO(f.read())
     return json.dumps(image_path)
@@ -283,13 +302,14 @@ def create_sensor():
 def receive_coordinates():
     data = request.json
     # Process the received coordinates here
-    app.logger.info("Received coordinates:", data)
+    app.logger.info(f"Received coordinates: {data}")
 
     for d in data:
-        configuration.set_param(
-            "vision", "coordinates", d["name"], value=d["coordinates"]
-        )
-        configuration.set_param("vision", "rotate", value=d["rotate"])
+        coords = d["coordinates"]
+        # Mark coordinate active if width/height are set
+        coords["active"] = bool(coords.get("width") and coords.get("height"))
+        configuration.set_param("vision", "coordinates", d["name"], value=coords)
+        configuration.set_param("vision", "rotate", value=float(d["rotate"]))
 
     init_config = bool(configuration.get_param("setup", "init_config"))
     app.logger.info(f"init_config value in send_edit: {init_config}")
