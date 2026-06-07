@@ -4,26 +4,18 @@ from flask import (
     Response,
     request,
     jsonify,
-    make_response,
     redirect,
     url_for,
-    send_file,
     send_from_directory,
 )
 from utils.rtsp_client import RTSPClient
-from utils.azure_client import AzureClient
-from utils.utils import volume_converter, time_to_cron, register_cron_task
+from utils.utils import time_to_cron, register_cron_task
 from utils.configuration import YamlConfigLoader
 from utils.mqtt import MqttCLient
-from service import service_process, create_improved_frame
-from PIL import Image
-import cv2
+from service import service_process
 import os
-import time
 import logging
-import base64
 import json
-import io
 
 app = Flask(__name__)
 # Configure Flask application logging handlers & level

@@ -1,17 +1,13 @@
 import sys
 import os
 import pytest
-import numpy as np
-import cv2
+from utils.tesseract_client import TesseractClient
+from utils.utils import volume_converter, generate_result
 
 # Add eaubbies/src to sys.path so we can import utils and modules directly
 sys.path.insert(
     0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../eaubbies/src"))
 )
-
-from utils.configuration import YamlConfigLoader
-from utils.tesseract_client import TesseractClient
-from utils.utils import volume_converter, generate_result
 
 
 def test_volume_converter():

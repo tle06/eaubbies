@@ -1,7 +1,6 @@
 # https://learn.microsoft.com/en-us/azure/ai-services/computer-vision/quickstarts-sdk/client-library?tabs=linux%2Cvisual-studio&pivots=programming-language-python
 from azure.cognitiveservices.vision.computervision import ComputerVisionClient
 from azure.cognitiveservices.vision.computervision.models import OperationStatusCodes
-from azure.cognitiveservices.vision.computervision.models import VisualFeatureTypes
 from msrest.authentication import CognitiveServicesCredentials
 import io
 import cv2
@@ -145,6 +144,8 @@ class AzureClient:
     def get_regions(self, result):
         text_regions = []
         for r in result:
-            for l in r.lines:
-                text_regions.append({"bounding_box": l.bounding_box, "text": l.text})
+            for line in r.lines:
+                text_regions.append(
+                    {"bounding_box": line.bounding_box, "text": line.text}
+                )
         return text_regions

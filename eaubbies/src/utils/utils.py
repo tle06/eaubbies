@@ -31,7 +31,7 @@ def register_cron_task(command, selected_time):
 
     cron = CronTab(user=True)
     cron_expression = time_to_cron(selected_time)
-    exist_cron = None
+
     for job in cron:
         # Check if the job matches your criteria, for example, if you want to update a specific command
         if job.command == command:

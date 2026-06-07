@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 import skimage.exposure
-from pathlib import Path, PurePath
+from pathlib import Path
 import base64
 import time
 import logging
@@ -395,7 +395,7 @@ class RTSPClient:
         print(
             f"DEBUG: Current image shape is {self.improve_frame.shape} (Height, Width, Channels)"
         )
-        print(f"DEBUG: Cropping frame to X:{x}->{x+width}, Y:{y}->{y+height}")
+        print(f"DEBUG: Cropping frame to X:{x}->{x + width}, Y:{y}->{y + height}")
 
         # 1. Directly crop the active, modified frame (preserves any prior rotation)
         cropped_image = self.improve_frame[y : y + height, x : x + width]
@@ -440,17 +440,4 @@ class RTSPClient:
         if self.save_frame:
             self.write_output_file(name=filename, frame=self.improve_frame)
 
-        return self.improve_frame
-
-    def adaptive_threshold(self, filename="frame_adaptive_threshold"):
-        self.improve_frame = cv2.adaptiveThreshold(
-            self.improve_frame,
-            255,
-            cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-            cv2.THRESH_BINARY_INV,
-            11,
-            2,
-        )
-        if self.save_frame:
-            self.write_output_file(name=filename, frame=self.improve_frame)
         return self.improve_frame

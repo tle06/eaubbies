@@ -2,10 +2,8 @@ from utils.rtsp_client import RTSPClient
 from utils.azure_client import AzureClient
 from utils.tesseract_client import TesseractClient
 from utils.configuration import YamlConfigLoader
-from utils.utils import volume_converter, generate_result
+from utils.utils import generate_result
 from utils.mqtt import MqttCLient
-import json
-import logging
 
 configuration = YamlConfigLoader()
 
@@ -161,9 +159,9 @@ def service_process(
         # init Azure client
         subscription_key = configuration.get_param("vision", "key")
         endpoint = configuration.get_param("vision", "endpoint")
-        vision_integer = configuration.get_param("vision", "coordinates", "integer")
-        vision_digit = configuration.get_param("vision", "coordinates", "digit")
-        vision_all = configuration.get_param("vision", "coordinates", "digit")
+        # vision_integer = configuration.get_param("vision", "coordinates", "integer")
+        # vision_digit = configuration.get_param("vision", "coordinates", "digit")
+        # vision_all = configuration.get_param("vision", "coordinates", "digit")
 
         client_azure = AzureClient(vision_key=subscription_key, endpoint_url=endpoint)
         client_azure.default_folder = default_folder
@@ -184,7 +182,8 @@ def service_process(
     vision_counter = int(configuration.get_param("vision", "counter"))
     configuration.set_param("vision", "counter", value=vision_counter + 1)
     text_regions = client_azure.get_regions(result=result)
-    image_vision = client_azure.draw_text_boxes(
+
+    client_azure.draw_text_boxes(
         text_regions=text_regions,
         frame=frame_to_process,
         filename="11.azure_vision_draw_boxes",
@@ -237,7 +236,7 @@ def service_process(
     if increase_cron_count:
         curent_count = int(configuration.get_param("service", "counter"))
         print(f"curent_count: {curent_count}")
-        print(f"new count: {curent_count+1}")
+        print(f"new count: {curent_count + 1}")
         configuration.set_param("service", "counter", value=curent_count + 1)
 
     return data

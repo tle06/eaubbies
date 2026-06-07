@@ -3,9 +3,6 @@ import pytesseract
 import cv2
 import logging
 from PIL import Image
-import io
-import numpy as np
-from PIL import ImageOps
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -106,11 +103,6 @@ class TesseractClient:
             data = pytesseract.image_to_data(
                 image, output_type=pytesseract.Output.DICT, config=config
             )
-
-            # Mimic the structure returned by Azure Vision Client (read_result.analyze_result.read_results)
-            # which is result[0].lines[line_with_data].text
-            # Let's extract lines from pytesseract data
-            lines = []
 
             # Group by line_num or block_num, or simply use image_to_string for raw text lines
             raw_text = pytesseract.image_to_string(image, config=config)

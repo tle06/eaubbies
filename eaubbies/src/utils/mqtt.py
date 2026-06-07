@@ -3,7 +3,6 @@ from utils.configuration import YamlConfigLoader
 from utils.utils import generate_unique_id
 import logging
 import json
-import time
 
 logging.basicConfig(level=logging.INFO)
 
@@ -26,8 +25,8 @@ class MqttCLient:
 
         self.device_unique_id = self.get_device_unique_id()
         self.topic = f"{self.discovery_prefix}/sensor/{self.name}"
-        self.topic_config = topic = f"{self.topic}/watermeter/config"
-        self.topic_state = topic = f"{self.topic}/watermeter/state"
+        self.topic_config = f"{self.topic}/watermeter/config"
+        self.topic_state = f"{self.topic}/watermeter/state"
 
         self.mqtt_connection()
 
@@ -35,7 +34,6 @@ class MqttCLient:
 
         mqtt_user = self.configuration.get("user")
         mqtt_password = self.configuration.get("password")
-        mqtt_server = self.configuration.get("server")
         mqtt_port = self.configuration.get("port")
         mqtt_url = self.configuration.get("server")
         self.client = Client(CallbackAPIVersion.VERSION2)
@@ -57,9 +55,9 @@ class MqttCLient:
             print(unique_id)
         return unique_id
 
-    def on_disconnect(self, client, userdata, rc):
-        if rc != 0:
-            print("Unexpected disconnection.")
+    # def on_disconnect(self, client, userdata, rc):
+    #     if rc != 0:
+    #         print("Unexpected disconnection.")
 
     def on_connect(self, client, userdata, flags, rc):
         print(client, userdata, flags, rc)

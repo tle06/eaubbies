@@ -7,10 +7,9 @@ saving intermediate output frames to a dedicated troubleshooting folder.
 """
 
 import os
-import shutil
 import argparse
 import logging
-from service import service_process, create_improved_frame
+from service import service_process
 from utils.configuration import YamlConfigLoader
 
 logging.basicConfig(
