@@ -219,7 +219,7 @@ jobs:
         run: |
           source eaubbies/src/.venv/bin/activate;
           cd eaubbies/src/
-          uv run pytest
+          pytest
 
   build:
     name: Build ${{ matrix.architecture }}
