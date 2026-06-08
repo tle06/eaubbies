@@ -189,5 +189,6 @@ jobs:
 
       - name: Run tests
         run: |
+          source eaubbies/src/.venv/bin/activate;
           cd eaubbies/src/
           uv run pytest
