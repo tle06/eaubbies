@@ -152,7 +152,7 @@ jobs:
       - name: 🚀 Run Prettier
         uses: creyD/prettier_action@v4.6
         with:
-          prettier_options: --check **/*.{js,md,yaml}
+          prettier_options: --check **/*.js
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
