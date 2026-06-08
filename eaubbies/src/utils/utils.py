@@ -61,18 +61,42 @@ def generate_result(raw_result: str):
     print(raw_result)
     configuration = YamlConfigLoader()
 
-    integer_digit = configuration.get_param("vision", "integer", "digit")
+    integer_digit = int(configuration.get_param("vision", "integer", "digit"))
     integer_uom = configuration.get_param(
         "vision", "integer", "unit_of_measurement"
     ).lower()
-    decimal_digit = configuration.get_param("vision", "decimal", "digit")
+    decimal_digit = int(configuration.get_param("vision", "decimal", "digit"))
     decimal_uom = configuration.get_param(
         "vision", "decimal", "unit_of_measurement"
     ).lower()
 
-    vision_integer = configuration.get_param("vision", "coordinates", "integer")
-    vision_digit = configuration.get_param("vision", "coordinates", "digit")
-    vision_all = configuration.get_param("vision", "coordinates", "digit")
+    try:
+        vision_integer = configuration.get_param(
+            "vision", "coordinates", "integer"
+        ).get("active", False)
+        vision_digit = configuration.get_param("vision", "coordinates", "digit").get(
+            "active", False
+        )
+        vision_all = configuration.get_param("vision", "coordinates", "all").get(
+            "active", False
+        )
+    except Exception:
+        # Fallback to general coordinates if get_param fails with 3-key tuple or gets simple config structure
+        try:
+            coords_dict = configuration.get_param("vision", "coordinates")
+            vision_integer = bool(
+                coords_dict.get("integer") and coords_dict["integer"].get("active")
+            )
+            vision_digit = bool(
+                coords_dict.get("digit") and coords_dict["digit"].get("active")
+            )
+            vision_all = bool(
+                coords_dict.get("all") and coords_dict["all"].get("active")
+            )
+        except Exception:
+            vision_integer = False
+            vision_digit = False
+            vision_all = True
 
     main_uom = configuration.get_param(
         "mqtt", "sensors", "water", "unit_of_measurement"
