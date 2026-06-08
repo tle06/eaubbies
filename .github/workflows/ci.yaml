@@ -28,15 +28,16 @@ permissions:
   contents: write
   packages: write
   security-events: write
+  pull-requests: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
-  ha-addon-ci:
-    name: HA addon CI Workflows
-    uses: hassio-addons/workflows/.github/workflows/addon-ci.yaml@main
+  ha-app-ci:
+    name: HA app CI Workflows
+    uses: hassio-addons/workflows/.github/workflows/app-ci.yaml@main
   # information:
   #   name: Gather add-on information
   #   runs-on: ubuntu-latest
