@@ -78,9 +78,9 @@ jobs:
         with:
           persist-credentials: false
       - name: 🚀 Run App Lint
-        uses: frenck/action-addon-linter@f995494fd84fae6310d23617e66d0e37de4f14eb # v2.21.0
+        uses: frenck/action-addon-linter@v2.21.0
         with:
-          community: true
+          community: false
           path: "./${{ needs.information.outputs.target }}"
 
   lint-hadolint:
@@ -152,7 +152,7 @@ jobs:
       - name: 🚀 Run Prettier
         uses: creyD/prettier_action@8c18391fdc98ed0d884c6345f03975edac71b8f0 # v4.6
         with:
-          prettier_options: --check **/*.{json,js,md,yaml}
+          prettier_options: --check **/*.{js,md,yaml}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -161,7 +161,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: ⤵️ Check out code from GitHub
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        uses: actions/checkout@v6
         with:
           persist-credentials: false
       - name: 🚀 Run zizmor
@@ -179,6 +179,48 @@ jobs:
       - name: 👀 Dependency review
         uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
 
+  formatting-black:
+    name: Formatting python file with Black
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: "Install UV and repository dependencies"
+        uses: ./.github/actions/uv
+      - name: Run Black in check mode
+        run: |
+          cd eaubbies/src/
+          uv run black . --check
+
+  lint-flake8:
+    name: Linting python files with flake8
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: "Install UV and repository dependencies"
+        uses: ./.github/actions/uv
+      - name: Run Flake8
+        run: |
+          cd eaubbies/src/
+          uv run flake8 .
+
+  test-pytest:
+    name: Run pytest suite
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Install UV and repository dependencies
+        uses: ./.github/actions/uv
+
+      - name: Run tests
+        run: |
+          source eaubbies/src/.venv/bin/activate;
+          cd eaubbies/src/
+          uv run pytest
+
   build:
     name: Build ${{ matrix.architecture }}
     needs:
@@ -190,6 +232,9 @@ jobs:
       - lint-shellcheck
       - lint-yamllint
       - lint-zizmor
+      - lint-flake8
+      - formatting-black
+      - test-pytest
     runs-on: ${{ matrix.architecture == 'aarch64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
     strategy:
       matrix:
@@ -240,45 +285,3 @@ jobs:
             BUILD_REF=${{ github.sha }}
             BUILD_REPOSITORY=${{ github.repository }}
             BUILD_VERSION=edge
-
-  formatting-black:
-    name: Formatting python file with Black
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v6
-      - name: "Install UV and repository dependencies"
-        uses: ./.github/actions/uv
-      - name: Run Black in check mode
-        run: |
-          cd eaubbies/src/
-          uv run black . --check
-
-  lint-flake8:
-    name: Linting python files with flake8
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v6
-      - name: "Install UV and repository dependencies"
-        uses: ./.github/actions/uv
-      - name: Run Flake8
-        run: |
-          cd eaubbies/src/
-          uv run flake8 .
-
-  test-pytest:
-    name: Run pytest suite
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v6
-
-      - name: Install UV and repository dependencies
-        uses: ./.github/actions/uv
-
-      - name: Run tests
-        run: |
-          source eaubbies/src/.venv/bin/activate;
-          cd eaubbies/src/
-          uv run pytest

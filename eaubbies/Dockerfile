@@ -1,6 +1,4 @@
-# hadolint global ignore=DL3013,DL4006,DL3008,DL3006,DL3009
 ARG BUILD_FROM
-
 FROM $BUILD_FROM AS runtime
 
 WORKDIR /app

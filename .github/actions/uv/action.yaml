@@ -1,3 +1,4 @@
+---
 name: "Install UV and repository dependencies"
 description: "Install UV package manager and sync de package dependencies"
 runs:
