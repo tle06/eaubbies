@@ -72,13 +72,7 @@ function drawImageWithRotation(ctx, img, angle, canvas) {
   ctx.rotate(rad);
 
   // 6. Draw the rotated image, perfectly centered
-  ctx.drawImage(
-    img,
-    -img.width / 2,
-    -img.height / 2,
-    img.width,
-    img.height
-  );
+  ctx.drawImage(img, -img.width / 2, -img.height / 2, img.width, img.height);
 
   // 7. Reset the canvas transformation so standard X/Y rectangles map correctly
   ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -93,7 +87,7 @@ function drawImageWithRotation(ctx, img, angle, canvas) {
         coordinates.x,
         coordinates.y,
         coordinates.width,
-        coordinates.height
+        coordinates.height,
       );
     }
   });
@@ -224,7 +218,8 @@ function LoadFrame() {
 
     img.onload = function () {
       // Fetch the current rotation value from the UI
-      var angle = parseFloat(document.getElementById("input-rotate-image").value) || 0;
+      var angle =
+        parseFloat(document.getElementById("input-rotate-image").value) || 0;
 
       // Draw it with the rotation and new bounding box immediately
       drawImageWithRotation(ctx, img, angle, canvas);
