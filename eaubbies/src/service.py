@@ -4,7 +4,12 @@ from utils.tesseract_client import TesseractClient
 from utils.configuration import YamlConfigLoader
 from utils.utils import generate_result
 from utils.mqtt import MqttCLient
+import logging
 
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
+logger = logging.getLogger("troubleshoot")
 configuration = YamlConfigLoader()
 
 
@@ -134,7 +139,7 @@ def service_process(
             tesseract_cmd = configuration.get_param("vision", "tesseract_cmd")
         except Exception:
             pass
-        tesseract_config = "--psm 6"
+        tesseract_config = "--psm 8 -c tessedit_char_whitelist=0123456789"
         try:
             tesseract_config = configuration.get_param("vision", "tesseract_config")
         except Exception:
@@ -157,6 +162,7 @@ def service_process(
         )
     else:
         # init Azure client
+        logger.info("Using Azure OCR Engine")
         subscription_key = configuration.get_param("vision", "key")
         endpoint = configuration.get_param("vision", "endpoint")
         # vision_integer = configuration.get_param("vision", "coordinates", "integer")
@@ -171,17 +177,20 @@ def service_process(
             frame=frame_to_process
         )  # implement logic for integer, digit or all
 
+        logger.info(f"Azure OCR Result: {result}")
+
         text_regions = client_azure.get_regions(result=result)
+        logger.info(f"Azure OCR Text Regions: {text_regions}")
         client_azure.draw_text_boxes(
             text_regions=text_regions,
             frame=frame_to_process,
-            output_image_name="vision",
             filename="10.azure_vision_draw_boxes",
         )
 
     vision_counter = int(configuration.get_param("vision", "counter"))
     configuration.set_param("vision", "counter", value=vision_counter + 1)
     text_regions = client_azure.get_regions(result=result)
+    logger.info(f"Azure OCR Text Regions: {text_regions}")
 
     client_azure.draw_text_boxes(
         text_regions=text_regions,

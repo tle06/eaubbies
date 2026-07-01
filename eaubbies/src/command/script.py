@@ -37,6 +37,7 @@ def main():
         "--engine",
         type=str,
         choices=["azure", "tesseract"],
+        default="azure",
         help="Override OCR Engine selection",
     )
     parser.add_argument("--rotate", type=float, help="Override image rotation angle")

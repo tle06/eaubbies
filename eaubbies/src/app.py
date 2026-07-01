@@ -20,14 +20,13 @@ import json
 app = Flask(__name__)
 # Configure Flask application logging handlers & level
 logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
-app.logger.setLevel(logging.INFO)
-# Also configure root logger so modules like 'service' output to stdout
-logging.getLogger().setLevel(logging.INFO)
+
+logger = logging.getLogger("troubleshoot")
 configuration = YamlConfigLoader()
 path_frame_folder = configuration.get_param("frame", "storage_path")
-app.logger.info(f"Frame folder path: {path_frame_folder}")
+logger.info(f"Frame folder path: {path_frame_folder}")
 os.makedirs(path_frame_folder, exist_ok=True)
 command = "/app/.venv/bin/python /app/cron.py"
 register_cron_task(
@@ -41,10 +40,10 @@ def index():
     conf = YamlConfigLoader()
     init_config = bool(conf.get_param("setup", "init_config"))
 
-    app.logger.info(f"init_config value in index: {init_config}")
+    logger.info(f"init_config value in index: {init_config}")
 
     if not init_config:
-        app.logger.info("redirect to init")
+        logger.info("redirect to init")
         return redirect(url_for("init"))
 
     return render_template("index.html", config=configuration.data)
@@ -72,7 +71,7 @@ def frames():
     try:
         files = os.listdir(configuration.get_param("frame", "storage_path"))
     except Exception as e:
-        app.logger.error(f"Error: {e}")
+        logger.error(f"Error: {e}")
         files = ""
     return render_template("frames.html", files=files)
 
@@ -103,7 +102,7 @@ def save_config():
             vision_key != configuration.get_param("vision", "key")
             and vision_key != "********************************"
         ):
-            app.logger.info("Vision key updated")
+            logger.info("Vision key updated")
             configuration.set_param("vision", "key", value=vision_key)
 
     if request.form.get("endpoint_url"):
@@ -168,7 +167,7 @@ def save_config():
             mqtt_password != configuration.get_param("mqtt", "password")
             and mqtt_password != "********************************"
         ):
-            app.logger.info("MQTT user password changed")
+            logger.info("MQTT user password changed")
             configuration.set_param("mqtt", "password", value=mqtt_password)
     if request.form.get("mqtt_device_name"):
         mqtt_device_name = request.form["mqtt_device_name"]
@@ -201,7 +200,7 @@ def save_config():
     if request.form.get("con_time"):
         cron_time = request.form["cron_time"]
         configuration.set_param("service", "cron", value=cron_time)
-        app.logger.info(f"cron time update: {time_to_cron(cron_time)}")
+        logger.info(f"cron time update: {time_to_cron(cron_time)}")
         register_cron_task(command=command, selected_time=cron_time)
 
     if request.referrer.endswith("/init"):
@@ -238,8 +237,8 @@ def run_process():
         # Here you would handle the uploaded file, for example:
         # file.save(os.path.join('/path/to/save', file.filename))
 
-        app.logger.info("[RUN PROCESS] File mode will be used")
-        app.logger.info(f"[RUN PROCESS] File received: {file.filename}")
+        logger.info("[RUN PROCESS] File mode will be used")
+        logger.info(f"[RUN PROCESS] File received: {file.filename}")
         use_file = True
 
     # Call your service function
@@ -247,7 +246,7 @@ def run_process():
         result = service_process(use_file=use_file, file=file)
         if isinstance(result, ValueError):
             return jsonify({"error": str(result)})
-        app.logger.info(result)
+        logger.info(result)
         return jsonify(result)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -276,7 +275,7 @@ def create_sensor():
 
     try:
         response = client_mqtt.mqtt_publish_device()
-        app.logger.info(f"MQTT response: {response}")
+        logger.info(f"MQTT response: {response}")
 
         result = json.dumps(
             {
@@ -286,7 +285,7 @@ def create_sensor():
 
         return result
     except Exception as e:
-        app.logger.info("Error: {e}")
+        logger.info("Error: {e}")
         return jsonify({"error": str(e)}), 500
 
 
@@ -294,7 +293,7 @@ def create_sensor():
 def receive_coordinates():
     data = request.json
     # Process the received coordinates here
-    app.logger.info(f"Received coordinates: {data}")
+    logger.info(f"Received coordinates: {data}")
 
     for d in data:
         coords = d["coordinates"]
@@ -304,7 +303,7 @@ def receive_coordinates():
         configuration.set_param("vision", "rotate", value=float(d["rotate"]))
 
     init_config = bool(configuration.get_param("setup", "init_config"))
-    app.logger.info(f"init_config value in send_edit: {init_config}")
+    logger.info(f"init_config value in send_edit: {init_config}")
     if not init_config:
         configuration.set_param("setup", "init_config", value=True)
 
