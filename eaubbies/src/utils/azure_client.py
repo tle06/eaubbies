@@ -143,9 +143,12 @@ class AzureClient:
 
     def get_regions(self, result):
         text_regions = []
+        if result is None:
+            print("Warning: Azure OCR result is None. API may have failed or timed out.")
+            return text_regions
+            
         for r in result:
-            for line in r.lines:
-                text_regions.append(
-                    {"bounding_box": line.bounding_box, "text": line.text}
-                )
+            if hasattr(r, 'lines'):
+                for l in r.lines:
+                    text_regions.append({"bounding_box": l.bounding_box, "text": l.text})
         return text_regions
