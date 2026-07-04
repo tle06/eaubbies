@@ -2,82 +2,82 @@
 
 {% block content %}
 <div class="row">
-    <div class="col-md-12">
-        <div class="card mb-4">
-            <h5 class="card-header">Frames</h5>
-            <hr class="my-0">
-            <div class="card-body">
+  <div class="col-md-12">
+    <div class="card mb-4">
+      <h5 class="card-header">Configuration</h5>
+      <hr class="my-0">
+      <div class="card-body">
+        <form action="/save_config" method="post">
+          <div class="row">
 
-                <form action="/save_config" method="post">
-                    <div class="row">
-                        <small class="text-light fw-medium d-block pt-3">Azure Vision config</small>
-                        {% include 'config/config-azure-vision.html' %}
-                        
-                        <small class="text-light fw-medium d-block pt-3">RTSP config</small>
-                        {% include 'config/config-rtsp.html' %}
-                        
-                        <small class="text-light fw-medium d-block pt-3">MQTT config</small>
-                        {% include 'config/config-mqtt.html' %}
-                        
-                        <small class="text-light fw-medium d-block pt-3">Cron config</small>
-                        <div class="mb-3 col-md-6">
-                            <label class="form-label" for="cron_time">Cron Time:</label>
-                            <select class="form-control" id="cron_time" name="cron_time">
-                                {% for hour in range(0, 24) %}
-                                    {% for minute in range(0, 60, 10) %}
-                                        {% set time_value = '%02d:%02d' % (hour, minute) %}
-                                        <option value="{{ time_value }}" {% if time_value == config['service']['cron'] %}selected{% endif %}>
-                                            {{ time_value }}
-                                        </option>
-                                    {% endfor %}
-                                {% endfor %}
-                            </select>
-                        </div>
-
-                        <div class="mt-2 d-flex gap-2">
-                            <input type="submit" value="Save config" class="btn btn-primary">
-                            
-                            <button type="button" class="btn btn-info" id="btn-test-mqtt">Test MQTT Integration</button>
-                        </div>
-                    </div>
-                </form>
+            {# ── OCR / Vision ── #}
+            <div class="col-md-12">
+              <p class="text-light fw-medium">OCR Engine</p>
             </div>
-        </div>
+            {% include 'config/config-azure-vision.html' %}
+
+            {# ── Image Optimisation ── #}
+            <div class="col-md-12 mt-4">
+              <p class="text-light fw-medium">Image Optimisation</p>
+            </div>
+            {% include 'config/config-image-optimization.html' %}
+
+            {# ── RTSP ── #}
+            <div class="col-md-12 mt-4">
+              <p class="text-light fw-medium">RTSP</p>
+            </div>
+            {% include 'config/config-rtsp.html' %}
+
+            {# ── MQTT ── #}
+            <div class="col-md-12 mt-4">
+              <p class="text-light fw-medium">MQTT</p>
+            </div>
+            {% include 'config/config-mqtt.html' %}
+
+            {# ── Cron ── #}
+            <div class="col-md-12 mt-4">
+              <p class="text-light fw-medium">Scheduled reading</p>
+            </div>
+            <div class="mb-3 col-md-6">
+              <label class="form-label" for="cron_time">Run at</label>
+              <select class="form-control" id="cron_time" name="cron_time">
+                {% for hour in range(0, 24) %}
+                  {% for minute in range(0, 60, 10) %}
+                    {% set tv = '%02d:%02d' % (hour, minute) %}
+                    <option value="{{ tv }}" {% if tv == config['service']['cron'] %}selected{% endif %}>{{ tv }}</option>
+                  {% endfor %}
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="col-md-12 mt-3 d-flex gap-2">
+              <input type="submit" value="Save configuration" class="btn btn-primary">
+              <button type="button" class="btn btn-info" id="btn-test-mqtt">Test MQTT connection</button>
+            </div>
+
+          </div>
+        </form>
+      </div>
     </div>
+  </div>
 </div>
 
 <script>
-    document.addEventListener("DOMContentLoaded", function() {
-        const testBtn = document.getElementById('btn-test-mqtt');
-        
-        testBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            
-            // Visual feedback
-            const originalText = testBtn.innerText;
-            testBtn.innerText = "Publishing to MQTT...";
-            testBtn.disabled = true;
-
-            fetch('/create_sensor')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.error) {
-                        alert('Error during MQTT Test: ' + data.error);
-                    } else {
-                        console.log("MQTT Response:", data);
-                        alert('Success! Sensors configured in MQTT broker.');
-                    }
-                })
-                .catch(error => {
-                    console.error('Fetch error:', error);
-                    alert('An unexpected error occurred while calling /create_sensor.');
-                })
-                .finally(() => {
-                    // Reset button state
-                    testBtn.innerText = originalText;
-                    testBtn.disabled = false;
-                });
-        });
+  document.addEventListener("DOMContentLoaded", function () {
+    document.getElementById("btn-test-mqtt").addEventListener("click", function () {
+      var btn = this;
+      var orig = btn.innerText;
+      btn.innerText = "Publishing…";
+      btn.disabled = true;
+      fetch("/create_sensor")
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (data.error) { alert("MQTT Error: " + data.error); }
+          else { alert("Success! Sensors configured in MQTT broker."); }
+        })
+        .catch(function (e) { alert("Unexpected error: " + e); })
+        .finally(function () { btn.innerText = orig; btn.disabled = false; });
     });
+  });
 </script>
 {% endblock %}

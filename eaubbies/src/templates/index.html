@@ -4,60 +4,84 @@
 <div class="row">
   <div class="col-md-12">
     <div class="card mb-4">
-      <h5 class="card-header">Index</h5>
+      <h5 class="card-header">Water Meter Reading</h5>
       <div class="card-body">
         {% include 'config/config-frame.html' %}
       </div>
 
       <hr class="my-0">
-      <div class="card-body">
-        <div id="loader-process" class="spinner-border text-primary loader" role="status">
-          <span class="visually-hidden">Loading...</span>
+
+      <!-- Spinner -->
+      <div class="card-body pb-0" id="loader-process-wrap" style="display:none;">
+        <div class="d-flex align-items-center gap-2 text-primary">
+          <div class="spinner-border spinner-border-sm" role="status"><span class="visually-hidden">Loading...</span></div>
+          <span>Processing image&hellip;</span>
         </div>
-        <div class="alert alert-danger alert-dismissible" role="alert" id="error-message-process"
-          style="display: none;">
-          <h4 class="alert-heading d-flex align-items-center"><span class="alert-icon rounded-circle"><i
-                class="bx bx-error"></i></span>Error!!</h4>
-          <p></p>
-        </div>
-        <table id="process-table-result" class="table table-bordered">
-          <thead>
-            <th>Source</th>
-            <th>improve</th>
-            <th>OCR Result</th>
-          </thead>
-          <tbody id="process-table-result-body">
-            <tr>
-              <td><img id=" sourceFrame" src="{{url_for('static', filename='img/frames/0.frame_origine.jpg')}}" width="100%"
-                  alt="Source Frame" />
-              </td>
-              <td>
-                <img id="improveFrame" src="{{url_for('static', filename='img/frames/7.frame_improve.jpg')}}" width="100%"
-                  alt="Source Frame" />
-
-              </td>
-              <td>
-                <img id="azureVision" src="{{url_for('static', filename='img/frames/11.azure_vision_draw_boxes.jpg')}}" width="100%"
-                  alt="OCR Result" />
-
-              </td>
-            </tr>
-          </tbody>
-        </table>
-
       </div>
 
+      <!-- Error -->
+      <div class="card-body pb-0">
+        <div class="alert alert-danger alert-dismissible" role="alert" id="error-message-process" style="display:none;">
+          <h4 class="alert-heading d-flex align-items-center">
+            <span class="alert-icon rounded-circle"><i class="bx bx-error"></i></span>&nbsp;Error
+          </h4>
+          <p class="mb-0"></p>
+        </div>
+      </div>
+
+      <!-- Result section (hidden until process runs) -->
+      <div id="result-section" style="display:none;">
+
+        <!-- OCR result card -->
+        <div class="card-body border-top">
+          <h6 class="mb-3 fw-semibold">OCR Result</h6>
+          <div class="row g-3" id="result-cards">
+            <!-- filled by JS -->
+          </div>
+        </div>
+
+        <!-- Pipeline frames strip -->
+        <div class="card-body border-top">
+          <h6 class="mb-3 fw-semibold">Processing Pipeline</h6>
+          <div class="row g-3" id="pipeline-strip">
+            <!-- filled by JS -->
+          </div>
+        </div>
+
+        <!-- Final comparison: source vs final vs OCR boxes -->
+        <div class="card-body border-top">
+          <h6 class="mb-3 fw-semibold">Frame comparison</h6>
+          <div class="row g-2">
+            <div class="col-md-4">
+              <p class="text-muted small mb-1">Source</p>
+              <img id="sourceFrame" src="{{ url_for('static', filename='img/frames/0.frame_origine.jpg') }}"
+                class="img-fluid rounded border" alt="Source Frame" style="max-height:260px;object-fit:contain;width:100%;" />
+            </div>
+            <div class="col-md-4">
+              <p class="text-muted small mb-1">Final optimised</p>
+              <img id="finalFrame" src="{{ url_for('static', filename='img/frames/8.frame_final.jpg') }}"
+                class="img-fluid rounded border" alt="Final Frame" style="max-height:260px;object-fit:contain;width:100%;" />
+            </div>
+            <div class="col-md-4">
+              <p class="text-muted small mb-1">OCR bounding boxes</p>
+              <img id="ocrFrame" src="{{ url_for('static', filename='img/frames/10.ocr_boxes.jpg') }}"
+                class="img-fluid rounded border" alt="OCR Result" style="max-height:260px;object-fit:contain;width:100%;" />
+            </div>
+          </div>
+        </div>
+
+      </div>
+      <!-- /result-section -->
 
     </div>
   </div>
 </div>
-
 {% endblock content %}
 
 {% block extra_script %}
-<script src="{{url_for('static', filename='js/setup.js')}}"></script>
+<script src="{{ url_for('static', filename='js/setup.js') }}"></script>
 <script>
-  var coordinates_from_flask = {{ config["vision"]["coordinates"] | tojson | safe}};
-  var rotate_from_flask = {{ config["vision"]["rotate"] | tojson | safe}};
+  var coordinates_from_flask = {{ config["vision"]["coordinates"] | tojson | safe }};
+  var rotate_from_flask = {{ config["vision"]["rotate"] | tojson | safe }};
 </script>
 {% endblock extra_script %}

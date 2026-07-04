@@ -1,4 +1,3 @@
-# eaubbies/src/service.py
 from utils.rtsp_client import RTSPClient
 from utils.azure_client import AzureClient
 from utils.tesseract_client import TesseractClient
@@ -14,119 +13,98 @@ logger = logging.getLogger("troubleshoot")
 configuration = YamlConfigLoader()
 
 
+def apply_image_pipeline(client_rtsp: RTSPClient, config: YamlConfigLoader) -> dict:
+    """Apply all active image processing steps and return a dict of saved frame paths."""
+    saved_frames = {}
+    img_cfg = config.get_param("rtsp", "image")
+
+    if bool(img_cfg.get("convert_to_bgr")):
+        client_rtsp.convert_rgb2bgr(filename="2.convert_bgr")
+        saved_frames["convert_bgr"] = "2.convert_bgr.jpg"
+
+    if bool(img_cfg.get("convert_to_grey")):
+        client_rtsp.convert_bgr2gray(filename="3.convert_grey")
+        saved_frames["convert_grey"] = "3.convert_grey.jpg"
+
+    exposure = img_cfg.get("exposure", {})
+    if bool(exposure.get("active")):
+        client_rtsp.improve_exposure_intensity(
+            in_range=tuple(exposure["in_range"]),
+            out_range=tuple(exposure["out_range"]),
+            filename="4.exposure",
+        )
+        saved_frames["exposure"] = "4.exposure.jpg"
+
+    contrast = img_cfg.get("contrast", {})
+    if bool(contrast.get("active")):
+        client_rtsp.adjust_contrast(
+            alpha=contrast["alpha"],
+            beta=contrast["beta"],
+            filename="5.contrast",
+        )
+        saved_frames["contrast"] = "5.contrast.jpg"
+
+    sharpen = img_cfg.get("sharpen", {})
+    if bool(sharpen.get("active")):
+        client_rtsp.sharpen_image(
+            amount=sharpen["amount"],
+            threshold=sharpen["threshold"],
+            filename="6.sharpen",
+        )
+        saved_frames["sharpen"] = "6.sharpen.jpg"
+
+    crop = img_cfg.get("crop_image", {})
+    if bool(crop.get("active")):
+        coord_key = crop.get("coordinates", "integer").lower().strip()
+        coordinates = config.get_param("vision", "coordinates", coord_key)
+        logger.info(f"Crop using '{coord_key}': {coordinates}")
+        if all(coordinates.get(k) is not None for k in ("x", "y", "width", "height")):
+            client_rtsp.crop_image(
+                x=int(coordinates["x"]),
+                y=int(coordinates["y"]),
+                width=int(coordinates["width"]),
+                height=int(coordinates["height"]),
+                filename="7.crop",
+            )
+            saved_frames["crop"] = "7.crop.jpg"
+
+    return saved_frames
+
+
 def create_improved_frame(use_file: bool = False, file=None):
-    # init rtsp client
-    rtsp_url = None
-    if not use_file:
-        rtsp_url = configuration.get_param("rtsp", "url")
+    rtsp_url = None if use_file else configuration.get_param("rtsp", "url")
     client_rtsp = RTSPClient(rtsp_url=rtsp_url)
 
-    # capture frame
     default_folder = configuration.get_param("frame", "storage_path")
     client_rtsp.set_default_folder(default_folder=default_folder)
 
     if use_file:
         if file:
             logger.info(file.filename)
-            frame_to_process = client_rtsp.load_frame_from_file(file=file)
+            client_rtsp.load_frame_from_file(file=file, filename="origine")
     else:
-        frame_to_process = client_rtsp.get_frame(filename="0.frame_origine")
+        client_rtsp.get_frame(filename="0.frame_origine")
 
-    # rotate frame
     rotate = configuration.get_param("vision", "rotate")
     logger.info(f"rotate: {rotate}")
     if rotate > 0:
-        logger.info(f"rotate image to {rotate} degres")
-        frame_to_process = client_rtsp.rotate_frame(angle=rotate, filename="1.rotate")
+        logger.info(f"rotate image to {rotate} degrees")
+        client_rtsp.rotate_frame(angle=rotate, filename="1.rotate")
 
-    # improve frame
-    contrast_active = bool(
-        configuration.get_param("rtsp", "image", "contrast", "active")
-    )
-    contrast_alpha = configuration.get_param("rtsp", "image", "contrast", "alpha")
-    contrast_beta = configuration.get_param("rtsp", "image", "contrast", "beta")
-    sharpen_active = bool(configuration.get_param("rtsp", "image", "sharpen", "active"))
-    sharpen_amount = configuration.get_param("rtsp", "image", "sharpen", "amount")
-    sharpen_threshold = configuration.get_param("rtsp", "image", "sharpen", "threshold")
-    exposure_active = bool(
-        configuration.get_param("rtsp", "image", "exposure", "active")
-    )
-    exposure_in_range = tuple(
-        configuration.get_param("rtsp", "image", "exposure", "in_range")
-    )
-    exposure_out_range = tuple(
-        configuration.get_param("rtsp", "image", "exposure", "out_range")
-    )
-    convert_to_grey = bool(configuration.get_param("rtsp", "image", "convert_to_grey"))
-    convert_to_bgr = bool(configuration.get_param("rtsp", "image", "convert_to_bgr"))
+    pipeline_frames = apply_image_pipeline(client_rtsp, configuration)
 
-    crop_image = bool(configuration.get_param("rtsp", "image", "crop_image", "active"))
+    frame_to_process = client_rtsp.improve_frame
+    client_rtsp.write_output_file(name="8.frame_final", frame=frame_to_process)
 
-    if convert_to_bgr:
-        frame_to_process = client_rtsp.convert_rgb2bgr(
-            filename="2.improve_convert_to_bgr"
-        )
-    if convert_to_grey:
-        frame_to_process = client_rtsp.convert_bgr2gray(
-            filename="3.improve_convert_to_grey"
-        )
-    if exposure_active:
-        frame_to_process = client_rtsp.improve_exposure_intensity(
-            in_range=exposure_in_range,
-            out_range=exposure_out_range,
-            filename="4.improve_exposure",
-        )
-
-    if contrast_active:
-        frame_to_process = client_rtsp.adjust_contrast(
-            alpha=contrast_alpha, beta=contrast_beta, filename="5.improve_contrast"
-        )
-
-    if sharpen_active:
-        frame_to_process = client_rtsp.sharpen_image(
-            amount=sharpen_amount,
-            threshold=sharpen_threshold,
-            filename="6.improve_sharpen",
-        )
-
-    if crop_image:
-        coordinates_selection = configuration.get_param(
-            "rtsp", "image", "crop_image", "coordinates"
-        )
-
-        coordinates_selection = coordinates_selection.lower().strip()
-        coordinates = configuration.get_param(
-            "vision", "coordinates", coordinates_selection
-        )
-        logger.info(f"{coordinates_selection} {coordinates}")
-
-        if (
-            coordinates.get("x") is not None
-            and coordinates.get("y") is not None
-            and coordinates.get("width") is not None
-            and coordinates.get("height") is not None
-        ):
-            # Apply exact coordinates without offset padding
-            frame_to_process = client_rtsp.crop_image(
-                x=int(coordinates["x"]),
-                y=int(coordinates["y"]),
-                width=int(coordinates["width"]),
-                height=int(coordinates["height"]),
-                filename="6.improve_crop_image",
-            )
-
-    client_rtsp.write_output_file(name="7.frame_final", frame=frame_to_process)
-    return frame_to_process
+    return frame_to_process, pipeline_frames
 
 
 def service_process(
     increase_cron_count: bool = False, use_file: bool = False, file=None
 ):
-
-    frame_to_process = create_improved_frame(use_file=use_file, file=file)
+    frame_to_process, pipeline_frames = create_improved_frame(use_file=use_file, file=file)
     default_folder = configuration.get_param("frame", "storage_path")
 
-    # Determine OCR Engine
     try:
         engine = configuration.get_param("vision", "engine")
     except Exception:
@@ -148,38 +126,39 @@ def service_process(
         result, text_regions = client_tesseract.process_image(
             frame=frame_to_process,
             config=tesseract_config,
-            filename="8.esseract_optimized",
+            filename="9.tesseract_optimized",
         )
-
+        # reuse azure draw helper for consistent rendering
+        client_azure = AzureClient(vision_key="mock", endpoint_url="mock", save_frame=True)
+        client_azure.default_folder = default_folder
+        client_azure.draw_text_boxes(
+            text_regions=text_regions,
+            frame=frame_to_process,
+            filename="10.ocr_boxes",
+        )
     else:
-        # init Azure client
         logger.info("Using Azure OCR Engine")
         subscription_key = configuration.get_param("vision", "key")
         endpoint = configuration.get_param("vision", "endpoint")
-        # vision_integer = configuration.get_param("vision", "coordinates", "integer")
-        # vision_digit = configuration.get_param("vision", "coordinates", "digit")
-        # vision_all = configuration.get_param("vision", "coordinates", "digit")
 
         client_azure = AzureClient(vision_key=subscription_key, endpoint_url=endpoint)
         client_azure.default_folder = default_folder
 
-        # call azure vision api
-        result = client_azure.process_image(
-            frame=frame_to_process
-        )  # implement logic for integer, digit or all
-
+        result = client_azure.process_image(frame=frame_to_process)
         logger.info(f"Azure OCR Result: {result}")
 
         text_regions = client_azure.get_regions(result=result)
         logger.info(f"Azure OCR Text Regions: {text_regions}")
 
+        client_azure.draw_text_boxes(
+            text_regions=text_regions,
+            frame=frame_to_process,
+            filename="10.ocr_boxes",
+        )
 
     vision_counter = int(configuration.get_param("vision", "counter"))
     configuration.set_param("vision", "counter", value=vision_counter + 1)
-    text_regions = client_azure.get_regions(result=result)
-    logger.info(f"Azure OCR Text Regions: {text_regions}")
 
-    # process the result of vision
     line_with_data = configuration.get_param("vision", "line_with_data") or 0
     logger.info(f"Line with data: {line_with_data}")
 
@@ -190,15 +169,14 @@ def service_process(
         return ValueError("No lines of text were recognized by the OCR engine.")
 
     raw_result = all_lines[line_with_data].text
-
     logger.info(f"Raw OCR result: {raw_result}")
+
     try:
         result_values = generate_result(raw_result=raw_result)
     except Exception as e:
         logger.error(f"Error generating result from OCR text: {e}")
         return ValueError("couldn't get the digitalisation of the meter")
 
-    # save result
     current_value = float(result_values.get("total_liters"))
     previous_value = configuration.get_param("result", "previous")
     if not previous_value:
@@ -211,26 +189,35 @@ def service_process(
         )
     configuration.set_param("result", "current", value=current_value)
 
-    # publish value to MQTT
     client_mqtt = MqttCLient()
     client_mqtt.mqtt_publish_device()
-    # data = json.loads(service_process())
     client_mqtt.send_value(values=result_values)
 
-    # create return object
+    # Build image map: static pipeline frames + final + ocr
+    images = {"source": f"{default_folder}/0.frame_origine.jpg"}
+    step_labels = {
+        "convert_bgr": "BGR Convert",
+        "convert_grey": "Greyscale",
+        "exposure": "Exposure",
+        "contrast": "Contrast",
+        "sharpen": "Sharpen",
+        "crop": "Crop",
+    }
+    pipeline_steps = [
+        {"label": step_labels.get(k, k), "path": f"{default_folder}/{v}"}
+        for k, v in pipeline_frames.items()
+    ]
+    images["final"] = f"{default_folder}/8.frame_final.jpg"
+    images["ocr_boxes"] = f"{default_folder}/10.ocr_boxes.jpg"
+
     data = {
-        "images": {
-            "image_source": f"{default_folder}/0.frame_origine.jpg",
-            "image_improve": f"{default_folder}/2.frame_improve.jpg",
-            "image_vision": f"{default_folder}/7.azure_vision_draw_boxes.jpg",
-        },
+        "images": images,
+        "pipeline": pipeline_steps,
         "result": result_values,
     }
 
     if increase_cron_count:
-        curent_count = int(configuration.get_param("service", "counter"))
-        logger.info(f"curent_count: {curent_count}")
-        logger.info(f"new count: {curent_count + 1}")
-        configuration.set_param("service", "counter", value=curent_count + 1)
+        current_count = int(configuration.get_param("service", "counter"))
+        configuration.set_param("service", "counter", value=current_count + 1)
 
     return data

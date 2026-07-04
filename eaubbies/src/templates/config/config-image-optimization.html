@@ -1,0 +1,121 @@
+{# Image Optimization config partial — included from config.html #}
+<div class="row">
+
+  {# ── Convert ── #}
+  <div class="col-md-12 mb-2">
+    <h6 class="text-muted fw-semibold mb-2">Colour conversion</h6>
+  </div>
+  <div class="mb-3 col-md-6">
+    <div class="form-check form-switch">
+      <input class="form-check-input" type="checkbox" id="img_convert_bgr" name="img_convert_bgr"
+        {% if config['rtsp']['image']['convert_to_bgr'] %}checked{% endif %}>
+      <label class="form-check-label" for="img_convert_bgr">Convert to BGR</label>
+    </div>
+  </div>
+  <div class="mb-3 col-md-6">
+    <div class="form-check form-switch">
+      <input class="form-check-input" type="checkbox" id="img_convert_grey" name="img_convert_grey"
+        {% if config['rtsp']['image']['convert_to_grey'] %}checked{% endif %}>
+      <label class="form-check-label" for="img_convert_grey">Convert to Greyscale</label>
+    </div>
+  </div>
+
+  {# ── Exposure ── #}
+  <div class="col-md-12 mb-2 mt-2">
+    <h6 class="text-muted fw-semibold mb-2">Exposure / Intensity rescale</h6>
+  </div>
+  <div class="mb-3 col-md-12">
+    <div class="form-check form-switch">
+      <input class="form-check-input" type="checkbox" id="img_exposure_active" name="img_exposure_active"
+        {% if config['rtsp']['image']['exposure']['active'] %}checked{% endif %}>
+      <label class="form-check-label" for="img_exposure_active">Enable exposure rescale</label>
+    </div>
+  </div>
+  <div class="mb-3 col-md-3">
+    <label class="form-label" for="img_exposure_in_min">In-range min</label>
+    <input class="form-control" type="number" id="img_exposure_in_min" name="img_exposure_in_min"
+      value="{{ config['rtsp']['image']['exposure']['in_range'][0] }}">
+  </div>
+  <div class="mb-3 col-md-3">
+    <label class="form-label" for="img_exposure_in_max">In-range max</label>
+    <input class="form-control" type="number" id="img_exposure_in_max" name="img_exposure_in_max"
+      value="{{ config['rtsp']['image']['exposure']['in_range'][1] }}">
+  </div>
+  <div class="mb-3 col-md-3">
+    <label class="form-label" for="img_exposure_out_min">Out-range min</label>
+    <input class="form-control" type="number" id="img_exposure_out_min" name="img_exposure_out_min"
+      value="{{ config['rtsp']['image']['exposure']['out_range'][0] }}">
+  </div>
+  <div class="mb-3 col-md-3">
+    <label class="form-label" for="img_exposure_out_max">Out-range max</label>
+    <input class="form-control" type="number" id="img_exposure_out_max" name="img_exposure_out_max"
+      value="{{ config['rtsp']['image']['exposure']['out_range'][1] }}">
+  </div>
+
+  {# ── Contrast ── #}
+  <div class="col-md-12 mb-2 mt-2">
+    <h6 class="text-muted fw-semibold mb-2">Contrast adjustment</h6>
+  </div>
+  <div class="mb-3 col-md-12">
+    <div class="form-check form-switch">
+      <input class="form-check-input" type="checkbox" id="img_contrast_active" name="img_contrast_active"
+        {% if config['rtsp']['image']['contrast']['active'] %}checked{% endif %}>
+      <label class="form-check-label" for="img_contrast_active">Enable contrast adjustment</label>
+    </div>
+  </div>
+  <div class="mb-3 col-md-6">
+    <label class="form-label" for="img_contrast_alpha">Alpha (contrast, 1.0–3.0)</label>
+    <input class="form-control" type="number" step="0.1" min="0.1" max="5" id="img_contrast_alpha" name="img_contrast_alpha"
+      value="{{ config['rtsp']['image']['contrast']['alpha'] }}">
+  </div>
+  <div class="mb-3 col-md-6">
+    <label class="form-label" for="img_contrast_beta">Beta (brightness, 0–100)</label>
+    <input class="form-control" type="number" step="1" min="-100" max="100" id="img_contrast_beta" name="img_contrast_beta"
+      value="{{ config['rtsp']['image']['contrast']['beta'] }}">
+  </div>
+
+  {# ── Sharpen ── #}
+  <div class="col-md-12 mb-2 mt-2">
+    <h6 class="text-muted fw-semibold mb-2">Sharpening (unsharp mask)</h6>
+  </div>
+  <div class="mb-3 col-md-12">
+    <div class="form-check form-switch">
+      <input class="form-check-input" type="checkbox" id="img_sharpen_active" name="img_sharpen_active"
+        {% if config['rtsp']['image']['sharpen']['active'] %}checked{% endif %}>
+      <label class="form-check-label" for="img_sharpen_active">Enable sharpening</label>
+    </div>
+  </div>
+  <div class="mb-3 col-md-6">
+    <label class="form-label" for="img_sharpen_amount">Amount (strength)</label>
+    <input class="form-control" type="number" step="0.1" min="0" id="img_sharpen_amount" name="img_sharpen_amount"
+      value="{{ config['rtsp']['image']['sharpen']['amount'] }}">
+  </div>
+  <div class="mb-3 col-md-6">
+    <label class="form-label" for="img_sharpen_threshold">Threshold</label>
+    <input class="form-control" type="number" step="1" min="0" id="img_sharpen_threshold" name="img_sharpen_threshold"
+      value="{{ config['rtsp']['image']['sharpen']['threshold'] }}">
+  </div>
+
+  {# ── Crop ── #}
+  <div class="col-md-12 mb-2 mt-2">
+    <h6 class="text-muted fw-semibold mb-2">Crop region</h6>
+  </div>
+  <div class="mb-3 col-md-12">
+    <div class="form-check form-switch">
+      <input class="form-check-input" type="checkbox" id="img_crop_active" name="img_crop_active"
+        {% if config['rtsp']['image']['crop_image']['active'] %}checked{% endif %}>
+      <label class="form-check-label" for="img_crop_active">Enable crop</label>
+    </div>
+  </div>
+  <div class="mb-3 col-md-6">
+    <label class="form-label" for="img_crop_coordinates">Coordinate set to crop</label>
+    <select class="form-control" id="img_crop_coordinates" name="img_crop_coordinates">
+      {% for opt in ['all', 'integer', 'digit'] %}
+      <option value="{{ opt }}" {% if opt == config['rtsp']['image']['crop_image']['coordinates'] %}selected{% endif %}>
+        {{ opt | capitalize }}
+      </option>
+      {% endfor %}
+    </select>
+  </div>
+
+</div>
