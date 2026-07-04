@@ -55,10 +55,10 @@ class YamlConfigLoader:
                 "url": None,
                 "image": {
                     "contrast": {"active": False, "alpha": 1.2, "beta": 1},
-                    "convert_to_bgr": True,
+                    "convert_to_bgr": False,
                     "convert_to_grey": False,
                     "exposure": {
-                        "active": True,
+                        "active": False,
                         "in_range": [0, 129],
                         "out_range": [0, 255],
                     },
