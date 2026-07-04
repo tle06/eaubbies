@@ -160,57 +160,13 @@ class RTSPClient:
             self.write_output_file(name=filename, frame=self.improve_frame)
         return self.improve_frame
 
-    def add_brightness(self, brightness_factor: int, filename="frame_brightness"):
-
-        brightness_min = 0
-        dtype = np.uint8
-        brightness_max = np.iinfo(dtype).max
-
-        if brightness_factor < brightness_min:
-            brightness_factor = brightness_min
-            print(
-                f"brightness_factor is < of min ({brightness_min}), so min value will be used"
-            )
-
-        if brightness_factor > brightness_max:
-            brightness_factor = brightness_max
-            print(
-                f"brightness_factor is > of max ({brightness_max}), so max value will be used"
-            )
-
-        self.improve_frame = cv2.add(self.improve_frame, np.array([brightness_factor]))
-        if self.save_frame:
-            self.write_output_file(
-                name=filename,
-                frame=self.improve_frame,
-            )
-        return self.improve_frame
-
-    def add_exposure(
-        self,
-        exposure_factor: int,
-        filename="frame_exposure",
-    ):
-
-        exposure_min = 0
-        exposure_max = float("inf")
-
-        if exposure_factor < exposure_min:
-            exposure_factor = exposure_min
-            print(
-                f"exposure_factor is < of min ({exposure_min}), so min value will be used"
-            )
-
-        if exposure_factor > exposure_max:
-            exposure_factor = exposure_max
-            print(
-                f"exposure_factor is > of max ({exposure_max}), so max value will be used"
-            )
-
-        self.improve_frame = cv2.add(self.improve_frame, np.array([exposure_factor]))
+    def adjust_brightness(self, factor: int, filename="frame_brightness"):
+        factor = max(0, min(255, factor))
+        self.improve_frame = cv2.add(self.improve_frame, np.array([factor]))
         if self.save_frame:
             self.write_output_file(name=filename, frame=self.improve_frame)
         return self.improve_frame
+
 
     def get_stream(self):
         cap = cv2.VideoCapture(self.video_url)
@@ -220,36 +176,18 @@ class RTSPClient:
             if not success:
                 break
             # Encode frame as JPEG before streaming
-            ret, buffer = cv2.imencode(".jpg", frame)
+            ret, buffer = cv2.imencode(".jpg", frame)   
             frame = buffer.tobytes()
             yield (b"--frame\r\n" b"Content-Type: image/jpeg\r\n\r\n" + frame + b"\r\n")
             elapsed_time = time.time() - start_time
             logging.debug(f"Frame generation time: {elapsed_time} seconds")
 
-    def crop_image(
-        self, x: int, y: int, width: int, height: int, filename: str = "frame_cropped"
-    ):
-        """
-        Crop the current frame.
-
-        Parameters:
-            x (int): x-coordinate of the top-left corner of the crop rectangle.
-            y (int): y-coordinate of the top-left corner of the crop rectangle.
-            width (int): Width of the crop rectangle.
-            height (int): Height of the crop rectangle.
-
-        Returns:
-            numpy.ndarray: Cropped image.
-        """
-        if self.frame is None:
-            print("Error: No frame available to crop.")
-            return None
-        cropped_frame = self.frame[y : y + height, x : x + width]
-
+ 
+    def crop_image(self, x, y, width, height, filename="frame_cropped"):
+        self.improve_frame = self.improve_frame[y:y+height, x:x+width]
         if self.save_frame:
-            self.write_output_file(name=filename, frame=cropped_frame)
-
-        return cropped_frame
+            self.write_output_file(name=filename, frame=self.improve_frame)
+        return self.improve_frame
 
     def join_images_with_dot(self, image1, image2, filename: str = "frame_join"):
         """
@@ -386,22 +324,20 @@ class RTSPClient:
                     kernel[i, j] = 1.0 / kernel_size
 
         return kernel
+    
 
-    def crope_image(self, x, y, width, height, filename="frame_cropped"):
+    def upscale_image(self, scale_factor: float = 2.0, filename: str = "frame_upscaled"):
         """
-        UPDATED: Instead of filling with white, we crop the image down to the
-        exact rectangle specified by the coordinates.
+        Upscale the image to improve OCR accuracy on small cropped regions.
         """
-        print(
-            f"DEBUG: Current image shape is {self.improve_frame.shape} (Height, Width, Channels)"
-        )
-        print(f"DEBUG: Cropping frame to X:{x}->{x + width}, Y:{y}->{y + height}")
-
-        # 1. Directly crop the active, modified frame (preserves any prior rotation)
-        cropped_image = self.improve_frame[y : y + height, x : x + width]
-
-        # 2. Update the internal tracker to be this cropped slice
-        self.improve_frame = cropped_image
+        if self.improve_frame is None:
+            return None
+            
+        width = int(self.improve_frame.shape[1] * scale_factor)
+        height = int(self.improve_frame.shape[0] * scale_factor)
+        
+        # INTER_CUBIC is great for text smoothing
+        self.improve_frame = cv2.resize(self.improve_frame, (width, height), interpolation=cv2.INTER_CUBIC)
 
         if self.save_frame:
             self.write_output_file(name=filename, frame=self.improve_frame)

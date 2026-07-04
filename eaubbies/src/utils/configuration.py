@@ -62,7 +62,7 @@ class YamlConfigLoader:
                         "in_range": [0, 129],
                         "out_range": [0, 255],
                     },
-                    "fill_image": {"active": True, "coordinates": "integer"},
+                    "crop_image": {"active": True, "coordinates": "integer"},
                     "sharpen": {"active": False, "amount": 30, "threshold": 3},
                 },
             },

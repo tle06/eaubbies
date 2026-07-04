@@ -1,3 +1,4 @@
+# eaubbies/src/service.py
 from utils.rtsp_client import RTSPClient
 from utils.azure_client import AzureClient
 from utils.tesseract_client import TesseractClient
@@ -26,16 +27,16 @@ def create_improved_frame(use_file: bool = False, file=None):
 
     if use_file:
         if file:
-            print(file.filename)
+            logger.info(file.filename)
             frame_to_process = client_rtsp.load_frame_from_file(file=file)
     else:
         frame_to_process = client_rtsp.get_frame(filename="0.frame_origine")
 
     # rotate frame
     rotate = configuration.get_param("vision", "rotate")
-    print(f"rotate: {rotate}")
+    logger.info(f"rotate: {rotate}")
     if rotate > 0:
-        print(f"rotate image to {rotate} degres")
+        logger.info(f"rotate image to {rotate} degres")
         frame_to_process = client_rtsp.rotate_frame(angle=rotate, filename="1.rotate")
 
     # improve frame
@@ -59,7 +60,7 @@ def create_improved_frame(use_file: bool = False, file=None):
     convert_to_grey = bool(configuration.get_param("rtsp", "image", "convert_to_grey"))
     convert_to_bgr = bool(configuration.get_param("rtsp", "image", "convert_to_bgr"))
 
-    fill_image = bool(configuration.get_param("rtsp", "image", "fill_image", "active"))
+    crop_image = bool(configuration.get_param("rtsp", "image", "crop_image", "active"))
 
     if convert_to_bgr:
         frame_to_process = client_rtsp.convert_rgb2bgr(
@@ -87,19 +88,17 @@ def create_improved_frame(use_file: bool = False, file=None):
             threshold=sharpen_threshold,
             filename="6.improve_sharpen",
         )
-    # frame_to_process = client_rtsp.convert_bgr2gray()
-    # frame_to_process = client_rtsp.adaptive_threshold()
 
-    if fill_image:
+    if crop_image:
         coordinates_selection = configuration.get_param(
-            "rtsp", "image", "fill_image", "coordinates"
+            "rtsp", "image", "crop_image", "coordinates"
         )
 
         coordinates_selection = coordinates_selection.lower().strip()
         coordinates = configuration.get_param(
             "vision", "coordinates", coordinates_selection
         )
-        print(f"{coordinates_selection} {coordinates}")
+        logger.info(f"{coordinates_selection} {coordinates}")
 
         if (
             coordinates.get("x") is not None
@@ -108,15 +107,15 @@ def create_improved_frame(use_file: bool = False, file=None):
             and coordinates.get("height") is not None
         ):
             # Apply exact coordinates without offset padding
-            frame_to_process = client_rtsp.crope_image(
+            frame_to_process = client_rtsp.crop_image(
                 x=int(coordinates["x"]),
                 y=int(coordinates["y"]),
                 width=int(coordinates["width"]),
                 height=int(coordinates["height"]),
-                filename="6.improve_fill_image",
+                filename="6.improve_crop_image",
             )
 
-    client_rtsp.write_output_file(name="7.frame_improve", frame=frame_to_process)
+    client_rtsp.write_output_file(name="7.frame_final", frame=frame_to_process)
     return frame_to_process
 
 
@@ -152,14 +151,6 @@ def service_process(
             filename="8.esseract_optimized",
         )
 
-        # Draw text boxes mimic
-        client_azure = AzureClient(vision_key="mock", endpoint_url="mock")
-        client_azure.default_folder = default_folder
-        client_azure.draw_text_boxes(
-            text_regions=text_regions,
-            frame=frame_to_process,
-            filename="9.azure_vision_draw_boxes",
-        )
     else:
         # init Azure client
         logger.info("Using Azure OCR Engine")
@@ -181,36 +172,30 @@ def service_process(
 
         text_regions = client_azure.get_regions(result=result)
         logger.info(f"Azure OCR Text Regions: {text_regions}")
-        client_azure.draw_text_boxes(
-            text_regions=text_regions,
-            frame=frame_to_process,
-            filename="10.azure_vision_draw_boxes",
-        )
+
 
     vision_counter = int(configuration.get_param("vision", "counter"))
     configuration.set_param("vision", "counter", value=vision_counter + 1)
     text_regions = client_azure.get_regions(result=result)
     logger.info(f"Azure OCR Text Regions: {text_regions}")
 
-    client_azure.draw_text_boxes(
-        text_regions=text_regions,
-        frame=frame_to_process,
-        filename="11.azure_vision_draw_boxes",
-    )
-
     # process the result of vision
     line_with_data = configuration.get_param("vision", "line_with_data") or 0
-    print(line_with_data)
+    logger.info(f"Line with data: {line_with_data}")
 
-    if not result or len(result) == 0 or not result[0].lines:
+    read_blocks = result.read.blocks if result and result.read else []
+    all_lines = [line for block in read_blocks for line in block.lines]
+
+    if not all_lines:
         return ValueError("No lines of text were recognized by the OCR engine.")
 
-    raw_result = result[0].lines[line_with_data].text
-    print(raw_result)
+    raw_result = all_lines[line_with_data].text
+
+    logger.info(f"Raw OCR result: {raw_result}")
     try:
         result_values = generate_result(raw_result=raw_result)
     except Exception as e:
-        print(f"Error generating result from OCR text: {e}")
+        logger.error(f"Error generating result from OCR text: {e}")
         return ValueError("couldn't get the digitalisation of the meter")
 
     # save result
@@ -236,16 +221,16 @@ def service_process(
     data = {
         "images": {
             "image_source": f"{default_folder}/0.frame_origine.jpg",
-            "image_improve": f"{default_folder}/7.frame_improve.jpg",
-            "image_vision": f"{default_folder}/11.azure_vision_draw_boxes.jpg",
+            "image_improve": f"{default_folder}/2.frame_improve.jpg",
+            "image_vision": f"{default_folder}/7.azure_vision_draw_boxes.jpg",
         },
         "result": result_values,
     }
 
     if increase_cron_count:
         curent_count = int(configuration.get_param("service", "counter"))
-        print(f"curent_count: {curent_count}")
-        print(f"new count: {curent_count + 1}")
+        logger.info(f"curent_count: {curent_count}")
+        logger.info(f"new count: {curent_count + 1}")
         configuration.set_param("service", "counter", value=curent_count + 1)
 
     return data

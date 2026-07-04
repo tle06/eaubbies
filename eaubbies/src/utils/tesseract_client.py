@@ -58,7 +58,7 @@ class TesseractClient:
         elif frame is not None:
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-            # 2. AUTO-CROP: Remove the giant white mask added by 'fill_image_except_rectangle'
+            # 2. AUTO-CROP: Remove the giant white mask added by 'crop_image_except_rectangle'
             # Find all pixels that are NOT pure white (the mask) and get their bounding box
             coords = cv2.findNonZero(cv2.bitwise_not(gray))
             if coords is not None:
