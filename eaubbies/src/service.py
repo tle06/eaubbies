@@ -88,7 +88,6 @@ def create_improved_frame(use_file: bool = False, file=None):
     rotate = configuration.get_param("vision", "rotate")
     logger.info(f"rotate: {rotate}")
     if rotate > 0:
-        logger.info(f"rotate image to {rotate} degrees")
         client_rtsp.rotate_frame(angle=rotate, filename="1.rotate")
 
     pipeline_frames = apply_image_pipeline(client_rtsp, configuration)
@@ -97,6 +96,17 @@ def create_improved_frame(use_file: bool = False, file=None):
     client_rtsp.write_output_file(name="8.frame_final", frame=frame_to_process)
 
     return frame_to_process, pipeline_frames
+
+
+def _draw_boxes(text_regions, frame, default_folder, filename="10.ocr_boxes"):
+    """Shared drawing helper — creates a temporary AzureClient just for its draw method."""
+    drawer = AzureClient(vision_key="mock", endpoint_url="mock", save_frame=True)
+    drawer.default_folder = default_folder
+    drawer.draw_text_boxes(
+        text_regions=text_regions,
+        frame=frame,
+        filename=filename,
+    )
 
 
 def service_process(
@@ -123,19 +133,26 @@ def service_process(
             pass
 
         client_tesseract = TesseractClient(tesseract_cmd=tesseract_cmd)
-        result, text_regions = client_tesseract.process_image(
+        client_tesseract.default_folder = default_folder
+        result_pages, text_regions = client_tesseract.process_image(
             frame=frame_to_process,
             config=tesseract_config,
             filename="9.tesseract_optimized",
         )
-        # reuse azure draw helper for consistent rendering
-        client_azure = AzureClient(vision_key="mock", endpoint_url="mock", save_frame=True)
-        client_azure.default_folder = default_folder
-        client_azure.draw_text_boxes(
-            text_regions=text_regions,
-            frame=frame_to_process,
-            filename="10.ocr_boxes",
-        )
+        _draw_boxes(text_regions, frame_to_process, default_folder)
+
+        # Build a minimal OCR result compatible with the rest of the pipeline
+        all_lines = [line for page in result_pages for line in page.lines]
+
+        class _MockResult:
+            class _Read:
+                class _Block:
+                    def __init__(self, lines): self.lines = lines
+                def __init__(self, lines): self.blocks = [_MockResult._Read._Block(lines)]
+            def __init__(self, lines): self.read = _MockResult._Read(lines)
+
+        ocr_result = _MockResult(all_lines)
+
     else:
         logger.info("Using Azure OCR Engine")
         subscription_key = configuration.get_param("vision", "key")
@@ -144,10 +161,10 @@ def service_process(
         client_azure = AzureClient(vision_key=subscription_key, endpoint_url=endpoint)
         client_azure.default_folder = default_folder
 
-        result = client_azure.process_image(frame=frame_to_process)
-        logger.info(f"Azure OCR Result: {result}")
+        ocr_result = client_azure.process_image(frame=frame_to_process)
+        logger.info(f"Azure OCR Result: {ocr_result}")
 
-        text_regions = client_azure.get_regions(result=result)
+        text_regions = client_azure.get_regions(result=ocr_result)
         logger.info(f"Azure OCR Text Regions: {text_regions}")
 
         client_azure.draw_text_boxes(
@@ -162,7 +179,7 @@ def service_process(
     line_with_data = configuration.get_param("vision", "line_with_data") or 0
     logger.info(f"Line with data: {line_with_data}")
 
-    read_blocks = result.read.blocks if result and result.read else []
+    read_blocks = ocr_result.read.blocks if ocr_result and ocr_result.read else []
     all_lines = [line for block in read_blocks for line in block.lines]
 
     if not all_lines:
@@ -193,8 +210,6 @@ def service_process(
     client_mqtt.mqtt_publish_device()
     client_mqtt.send_value(values=result_values)
 
-    # Build image map: static pipeline frames + final + ocr
-    images = {"source": f"{default_folder}/0.frame_origine.jpg"}
     step_labels = {
         "convert_bgr": "BGR Convert",
         "convert_grey": "Greyscale",
@@ -207,11 +222,13 @@ def service_process(
         {"label": step_labels.get(k, k), "path": f"{default_folder}/{v}"}
         for k, v in pipeline_frames.items()
     ]
-    images["final"] = f"{default_folder}/8.frame_final.jpg"
-    images["ocr_boxes"] = f"{default_folder}/10.ocr_boxes.jpg"
 
     data = {
-        "images": images,
+        "images": {
+            "source": f"{default_folder}/0.frame_origine.jpg",
+            "final":  f"{default_folder}/8.frame_final.jpg",
+            "ocr_boxes": f"{default_folder}/10.ocr_boxes.jpg",
+        },
         "pipeline": pipeline_steps,
         "result": result_values,
     }
