@@ -57,7 +57,8 @@ def config():
 
 @app.route("/video")
 def video():
-    return render_template("video.html")
+    # Pass the YAML config so the template can read config['rtsp']['url']
+    return render_template("video.html", config=configuration.data)
 
 
 @app.route("/frames")
@@ -114,7 +115,6 @@ def delete_all_frames():
 
 @app.route("/download_all_frames")
 def download_all_frames():
-    """Stream a zip of all frames."""
     folder = configuration.get_param("frame", "storage_path")
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
