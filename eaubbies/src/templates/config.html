@@ -38,6 +38,37 @@
             <div class="col-md-12 mt-4">
               <p class="text-light fw-medium">Scheduled reading</p>
             </div>
+
+            {# Status badge row #}
+            <div class="col-md-12 mb-3">
+              <div class="d-flex align-items-center gap-3 flex-wrap">
+                <span class="fw-semibold text-muted small">Cron job status:</span>
+
+                {% if cron_status.found and cron_status.enabled %}
+                  <span class="badge bg-success" id="cron-badge">
+                    <i class="bx bx-check-circle me-1"></i>Active
+                  </span>
+                  <span class="text-muted small" id="cron-schedule">{{ cron_status.render }}</span>
+                {% elif cron_status.found and not cron_status.enabled %}
+                  <span class="badge bg-warning text-dark" id="cron-badge">
+                    <i class="bx bx-pause-circle me-1"></i>Disabled
+                  </span>
+                  <span class="text-muted small" id="cron-schedule">{{ cron_status.render }}</span>
+                {% else %}
+                  <span class="badge bg-danger" id="cron-badge">
+                    <i class="bx bx-x-circle me-1"></i>Not registered
+                  </span>
+                  <span class="text-muted small" id="cron-schedule"></span>
+                {% endif %}
+
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="btn-refresh-cron"
+                  title="Refresh cron status">
+                  <i class="bx bx-refresh"></i>
+                </button>
+              </div>
+            </div>
+
+            {# Schedule picker #}
             <div class="mb-3 col-md-6">
               <label class="form-label" for="cron_time">Run at</label>
               <select class="form-control" id="cron_time" name="cron_time">
@@ -48,6 +79,13 @@
                   {% endfor %}
                 {% endfor %}
               </select>
+            </div>
+
+            {# Register button (separate from the main Save form) #}
+            <div class="col-md-6 d-flex align-items-end mb-3">
+              <button type="button" class="btn btn-outline-primary" id="btn-register-cron">
+                <i class="bx bx-calendar-plus me-1"></i>Register / update cron task
+              </button>
             </div>
 
             <div class="col-md-12 mt-3 d-flex gap-2">
@@ -64,10 +102,12 @@
 
 <script>
   document.addEventListener("DOMContentLoaded", function () {
+
+    // ── MQTT test ─────────────────────────────────────────────────
     document.getElementById("btn-test-mqtt").addEventListener("click", function () {
       var btn = this;
       var orig = btn.innerText;
-      btn.innerText = "Publishing…";
+      btn.innerText = "Publishing\u2026";
       btn.disabled = true;
       fetch("/create_sensor")
         .then(function (r) { return r.json(); })
@@ -78,6 +118,70 @@
         .catch(function (e) { alert("Unexpected error: " + e); })
         .finally(function () { btn.innerText = orig; btn.disabled = false; });
     });
+
+    // ── Cron helpers ────────────────────────────────────────────
+    function applyBadge(status) {
+      var badge    = document.getElementById("cron-badge");
+      var schedule = document.getElementById("cron-schedule");
+      if (status.found && status.enabled) {
+        badge.className = "badge bg-success";
+        badge.innerHTML = '<i class="bx bx-check-circle me-1"></i>Active';
+        schedule.textContent = status.render || status.schedule;
+      } else if (status.found && !status.enabled) {
+        badge.className = "badge bg-warning text-dark";
+        badge.innerHTML = '<i class="bx bx-pause-circle me-1"></i>Disabled';
+        schedule.textContent = status.render || status.schedule;
+      } else {
+        badge.className = "badge bg-danger";
+        badge.innerHTML = '<i class="bx bx-x-circle me-1"></i>Not registered';
+        schedule.textContent = "";
+      }
+    }
+
+    // Refresh status
+    document.getElementById("btn-refresh-cron").addEventListener("click", function () {
+      var btn = this;
+      btn.disabled = true;
+      fetch("/cron_status")
+        .then(function (r) { return r.json(); })
+        .then(function (data) { applyBadge(data); })
+        .catch(function (e) { console.error("cron_status error:", e); })
+        .finally(function () { btn.disabled = false; });
+    });
+
+    // Register / update cron task
+    document.getElementById("btn-register-cron").addEventListener("click", function () {
+      var btn  = this;
+      var orig = btn.innerHTML;
+      btn.innerHTML = '<i class="bx bx-loader-alt bx-spin me-1"></i>Registering\u2026';
+      btn.disabled  = true;
+
+      // Pick the currently selected time from the dropdown
+      var selectedTime = document.getElementById("cron_time").value;
+
+      fetch("/register_cron", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ time: selectedTime }),
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (data.success) {
+            applyBadge(data.cron_status);
+            btn.innerHTML = '<i class="bx bx-check me-1"></i>Registered!';
+            setTimeout(function () { btn.innerHTML = orig; }, 2500);
+          } else {
+            alert("Error registering cron: " + (data.error || "unknown error"));
+            btn.innerHTML = orig;
+          }
+        })
+        .catch(function (e) {
+          alert("Unexpected error: " + e);
+          btn.innerHTML = orig;
+        })
+        .finally(function () { btn.disabled = false; });
+    });
+
   });
 </script>
 {% endblock %}

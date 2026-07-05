@@ -9,7 +9,7 @@ from flask import (
     send_from_directory,
 )
 from utils.rtsp_client import RTSPClient
-from utils.utils import time_to_cron, register_cron_task
+from utils.utils import time_to_cron, register_cron_task, get_cron_status
 from utils.configuration import YamlConfigLoader
 from utils.mqtt import MqttCLient
 from service import service_process
@@ -26,9 +26,9 @@ configuration = YamlConfigLoader()
 path_frame_folder = configuration.get_param("frame", "storage_path")
 logger.info(f"Frame folder path: {path_frame_folder}")
 os.makedirs(path_frame_folder, exist_ok=True)
-command = "/app/.venv/bin/python /app/cron.py"
+CRON_COMMAND = "/app/.venv/bin/python /app/cron.py"
 register_cron_task(
-    command=command, selected_time=configuration.get_param("service", "cron")
+    command=CRON_COMMAND, selected_time=configuration.get_param("service", "cron")
 )
 
 
@@ -48,7 +48,8 @@ def init():
 
 @app.route("/config")
 def config():
-    return render_template("config.html", config=configuration.data)
+    cron_status = get_cron_status(CRON_COMMAND)
+    return render_template("config.html", config=configuration.data, cron_status=cron_status)
 
 
 @app.route("/video")
@@ -152,11 +153,31 @@ def save_config():
     if request.form.get("cron_time"):
         cron_time = request.form["cron_time"]
         configuration.set_param("service", "cron", value=cron_time)
-        register_cron_task(command=command, selected_time=cron_time)
+        register_cron_task(command=CRON_COMMAND, selected_time=cron_time)
 
     if request.referrer and request.referrer.endswith("/init"):
         return Response(status=200)
     return redirect(url_for("config"))
+
+
+@app.route("/cron_status")
+def cron_status():
+    """Return the live cron job status as JSON."""
+    status = get_cron_status(CRON_COMMAND)
+    return jsonify(status)
+
+
+@app.route("/register_cron", methods=["POST"])
+def register_cron():
+    """Manually (re-)register the cron job at the configured time."""
+    try:
+        selected_time = configuration.get_param("service", "cron")
+        register_cron_task(command=CRON_COMMAND, selected_time=selected_time)
+        status = get_cron_status(CRON_COMMAND)
+        return jsonify({"success": True, "cron_status": status})
+    except Exception as e:
+        logger.error(f"register_cron error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
 
 
 @app.route("/video_feed")

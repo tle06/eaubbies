@@ -28,27 +28,53 @@ def time_to_cron(selected_time):
 
 
 def register_cron_task(command, selected_time):
-
     cron = CronTab(user=True)
     cron_expression = time_to_cron(selected_time)
 
     for job in cron:
-        # Check if the job matches your criteria, for example, if you want to update a specific command
         if job.command == command:
-            # Modify the job as needed
-            job.setall(
-                cron_expression
-            )  # Example: change the schedule to every 5 minutes
-
-            # Write changes to crontab
+            job.setall(cron_expression)
             cron.write()
             print("Cron job updated successfully.")
-            break  # Stop iteration if the job is found and updated
-    else:
+            return
 
-        job = cron.new(command=command)
-        job.setall(cron_expression)
-        cron.write()
+    job = cron.new(command=command)
+    job.setall(cron_expression)
+    cron.write()
+    print("Cron job registered successfully.")
+
+
+def get_cron_status(command: str) -> dict:
+    """
+    Inspect the current user crontab for *command*.
+
+    Returns a dict:
+        {
+            "found":    bool,   # job exists in crontab
+            "enabled":  bool,   # job is not commented-out
+            "schedule": str,    # cron expression string, or empty
+            "render":   str,    # human-readable schedule, or empty
+        }
+    """
+    try:
+        cron = CronTab(user=True)
+        for job in cron:
+            if job.command == command:
+                enabled = job.is_enabled()
+                schedule = str(job.slices)          # e.g. "0 1 * * *"
+                try:
+                    render = str(job.description(use_24hour_time=True))
+                except Exception:
+                    render = schedule
+                return {
+                    "found": True,
+                    "enabled": enabled,
+                    "schedule": schedule,
+                    "render": render,
+                }
+        return {"found": False, "enabled": False, "schedule": "", "render": ""}
+    except Exception as e:
+        return {"found": False, "enabled": False, "schedule": "", "render": "", "error": str(e)}
 
 
 def generate_unique_id():
@@ -81,7 +107,6 @@ def generate_result(raw_result: str):
             "active", False
         )
     except Exception:
-        # Fallback to general coordinates if get_param fails with 3-key tuple or gets simple config structure
         try:
             coords_dict = configuration.get_param("vision", "coordinates")
             vision_integer = bool(
@@ -110,8 +135,7 @@ def generate_result(raw_result: str):
     left_number = 0
 
     if vision_all:
-
-        if "." in raw_result_without_space:  # review the logix to get both numbers
+        if "." in raw_result_without_space:
             print("dot detected")
             parts = raw_result.split(".")
             print(parts)
@@ -121,7 +145,6 @@ def generate_result(raw_result: str):
             except Exception as e:
                 print(e)
                 raise ValueError(f"Can't convert parts: {parts} to integers")
-
         else:
             try:
                 print("no dot detected")
@@ -134,12 +157,9 @@ def generate_result(raw_result: str):
                 left_number = int(raw_result_without_space)
                 right_number = 0
     if vision_integer:
-        left_number = int(
-            raw_result_without_space
-        )  # review the logic to get the left number
-
+        left_number = int(raw_result_without_space)
     if vision_digit:
-        right_number = 0  # implement the logic to get the right number
+        right_number = 0
 
     print(left_number, right_number)
     left_number_to_liters = volume_converter(
