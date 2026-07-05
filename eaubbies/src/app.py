@@ -7,6 +7,7 @@ from flask import (
     redirect,
     url_for,
     send_from_directory,
+    send_file,
 )
 from utils.rtsp_client import RTSPClient
 from utils.utils import time_to_cron, register_cron_task, get_cron_status
@@ -14,6 +15,8 @@ from utils.configuration import YamlConfigLoader
 from utils.mqtt import MqttCLient
 from service import service_process
 import os
+import io
+import zipfile
 import logging
 import json
 
@@ -59,10 +62,11 @@ def video():
 
 @app.route("/frames")
 def frames():
+    folder = configuration.get_param("frame", "storage_path")
     try:
-        files = os.listdir(configuration.get_param("frame", "storage_path"))
+        files = sorted(os.listdir(folder))
     except Exception as e:
-        logger.error(f"Error: {e}")
+        logger.error(f"Error listing frames: {e}")
         files = []
     return render_template("frames.html", files=files)
 
@@ -71,6 +75,59 @@ def frames():
 def download_file(filename):
     return send_from_directory(
         configuration.get_param("frame", "storage_path"), filename, as_attachment=True
+    )
+
+
+@app.route("/delete_frame/<path:filename>", methods=["DELETE"])
+def delete_frame(filename):
+    folder = configuration.get_param("frame", "storage_path")
+    filepath = os.path.join(folder, filename)
+    try:
+        if not os.path.abspath(filepath).startswith(os.path.abspath(folder)):
+            return jsonify({"error": "Invalid path"}), 400
+        os.remove(filepath)
+        return jsonify({"success": True})
+    except FileNotFoundError:
+        return jsonify({"error": "File not found"}), 404
+    except Exception as e:
+        logger.error(f"delete_frame error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/delete_all_frames", methods=["POST"])
+def delete_all_frames():
+    folder = configuration.get_param("frame", "storage_path")
+    deleted, errors = [], []
+    try:
+        for f in os.listdir(folder):
+            fp = os.path.join(folder, f)
+            if os.path.isfile(fp):
+                try:
+                    os.remove(fp)
+                    deleted.append(f)
+                except Exception as e:
+                    errors.append({"file": f, "error": str(e)})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    return jsonify({"deleted": deleted, "errors": errors})
+
+
+@app.route("/download_all_frames")
+def download_all_frames():
+    """Stream a zip of all frames."""
+    folder = configuration.get_param("frame", "storage_path")
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        for f in sorted(os.listdir(folder)):
+            fp = os.path.join(folder, f)
+            if os.path.isfile(fp):
+                zf.write(fp, f)
+    buf.seek(0)
+    return send_file(
+        buf,
+        mimetype="application/zip",
+        as_attachment=True,
+        download_name="frames.zip",
     )
 
 
@@ -162,14 +219,12 @@ def save_config():
 
 @app.route("/cron_status")
 def cron_status():
-    """Return the live cron job status as JSON."""
     status = get_cron_status(CRON_COMMAND)
     return jsonify(status)
 
 
 @app.route("/register_cron", methods=["POST"])
 def register_cron():
-    """Manually (re-)register the cron job at the configured time."""
     try:
         selected_time = configuration.get_param("service", "cron")
         register_cron_task(command=CRON_COMMAND, selected_time=selected_time)
@@ -194,7 +249,6 @@ def video_feed():
 def run_process():
     use_file = False
     file = None
-
     if request.method == "POST":
         if "file" not in request.files:
             return jsonify({"error": "No file part"}), 400
@@ -203,7 +257,6 @@ def run_process():
             return jsonify({"error": "No selected file"}), 400
         logger.info(f"[RUN PROCESS] File received: {file.filename}")
         use_file = True
-
     try:
         result = service_process(use_file=use_file, file=file)
         if isinstance(result, ValueError):
