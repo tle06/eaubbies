@@ -1,16 +1,156 @@
 {% extends 'core.html' %}
+
 {% block content %}
 <div class="row">
   <div class="col-md-12">
     <div class="card mb-4">
-      <h5 class="card-header">Video feed</h5>
+
+      {# ── Toolbar ── #}
+      <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <h5 class="mb-0">Video feed</h5>
+        <div class="d-flex gap-2 flex-wrap">
+
+          {# Rotate ───────────────────────────────────────────────────────── #}
+          <button type="button" class="btn btn-sm btn-outline-secondary" id="btn-rotate"
+            title="Rotate 90° clockwise">
+            <i class="bx bx-rotate-right me-1"></i>Rotate 90°
+          </button>
+
+          {# Capture frame ───────────────────────────────────────────── #}
+          <button type="button" class="btn btn-sm btn-outline-primary" id="btn-capture"
+            title="Download current frame as JPEG">
+            <i class="bx bx-camera me-1"></i>Capture frame
+          </button>
+
+          {# Open in VLC ─────────────────────────────────────────────── #}
+          <button type="button" class="btn btn-sm btn-outline-warning" id="btn-vlc"
+            title="Open stream in VLC media player">
+            <i class="bx bx-tv me-1"></i>Open in VLC
+          </button>
+
+        </div>
+      </div>
 
       <hr class="my-0">
 
-      <img class="card-img-bottom" id="videoFeed" src="{{ url_for('video_feed') }}" width="50%" controls autoplay />
-    </div>
+      {# ── Video container ── #}
+      <div class="card-body p-0 d-flex justify-content-center align-items-center bg-dark"
+        style="min-height:340px;overflow:hidden;">
+        <div id="video-wrapper" style="display:inline-block;transition:transform .3s ease;">
+          <img id="videoFeed"
+            src="{{ url_for('video_feed') }}"
+            style="max-width:100%;max-height:70vh;display:block;"
+            alt="RTSP feed" />
+        </div>
+      </div>
 
+      {# ── Status bar ── #}
+      <div class="card-footer text-muted small d-flex align-items-center gap-3">
+        <span>Rotation: <strong id="rotation-display">0°</strong></span>
+        <span class="ms-auto" id="capture-status"></span>
+      </div>
+
+    </div>
   </div>
 </div>
 
+{# Hidden canvas used to grab a JPEG snapshot #}
+<canvas id="capture-canvas" style="display:none;"></canvas>
+{% endblock %}
+
+{% block extra_script %}
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+
+    var rotation  = 0;
+    var wrapper   = document.getElementById("video-wrapper");
+    var feed      = document.getElementById("videoFeed");
+    var rotDisp   = document.getElementById("rotation-display");
+    var capStatus = document.getElementById("capture-status");
+
+    // ── Rotate 90° clockwise on every click ───────────────────────────────────
+    document.getElementById("btn-rotate").addEventListener("click", function () {
+      rotation = (rotation + 90) % 360;
+      wrapper.style.transform = "rotate(" + rotation + "deg)";
+
+      // When the image is sideways (90/270) swap the visual max-w/h so it
+      // doesn’t overflow its container.
+      if (rotation === 90 || rotation === 270) {
+        feed.style.maxWidth  = "70vh";
+        feed.style.maxHeight = "100vw";
+      } else {
+        feed.style.maxWidth  = "100%";
+        feed.style.maxHeight = "70vh";
+      }
+      rotDisp.textContent = rotation + "\u00b0";
+    });
+
+    // ── Capture current frame ──────────────────────────────────────────────
+    // Strategy: draw the live <img> onto a hidden <canvas>, export as JPEG,
+    // then trigger a fake anchor download — works even for cross-origin MJPEG
+    // streams served from the same Flask origin.
+    document.getElementById("btn-capture").addEventListener("click", function () {
+      var canvas = document.getElementById("capture-canvas");
+      var img    = feed;
+
+      canvas.width  = img.naturalWidth  || img.width;
+      canvas.height = img.naturalHeight || img.height;
+
+      var ctx = canvas.getContext("2d");
+
+      // Apply the same CSS rotation to the canvas so the saved image matches
+      // what the user sees.
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      var rad  = rotation * Math.PI / 180;
+      var cw   = canvas.width;
+      var ch   = canvas.height;
+
+      if (rotation === 90 || rotation === 270) {
+        canvas.width  = ch;
+        canvas.height = cw;
+      }
+      ctx.translate(canvas.width / 2, canvas.height / 2);
+      ctx.rotate(rad);
+      ctx.drawImage(img, -cw / 2, -ch / 2, cw, ch);
+
+      try {
+        var dataURL  = canvas.toDataURL("image/jpeg", 0.92);
+        var ts       = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+        var anchor   = document.createElement("a");
+        anchor.href  = dataURL;
+        anchor.download = "frame-" + ts + ".jpg";
+        anchor.click();
+        capStatus.textContent = "\u2713 Saved as frame-" + ts + ".jpg";
+        setTimeout(function () { capStatus.textContent = ""; }, 4000);
+      } catch (e) {
+        // Canvas tainted (different origin) – fall back to server-side capture
+        capStatus.textContent = "Saving via server\u2026";
+        fetch("/load_frame")
+          .then(function (r) { return r.json(); })
+          .then(function () {
+            capStatus.textContent = "\u2713 Frame saved to frames folder.";
+            setTimeout(function () { capStatus.textContent = ""; }, 4000);
+          })
+          .catch(function () {
+            capStatus.textContent = "\u26a0 Capture failed.";
+          });
+      }
+    });
+
+    // ── Open in VLC ────────────────────────────────────────────────────
+    // VLC registers the "vlc://" protocol handler on most desktop systems.
+    // Passing the absolute RTSP URL (read from config via a Jinja var) lets
+    // VLC open the raw stream directly without going through the Flask proxy.
+    document.getElementById("btn-vlc").addEventListener("click", function () {
+      var rtspUrl = {{ config['rtsp']['url'] | tojson }};
+      if (!rtspUrl || rtspUrl === "null" || rtspUrl === "") {
+        alert("No RTSP URL is configured. Set it on the Configuration page first.");
+        return;
+      }
+      // vlc:// URI scheme – opens VLC and immediately plays the given URL
+      window.location.href = "vlc://" + rtspUrl;
+    });
+
+  });
+</script>
 {% endblock %}
