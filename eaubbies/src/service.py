@@ -143,6 +143,7 @@ def service_process(
         use_file=use_file, file=file
     )
     default_folder = configuration.get_param("frame", "storage_path")
+    source_frame_path = f"{default_folder}/0.frame_origine.jpg"
 
     try:
         engine = configuration.get_param("vision", "engine")
@@ -177,7 +178,6 @@ def service_process(
         )
         _draw_boxes(text_regions, frame_to_process, default_folder)
 
-        # Build a minimal OCR result compatible with the rest of the pipeline
         all_lines = [line for page in result_pages for line in page.lines]
         logger.info(f"Tesseract total lines detected: {len(all_lines)}")
         for i, line in enumerate(all_lines):
@@ -264,11 +264,14 @@ def service_process(
     configuration.set_param("result", "current", value=current_value)
     logger.info(f"Current meter value saved: {current_value}")
 
-    logger.info("Publishing meter values via MQTT")
+    logger.info("Publishing meter values and frame via MQTT")
     client_mqtt = MqttCLient()
     client_mqtt.mqtt_publish_device()
     client_mqtt.send_value(values=result_values)
-    logger.info("MQTT publish complete")
+    logger.info("MQTT value publish complete")
+
+    client_mqtt.send_frame(image_path=source_frame_path)
+    logger.info(f"MQTT frame publish complete: {source_frame_path}")
 
     step_labels = {
         "convert_bgr": "BGR Convert",
@@ -285,7 +288,7 @@ def service_process(
 
     data = {
         "images": {
-            "source": f"{default_folder}/0.frame_origine.jpg",
+            "source": source_frame_path,
             "final": f"{default_folder}/8.frame_final.jpg",
             "ocr_boxes": f"{default_folder}/10.ocr_boxes.jpg",
         },

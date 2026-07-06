@@ -1,11 +1,11 @@
 # eaubbies/src/utils/mqtt.py
 import logging
 import json
+import os
 from paho.mqtt.client import Client, CallbackAPIVersion
 from utils.configuration import YamlConfigLoader
 from utils.utils import generate_unique_id
 
-# Use a module-level logger instead of basicConfig
 logger = logging.getLogger(__name__)
 
 
@@ -22,7 +22,6 @@ class MqttCLient:
         )
         self.name = self.device_config.get("name", "watermeter")
 
-        # Safe `.get()` chaining
         self.sensor_water_uom = self.sensors_config.get("water", {}).get(
             "unit_of_measurement", "L"
         )
@@ -31,6 +30,10 @@ class MqttCLient:
         self.topic = f"{self.discovery_prefix}/sensor/{self.name}"
         self.topic_config = f"{self.topic}/watermeter/config"
         self.topic_state = f"{self.topic}/watermeter/state"
+        # Camera topics (image entity lives under the 'camera' component)
+        self.topic_camera = f"{self.discovery_prefix}/camera/{self.name}"
+        self.topic_camera_config = f"{self.topic_camera}/frame/config"
+        self.topic_camera_state = f"{self.topic_camera}/frame/image"
 
         self.mqtt_connection()
 
@@ -38,8 +41,6 @@ class MqttCLient:
         mqtt_user = self.configuration.get("user")
         mqtt_password = self.configuration.get("password")
         mqtt_server = self.configuration.get("server")
-
-        # Cast port to int and provide a default
         mqtt_port = int(self.configuration.get("port", 1883))
 
         self.client = Client(CallbackAPIVersion.VERSION2)
@@ -54,7 +55,6 @@ class MqttCLient:
 
         try:
             self.client.connect(host=mqtt_server, port=mqtt_port)
-            # Use loop_start() to avoid blocking Flask's main thread!
             self.client.loop_start()
         except Exception as e:
             logger.error(f"MQTT Connection failed: {e}")
@@ -68,7 +68,6 @@ class MqttCLient:
             logger.info(f"New ID generated: {unique_id}")
         return unique_id
 
-    # Added required CallbackAPIVersion.VERSION2 signature arguments (properties, reason_code)
     def on_connect(self, client, userdata, flags, rc, properties=None):
         if rc == 0:
             logger.info(f"Connected OK Returned code={rc}")
@@ -85,7 +84,7 @@ class MqttCLient:
         logger.info(f"Message received: {msg_str} | Topic: {message.topic}")
 
     def publish_payload(
-        self, topic: str, payload: dict, qos: int = 0, retain: bool = True
+        self, topic: str, payload, qos: int = 0, retain: bool = True
     ):
         logger.debug(f"Publishing to {topic}: {payload}")
         response = self.client.publish(
@@ -119,9 +118,7 @@ class MqttCLient:
                     "device_class": "water",
                     "unique_id": f"water_{self.device_unique_id}",
                     "state_topic": self.topic_state,
-                    "device": {
-                        "identifiers": self.device_unique_id,
-                    },
+                    "device": {"identifiers": self.device_unique_id},
                     "unit_of_measurement": self.sensor_water_uom.upper(),
                     "value_template": "{{value_json.total_liters}}",
                 },
@@ -261,6 +258,26 @@ class MqttCLient:
             )
             global_result.append({name: pub.is_published()})
 
+        # Register the camera (image) entity so Home Assistant autodiscovers it
+        camera_config = {
+            "name": f"{self.name} frame",
+            "unique_id": f"frame_{self.device_unique_id}",
+            "topic": self.topic_camera_state,
+            "device": {
+                "identifiers": self.device_unique_id,
+                "name": self.name,
+                "manufacturer": "eaubbies project",
+                "model": "V1",
+            },
+        }
+        pub = self.publish_payload(
+            topic=self.topic_camera_config,
+            payload=json.dumps(camera_config),
+            qos=0,
+            retain=True,
+        )
+        global_result.append({"frame_camera": pub.is_published()})
+
         logger.info(f"MQTT device publish results: {global_result}")
         return global_result
 
@@ -271,3 +288,22 @@ class MqttCLient:
             )
             return response
         raise ValueError("Values is Null or None")
+
+    def send_frame(self, image_path: str):
+        """Publish a JPEG image file as raw bytes to the camera topic."""
+        if not image_path or not os.path.exists(image_path):
+            logger.warning(f"send_frame: image not found at '{image_path}' — skipping")
+            return None
+        with open(image_path, "rb") as fh:
+            jpeg_bytes = fh.read()
+        logger.info(
+            f"Publishing frame ({len(jpeg_bytes)} bytes) to {self.topic_camera_state}"
+        )
+        response = self.publish_payload(
+            topic=self.topic_camera_state,
+            payload=jpeg_bytes,
+            qos=0,
+            retain=True,
+        )
+        logger.info(f"Frame publish result: {response.is_published()}")
+        return response
