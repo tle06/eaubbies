@@ -1,12 +1,24 @@
-<div class="mb-3 col-md-6">
+<div class="mb-3 col-md-12">
+  <label class="form-label" for="vision_engine">OCR Engine:</label>
+  <select class="form-control" id="vision_engine" name="vision_engine">
+    <option value="azure" {% if config['vision']['engine'] == 'azure' %}selected{% endif %}>Azure Vision AI</option>
+    <option value="tesseract" {% if config['vision']['engine'] == 'tesseract' %}selected{% endif %}>Tesseract OCR (Local)</option>
+  </select>
+</div>
+<div class="mb-3 col-md-6 azure-only">
   <label class="form-label" for="vision_key">Azure vision subscription Key:</label>
   <input class="form-control" type="password" id="vision_key" name="vision_key"
     value="********************************">
 </div>
-<div class="mb-3 col-md-6">
+<div class="mb-3 col-md-6 azure-only">
   <label class="form-label" for="endpoint_url">Azure vision endpoint URL:</label>
   <input class="form-control" type="text" id="endpoint_url" name="endpoint_url"
-    value="{{ config['vision']['endpoint'] }}">
+    value="{{ config['vision']['endpoint'] or '' }}">
+</div>
+<div class="mb-3 col-md-12 tesseract-only">
+  <label class="form-label" for="tesseract_config">Tesseract Config Flags:</label>
+  <input class="form-control" type="text" id="tesseract_config" name="tesseract_config"
+    value="{{ config['vision']['tesseract_config'] or '--psm 6' }}">
 </div>
 <div class="mb-3 col-md-6">
   <label class="form-label" for="vision_integer_digit">Vision integer digit:</label>

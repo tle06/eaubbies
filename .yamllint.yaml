@@ -1,6 +1,7 @@
 ---
 ignore: |
   .github/workflows/*.yaml
+  .github/actions/**/*.yaml
   docker-hassio-config/
   ./eaubbies/src/data/config/main.yaml
 extends: default

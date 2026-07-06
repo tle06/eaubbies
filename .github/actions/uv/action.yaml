@@ -1,0 +1,32 @@
+---
+name: "Install UV and repository dependencies"
+description: "Install UV package manager and sync de package dependencies"
+runs:
+  using: "composite"
+  steps:
+    - name: Setup Python
+      uses: actions/setup-python@v6.2.0
+      with:
+        python-version: 3.13
+    - name: Install UV
+      uses: astral-sh/setup-uv@v8.2.0
+      with:
+        version: "latest"
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install --no-install-recommends -y \
+          nano \
+          gettext-base \
+          ffmpeg \
+          nginx \
+          supervisor \
+          cron \
+          tesseract-ocr \
+          tesseract-ocr-eng
+      shell: bash
+    - name: Install python dependencies
+      shell: bash
+      run: |
+        cd eaubbies/src 
+        uv sync --frozen

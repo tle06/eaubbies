@@ -33,6 +33,9 @@ class YamlConfigLoader:
             },
             "result": {"current": None, "previous": None, "unit": "l"},
             "vision": {
+                "engine": "azure",  # Option between 'azure' or 'tesseract'
+                "tesseract_cmd": None,
+                "tesseract_config": "--psm 8 -c tessedit_char_whitelist=0123456789",
                 "counter": 0,
                 "rotate": 0.0,
                 "endpoint": None,
@@ -52,19 +55,20 @@ class YamlConfigLoader:
                 "url": None,
                 "image": {
                     "contrast": {"active": False, "alpha": 1.2, "beta": 1},
-                    "convert_to_bgr": True,
+                    "convert_to_bgr": False,
                     "convert_to_grey": False,
                     "exposure": {
-                        "active": True,
+                        "active": False,
                         "in_range": [0, 129],
                         "out_range": [0, 255],
                     },
-                    "fill_image": {"active": True, "coordinates": "integer"},
+                    "crop_image": {"active": True, "coordinates": "integer"},
                     "sharpen": {"active": False, "amount": 30, "threshold": 3},
                 },
             },
             "mqtt": {
                 "server": None,
+                "port": 1883,
                 "user": None,
                 "password": None,
                 "discovery_prefix": "homeassistant",

@@ -1,16 +1,140 @@
 {% extends 'core.html' %}
+
 {% block content %}
 <div class="row">
   <div class="col-md-12">
     <div class="card mb-4">
-      <h5 class="card-header">Video feed</h5>
+
+      {# ── Toolbar ── #}
+      <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <h5 class="mb-0">Video feed</h5>
+        <div class="d-flex gap-2 flex-wrap">
+
+          <button type="button" class="btn btn-sm btn-outline-secondary" id="btn-rotate"
+            title="Rotate 90° clockwise">
+            <i class="bx bx-rotate-right me-1"></i>Rotate 90°
+          </button>
+
+          <button type="button" class="btn btn-sm btn-outline-primary" id="btn-capture"
+            title="Download current frame as JPEG">
+            <i class="bx bx-camera me-1"></i>Capture frame
+          </button>
+
+          <button type="button" class="btn btn-sm btn-outline-warning" id="btn-vlc"
+            title="Open stream in VLC media player"
+            data-rtsp-url="{{ (config.rtsp.url if config and config.rtsp is defined and config.rtsp.url is defined else '') | e }}">
+            <i class="bx bx-tv me-1"></i>Open in VLC
+          </button>
+
+        </div>
+      </div>
 
       <hr class="my-0">
 
-      <img class="card-img-bottom" id="videoFeed" src="{{ url_for('video_feed') }}" width="50%" controls autoplay />
-    </div>
+      {# ── Video container ── #}
+      <div class="card-body p-0 d-flex justify-content-center align-items-center bg-dark"
+        style="min-height:340px;overflow:hidden;">
+        <div id="video-wrapper" style="display:inline-block;transition:transform .3s ease;">
+          <img id="videoFeed"
+            src="{{ url_for('video_feed') }}"
+            style="max-width:100%;max-height:70vh;display:block;"
+            alt="RTSP feed" />
+        </div>
+      </div>
 
+      {# ── Status bar ── #}
+      <div class="card-footer text-muted small d-flex align-items-center gap-3">
+        <span>Rotation: <strong id="rotation-display">0°</strong></span>
+        <span class="ms-auto" id="capture-status"></span>
+      </div>
+
+    </div>
   </div>
 </div>
 
+<canvas id="capture-canvas" style="display:none;"></canvas>
+{% endblock %}
+
+{% block extra_script %}
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+
+    var rotation  = 0;
+    var wrapper   = document.getElementById("video-wrapper");
+    var feed      = document.getElementById("videoFeed");
+    var rotDisp   = document.getElementById("rotation-display");
+    var capStatus = document.getElementById("capture-status");
+
+    // ── Rotate 90° clockwise on every click ─────────────────────────────
+    document.getElementById("btn-rotate").addEventListener("click", function () {
+      rotation = (rotation + 90) % 360;
+      wrapper.style.transform = "rotate(" + rotation + "deg)";
+      if (rotation === 90 || rotation === 270) {
+        feed.style.maxWidth  = "70vh";
+        feed.style.maxHeight = "100vw";
+      } else {
+        feed.style.maxWidth  = "100%";
+        feed.style.maxHeight = "70vh";
+      }
+      rotDisp.textContent = rotation + "\u00b0";
+    });
+
+    // ── Capture current frame ──────────────────────────────────────────
+    document.getElementById("btn-capture").addEventListener("click", function () {
+      var canvas = document.getElementById("capture-canvas");
+      var img    = feed;
+      var cw     = img.naturalWidth  || img.width;
+      var ch     = img.naturalHeight || img.height;
+
+      // Swap canvas dimensions for 90/270 rotations
+      if (rotation === 90 || rotation === 270) {
+        canvas.width  = ch;
+        canvas.height = cw;
+      } else {
+        canvas.width  = cw;
+        canvas.height = ch;
+      }
+
+      var ctx = canvas.getContext("2d");
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.translate(canvas.width / 2, canvas.height / 2);
+      ctx.rotate(rotation * Math.PI / 180);
+      ctx.drawImage(img, -cw / 2, -ch / 2, cw, ch);
+
+      try {
+        var dataURL  = canvas.toDataURL("image/jpeg", 0.92);
+        var ts       = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+        var anchor   = document.createElement("a");
+        anchor.href  = dataURL;
+        anchor.download = "frame-" + ts + ".jpg";
+        anchor.click();
+        capStatus.textContent = "\u2713 Saved as frame-" + ts + ".jpg";
+        setTimeout(function () { capStatus.textContent = ""; }, 4000);
+      } catch (e) {
+        // Canvas tainted (cross-origin stream) – fall back to server-side capture
+        capStatus.textContent = "Saving via server\u2026";
+        fetch("/load_frame")
+          .then(function (r) { return r.json(); })
+          .then(function () {
+            capStatus.textContent = "\u2713 Frame saved to frames folder.";
+            setTimeout(function () { capStatus.textContent = ""; }, 4000);
+          })
+          .catch(function () { capStatus.textContent = "\u26a0 Capture failed."; });
+      }
+    });
+
+    // ── Open in VLC ──────────────────────────────────────────────────
+    // Read the RTSP URL from the data attribute (set server-side by Jinja,
+    // avoiding any Jinja expression inside a JS block which caused the error).
+    document.getElementById("btn-vlc").addEventListener("click", function () {
+      var rtspUrl = this.dataset.rtspUrl;
+      if (!rtspUrl) {
+        alert("No RTSP URL is configured. Set it on the Configuration page first.");
+        return;
+      }
+      window.location.href = "vlc://" + rtspUrl;
+    });
+
+  });
+</script>
 {% endblock %}

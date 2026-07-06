@@ -1,0 +1,69 @@
+{% extends "core.html" %}
+{% block content %}
+<div class="row">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Application Logs <small class="text-muted">(last 30 days — most recent first)</small></h5>
+        <a href="/logs/download" class="btn btn-sm btn-outline-primary">
+          <i class="bx bx-download me-1"></i>Download log file
+        </a>
+      </div>
+      <div class="card-body p-0">
+        {% if entries %}
+        <div class="table-responsive">
+          <table class="table table-sm table-hover mb-0" style="font-family: monospace; font-size: 0.82rem; table-layout: fixed; width: 100%;">
+            <colgroup>
+              <col style="width: 210px;" />
+              <col style="width: 80px;" />
+              <col />
+            </colgroup>
+            <thead class="table-light sticky-top">
+              <tr>
+                <th>Timestamp</th>
+                <th>Level</th>
+                <th>Message</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for entry in entries %}
+              {% set parts = entry.line.split(' - ', 2) %}
+              <tr class="
+                {%- if entry.level == 'ERROR' %} table-danger
+                {%- elif entry.level == 'WARNING' %} table-warning
+                {%- elif entry.level == 'DEBUG' %} table-secondary
+                {%- else %} 
+                {%- endif %}">
+                <td class="text-nowrap" style="overflow: hidden; text-overflow: ellipsis;">{{ parts[0] if parts|length > 0 else '' }}</td>
+                <td>
+                  <span class="badge
+                    {%- if entry.level == 'ERROR' %} bg-danger
+                    {%- elif entry.level == 'WARNING' %} bg-warning text-dark
+                    {%- elif entry.level == 'DEBUG' %} bg-secondary
+                    {%- else %} bg-info text-dark
+                    {%- endif %}">
+                    {{ entry.level }}
+                  </span>
+                </td>
+                <td style="word-break: break-all;">{{ parts[2] if parts|length > 2 else entry.line }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="p-4 text-center text-muted">
+          <i class="bx bx-info-circle bx-lg"></i>
+          <p class="mt-2 mb-0">No log entries found for the last 30 days.</p>
+        </div>
+        {% endif %}
+      </div>
+      {% if entries %}
+      <div class="card-footer text-muted" style="font-size:0.8rem;">
+        {{ entries|length }} entr{{ 'y' if entries|length == 1 else 'ies' }} displayed.
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock content %}

@@ -93,6 +93,11 @@
                   <div data-i18n="Frames">Frames</div>
                 </a>
               </li>
+              <li class="menu-item">
+                <a href="/logs" class="menu-link">
+                  <div data-i18n="Logs">Logs</div>
+                </a>
+              </li>
             </ul>
           </li>
         </ul>
@@ -164,6 +169,24 @@
   <!-- endbuild -->
   <!-- Main JS -->
   <script src="{{url_for('static', filename='js/main.js')}}"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const engineSelect = document.getElementById("vision_engine");
+      if (engineSelect) {
+        function toggleEngineFields() {
+          const isAzure = engineSelect.value === "azure";
+          document.querySelectorAll(".azure-only").forEach(el => {
+            el.style.display = isAzure ? "block" : "none";
+          });
+          document.querySelectorAll(".tesseract-only").forEach(el => {
+            el.style.display = isAzure ? "none" : "block";
+          });
+        }
+        engineSelect.addEventListener("change", toggleEngineFields);
+        toggleEngineFields();
+      }
+    });
+  </script>
   {% block extra_script %} {% endblock extra_script %}
 
 

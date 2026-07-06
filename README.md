@@ -26,7 +26,7 @@ uv run -- flask run --debug
 
 ```cmd
 cd eaubbies
-docker build --build-arg BUILD_FROM="homeassistant/amd64-base-debian:bookworm" -t eaubbies:local .
+docker build --build-arg BUILD_FROM="ghcr.io/hassio-addons/debian-base:9.3.0" -t eaubbies:local .
 ```
 
 ## Home assistant build

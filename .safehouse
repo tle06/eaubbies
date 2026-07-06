@@ -1,0 +1,3 @@
+add-dirs=~/.config/crush/
+add-dirs=~/.local/share/crush/
+add-dirs=~/Library/Application Support/rtk

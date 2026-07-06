@@ -3,6 +3,10 @@
   <input class="form-control" type="text" id="mqtt_server" name="mqtt_server" value="{{ config['mqtt']['server'] }}">
 </div>
 <div class="mb-3 col-md-6">
+  <label class="form-label" for="mqtt_port">MQTT port:</label>
+  <input class="form-control" type="text" id="mqtt_port" name="mqtt_port" value="{{ config['mqtt']['port'] }}">
+</div>
+<div class="mb-3 col-md-6">
   <label class="form-label" for="mqtt_user">MQTT user:</label>
   <input class="form-control" type="text" id="mqtt_user" name="mqtt_user" value="{{ config['mqtt']['user'] }}">
 </div>

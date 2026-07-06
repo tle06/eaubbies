@@ -28,27 +28,59 @@ def time_to_cron(selected_time):
 
 
 def register_cron_task(command, selected_time):
-
     cron = CronTab(user=True)
     cron_expression = time_to_cron(selected_time)
-    exist_cron = None
-    for job in cron:
-        # Check if the job matches your criteria, for example, if you want to update a specific command
-        if job.command == command:
-            # Modify the job as needed
-            job.setall(
-                cron_expression
-            )  # Example: change the schedule to every 5 minutes
 
-            # Write changes to crontab
+    for job in cron:
+        if job.command == command:
+            job.setall(cron_expression)
             cron.write()
             print("Cron job updated successfully.")
-            break  # Stop iteration if the job is found and updated
-    else:
+            return
 
-        job = cron.new(command=command)
-        job.setall(cron_expression)
-        cron.write()
+    job = cron.new(command=command)
+    job.setall(cron_expression)
+    cron.write()
+    print("Cron job registered successfully.")
+
+
+def get_cron_status(command: str) -> dict:
+    """
+    Inspect the current user crontab for *command*.
+
+    Returns a dict:
+        {
+            "found":    bool,   # job exists in crontab
+            "enabled":  bool,   # job is not commented-out
+            "schedule": str,    # cron expression string, or empty
+            "render":   str,    # human-readable schedule, or empty
+        }
+    """
+    try:
+        cron = CronTab(user=True)
+        for job in cron:
+            if job.command == command:
+                enabled = job.is_enabled()
+                schedule = str(job.slices)  # e.g. "0 1 * * *"
+                try:
+                    render = str(job.description(use_24hour_time=True))
+                except Exception:
+                    render = schedule
+                return {
+                    "found": True,
+                    "enabled": enabled,
+                    "schedule": schedule,
+                    "render": render,
+                }
+        return {"found": False, "enabled": False, "schedule": "", "render": ""}
+    except Exception as e:
+        return {
+            "found": False,
+            "enabled": False,
+            "schedule": "",
+            "render": "",
+            "error": str(e),
+        }
 
 
 def generate_unique_id():
@@ -61,18 +93,41 @@ def generate_result(raw_result: str):
     print(raw_result)
     configuration = YamlConfigLoader()
 
-    integer_digit = configuration.get_param("vision", "integer", "digit")
+    integer_digit = int(configuration.get_param("vision", "integer", "digit"))
     integer_uom = configuration.get_param(
         "vision", "integer", "unit_of_measurement"
     ).lower()
-    decimal_digit = configuration.get_param("vision", "decimal", "digit")
+    decimal_digit = int(configuration.get_param("vision", "decimal", "digit"))
     decimal_uom = configuration.get_param(
         "vision", "decimal", "unit_of_measurement"
     ).lower()
 
-    vision_integer = configuration.get_param("vision", "coordinates", "integer")
-    vision_digit = configuration.get_param("vision", "coordinates", "digit")
-    vision_all = configuration.get_param("vision", "coordinates", "digit")
+    try:
+        vision_integer = configuration.get_param(
+            "vision", "coordinates", "integer"
+        ).get("active", False)
+        vision_digit = configuration.get_param("vision", "coordinates", "digit").get(
+            "active", False
+        )
+        vision_all = configuration.get_param("vision", "coordinates", "all").get(
+            "active", False
+        )
+    except Exception:
+        try:
+            coords_dict = configuration.get_param("vision", "coordinates")
+            vision_integer = bool(
+                coords_dict.get("integer") and coords_dict["integer"].get("active")
+            )
+            vision_digit = bool(
+                coords_dict.get("digit") and coords_dict["digit"].get("active")
+            )
+            vision_all = bool(
+                coords_dict.get("all") and coords_dict["all"].get("active")
+            )
+        except Exception:
+            vision_integer = False
+            vision_digit = False
+            vision_all = True
 
     main_uom = configuration.get_param(
         "mqtt", "sensors", "water", "unit_of_measurement"
@@ -86,8 +141,7 @@ def generate_result(raw_result: str):
     left_number = 0
 
     if vision_all:
-
-        if "." in raw_result_without_space:  # review the logix to get both numbers
+        if "." in raw_result_without_space:
             print("dot detected")
             parts = raw_result.split(".")
             print(parts)
@@ -97,7 +151,6 @@ def generate_result(raw_result: str):
             except Exception as e:
                 print(e)
                 raise ValueError(f"Can't convert parts: {parts} to integers")
-
         else:
             try:
                 print("no dot detected")
@@ -110,12 +163,9 @@ def generate_result(raw_result: str):
                 left_number = int(raw_result_without_space)
                 right_number = 0
     if vision_integer:
-        left_number = int(
-            raw_result_without_space
-        )  # review the logic to get the left number
-
+        left_number = int(raw_result_without_space)
     if vision_digit:
-        right_number = 0  # implement the logic to get the right number
+        right_number = 0
 
     print(left_number, right_number)
     left_number_to_liters = volume_converter(
