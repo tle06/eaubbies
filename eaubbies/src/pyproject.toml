@@ -33,6 +33,8 @@ dependencies = [
     # Both are optional; the client auto-detects which is available.
     "rapidocr-onnxruntime>=1.3.0; extra == 'paddle'",
     "rapidocr-onnxruntime>=1.4.4",
+    "paddlepaddle>=3.3.1",
+    "paddleocr>=2.10.0",
 ]
 
 [project.optional-dependencies]
