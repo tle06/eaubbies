@@ -12,11 +12,16 @@
       <div class="card-body p-0">
         {% if entries %}
         <div class="table-responsive">
-          <table class="table table-sm table-hover mb-0" style="font-family: monospace; font-size: 0.82rem;">
+          <table class="table table-sm table-hover mb-0" style="font-family: monospace; font-size: 0.82rem; table-layout: fixed; width: 100%;">
+            <colgroup>
+              <col style="width: 190px;" />
+              <col style="width: 80px;" />
+              <col />
+            </colgroup>
             <thead class="table-light sticky-top">
               <tr>
-                <th style="width:200px">Timestamp</th>
-                <th style="width:80px">Level</th>
+                <th>Timestamp</th>
+                <th>Level</th>
                 <th>Message</th>
               </tr>
             </thead>
@@ -29,7 +34,7 @@
                 {%- elif entry.level == 'DEBUG' %} table-secondary
                 {%- else %} 
                 {%- endif %}">
-                <td class="text-nowrap">{{ parts[0] if parts|length > 0 else '' }}</td>
+                <td class="text-nowrap" style="overflow: hidden; text-overflow: ellipsis;">{{ parts[0] if parts|length > 0 else '' }}</td>
                 <td>
                   <span class="badge
                     {%- if entry.level == 'ERROR' %} bg-danger
