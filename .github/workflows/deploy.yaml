@@ -11,7 +11,7 @@ permissions:
   contents: write # 1. Changed to 'write' so the workflow can push commits
   packages: read
   security-events: read
-  pull-requests: read
+  pull-requests: write
 
 jobs:
   ci:
