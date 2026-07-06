@@ -32,6 +32,7 @@ dependencies = [
     #   pip install paddlepaddle paddleocr
     # Both are optional; the client auto-detects which is available.
     "rapidocr-onnxruntime>=1.3.0; extra == 'paddle'",
+    "rapidocr-onnxruntime>=1.4.4",
 ]
 
 [project.optional-dependencies]

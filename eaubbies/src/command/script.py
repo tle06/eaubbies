@@ -36,7 +36,7 @@ def main():
     parser.add_argument(
         "--engine",
         type=str,
-        choices=["azure", "tesseract"],
+        choices=["azure", "tesseract","paddle"],
         default="azure",
         help="Override OCR Engine selection",
     )

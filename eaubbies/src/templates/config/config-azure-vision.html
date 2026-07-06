@@ -3,6 +3,7 @@
   <select class="form-control" id="vision_engine" name="vision_engine">
     <option value="azure" {% if config['vision']['engine'] == 'azure' %}selected{% endif %}>Azure Vision AI</option>
     <option value="tesseract" {% if config['vision']['engine'] == 'tesseract' %}selected{% endif %}>Tesseract OCR (Local)</option>
+    <option value="paddle" {% if config['vision']['engine'] == 'paddle' %}selected{% endif %}>Paddle OCR (Local)</option>
   </select>
 </div>
 <div class="mb-3 col-md-6 azure-only">
