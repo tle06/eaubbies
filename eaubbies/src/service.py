@@ -28,7 +28,9 @@ def apply_image_pipeline(client_rtsp: RTSPClient, config: YamlConfigLoader) -> d
 
     exposure = img_cfg.get("exposure", {})
     if bool(exposure.get("active")):
-        logger.info(f"Pipeline step: Exposure adjustment in_range={exposure.get('in_range')} out_range={exposure.get('out_range')}")
+        logger.info(
+            f"Pipeline step: Exposure adjustment in_range={exposure.get('in_range')} out_range={exposure.get('out_range')}"
+        )
         client_rtsp.improve_exposure_intensity(
             in_range=tuple(exposure["in_range"]),
             out_range=tuple(exposure["out_range"]),
@@ -38,7 +40,9 @@ def apply_image_pipeline(client_rtsp: RTSPClient, config: YamlConfigLoader) -> d
 
     contrast = img_cfg.get("contrast", {})
     if bool(contrast.get("active")):
-        logger.info(f"Pipeline step: Contrast adjustment alpha={contrast.get('alpha')} beta={contrast.get('beta')}")
+        logger.info(
+            f"Pipeline step: Contrast adjustment alpha={contrast.get('alpha')} beta={contrast.get('beta')}"
+        )
         client_rtsp.adjust_contrast(
             alpha=contrast["alpha"],
             beta=contrast["beta"],
@@ -48,7 +52,9 @@ def apply_image_pipeline(client_rtsp: RTSPClient, config: YamlConfigLoader) -> d
 
     sharpen = img_cfg.get("sharpen", {})
     if bool(sharpen.get("active")):
-        logger.info(f"Pipeline step: Sharpen amount={sharpen.get('amount')} threshold={sharpen.get('threshold')}")
+        logger.info(
+            f"Pipeline step: Sharpen amount={sharpen.get('amount')} threshold={sharpen.get('threshold')}"
+        )
         client_rtsp.sharpen_image(
             amount=sharpen["amount"],
             threshold=sharpen["threshold"],
@@ -60,7 +66,9 @@ def apply_image_pipeline(client_rtsp: RTSPClient, config: YamlConfigLoader) -> d
     if bool(crop.get("active")):
         coord_key = crop.get("coordinates", "integer").lower().strip()
         coordinates = config.get_param("vision", "coordinates", coord_key)
-        logger.info(f"Pipeline step: Crop using key='{coord_key}' coordinates={coordinates}")
+        logger.info(
+            f"Pipeline step: Crop using key='{coord_key}' coordinates={coordinates}"
+        )
         if all(coordinates.get(k) is not None for k in ("x", "y", "width", "height")):
             client_rtsp.crop_image(
                 x=int(coordinates["x"]),
@@ -70,9 +78,13 @@ def apply_image_pipeline(client_rtsp: RTSPClient, config: YamlConfigLoader) -> d
                 filename="7.crop",
             )
             saved_frames["crop"] = "7.crop.jpg"
-            logger.info(f"Crop applied: x={coordinates['x']} y={coordinates['y']} w={coordinates['width']} h={coordinates['height']}")
+            logger.info(
+                f"Crop applied: x={coordinates['x']} y={coordinates['y']} w={coordinates['width']} h={coordinates['height']}"
+            )
         else:
-            logger.warning(f"Crop skipped — incomplete coordinates for key '{coord_key}': {coordinates}")
+            logger.warning(
+                f"Crop skipped — incomplete coordinates for key '{coord_key}': {coordinates}"
+            )
 
     logger.info(f"Image pipeline completed. Steps applied: {list(saved_frames.keys())}")
     return saved_frames
@@ -127,7 +139,9 @@ def service_process(
     increase_cron_count: bool = False, use_file: bool = False, file=None
 ):
     logger.info("=== service_process START ===")
-    frame_to_process, pipeline_frames = create_improved_frame(use_file=use_file, file=file)
+    frame_to_process, pipeline_frames = create_improved_frame(
+        use_file=use_file, file=file
+    )
     default_folder = configuration.get_param("frame", "storage_path")
 
     try:
@@ -158,7 +172,9 @@ def service_process(
             config=tesseract_config,
             filename="9.tesseract_optimized",
         )
-        logger.info(f"Tesseract returned {len(result_pages)} page(s), {len(text_regions)} region(s)")
+        logger.info(
+            f"Tesseract returned {len(result_pages)} page(s), {len(text_regions)} region(s)"
+        )
         _draw_boxes(text_regions, frame_to_process, default_folder)
 
         # Build a minimal OCR result compatible with the rest of the pipeline
@@ -170,9 +186,14 @@ def service_process(
         class _MockResult:
             class _Read:
                 class _Block:
-                    def __init__(self, lines): self.lines = lines
-                def __init__(self, lines): self.blocks = [_MockResult._Read._Block(lines)]
-            def __init__(self, lines): self.read = _MockResult._Read(lines)
+                    def __init__(self, lines):
+                        self.lines = lines
+
+                def __init__(self, lines):
+                    self.blocks = [_MockResult._Read._Block(lines)]
+
+            def __init__(self, lines):
+                self.read = _MockResult._Read(lines)
 
         ocr_result = _MockResult(all_lines)
 
@@ -220,7 +241,9 @@ def service_process(
         result_values = generate_result(raw_result=raw_result)
         logger.info(f"Parsed result values: {result_values}")
     except Exception as e:
-        logger.error(f"Error generating result from OCR text '{raw_result}': {e}", exc_info=True)
+        logger.error(
+            f"Error generating result from OCR text '{raw_result}': {e}", exc_info=True
+        )
         return ValueError("couldn't get the digitalisation of the meter")
 
     current_value = float(result_values.get("total_liters"))
@@ -232,7 +255,9 @@ def service_process(
         logger.info(f"First reading — previous value initialised to {current_value}")
 
     if previous_value > current_value:
-        logger.warning(f"Value regression detected: previous={previous_value} > current={current_value}")
+        logger.warning(
+            f"Value regression detected: previous={previous_value} > current={current_value}"
+        )
         return ValueError(
             f"previous value {previous_value} is > to current value {current_value}"
         )
@@ -261,7 +286,7 @@ def service_process(
     data = {
         "images": {
             "source": f"{default_folder}/0.frame_origine.jpg",
-            "final":  f"{default_folder}/8.frame_final.jpg",
+            "final": f"{default_folder}/8.frame_final.jpg",
             "ocr_boxes": f"{default_folder}/10.ocr_boxes.jpg",
         },
         "pipeline": pipeline_steps,

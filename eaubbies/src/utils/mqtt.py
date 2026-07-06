@@ -8,6 +8,7 @@ from utils.utils import generate_unique_id
 # Use a module-level logger instead of basicConfig
 logger = logging.getLogger(__name__)
 
+
 class MqttCLient:
     def __init__(self):
         self.config_loader = YamlConfigLoader()
@@ -16,11 +17,15 @@ class MqttCLient:
         self.device_config = self.configuration.get("device", {})
         self.sensors_config = self.configuration.get("sensors", {})
 
-        self.discovery_prefix = self.configuration.get("discovery_prefix", "homeassistant")
+        self.discovery_prefix = self.configuration.get(
+            "discovery_prefix", "homeassistant"
+        )
         self.name = self.device_config.get("name", "watermeter")
-        
+
         # Safe `.get()` chaining
-        self.sensor_water_uom = self.sensors_config.get("water", {}).get("unit_of_measurement", "L")
+        self.sensor_water_uom = self.sensors_config.get("water", {}).get(
+            "unit_of_measurement", "L"
+        )
 
         self.device_unique_id = self.get_device_unique_id()
         self.topic = f"{self.discovery_prefix}/sensor/{self.name}"
@@ -33,24 +38,24 @@ class MqttCLient:
         mqtt_user = self.configuration.get("user")
         mqtt_password = self.configuration.get("password")
         mqtt_server = self.configuration.get("server")
-        
+
         # Cast port to int and provide a default
-        mqtt_port = int(self.configuration.get("port", 1883)) 
-        
+        mqtt_port = int(self.configuration.get("port", 1883))
+
         self.client = Client(CallbackAPIVersion.VERSION2)
         self.client.enable_logger(logger)
-        
+
         self.client.on_connect = self.on_connect
         self.client.on_disconnect = self.on_disconnect
         self.client.on_message = self.on_message
 
         if mqtt_user and mqtt_password:
             self.client.username_pw_set(username=mqtt_user, password=mqtt_password)
-        
+
         try:
             self.client.connect(host=mqtt_server, port=mqtt_port)
             # Use loop_start() to avoid blocking Flask's main thread!
-            self.client.loop_start() 
+            self.client.loop_start()
         except Exception as e:
             logger.error(f"MQTT Connection failed: {e}")
 
@@ -79,9 +84,13 @@ class MqttCLient:
         msg_str = message.payload.decode("utf-8")
         logger.info(f"Message received: {msg_str} | Topic: {message.topic}")
 
-    def publish_payload(self, topic: str, payload: dict, qos: int = 0, retain: bool = True):
+    def publish_payload(
+        self, topic: str, payload: dict, qos: int = 0, retain: bool = True
+    ):
         logger.debug(f"Publishing to {topic}: {payload}")
-        response = self.client.publish(topic=topic, payload=payload, qos=qos, retain=retain)
+        response = self.client.publish(
+            topic=topic, payload=payload, qos=qos, retain=retain
+        )
         logger.info(f"Response is_published: {response.is_published()}")
         return response
 
@@ -251,7 +260,7 @@ class MqttCLient:
                 retain=True,
             )
             global_result.append({name: pub.is_published()})
-            
+
         logger.info(f"MQTT device publish results: {global_result}")
         return global_result
 

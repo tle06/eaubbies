@@ -78,7 +78,9 @@ class RTSPClient:
                 return None
             ret, frame = cap.read()
             if not ret:
-                logger.error("Unable to capture frame from RTSP stream: %s", self.video_url)
+                logger.error(
+                    "Unable to capture frame from RTSP stream: %s", self.video_url
+                )
                 cap.release()
                 return None
             if self.save_frame:
@@ -171,7 +173,7 @@ class RTSPClient:
             logger.debug(f"Frame generation time: {elapsed_time:.3f}s")
 
     def crop_image(self, x, y, width, height, filename="frame_cropped"):
-        self.improve_frame = self.improve_frame[y:y+height, x:x+width]
+        self.improve_frame = self.improve_frame[y : y + height, x : x + width]
         if self.save_frame:
             self.write_output_file(name=filename, frame=self.improve_frame)
         return self.improve_frame
@@ -243,13 +245,17 @@ class RTSPClient:
                     kernel[i, j] = 1.0 / kernel_size
         return kernel
 
-    def upscale_image(self, scale_factor: float = 2.0, filename: str = "frame_upscaled"):
+    def upscale_image(
+        self, scale_factor: float = 2.0, filename: str = "frame_upscaled"
+    ):
         if self.improve_frame is None:
             logger.warning("upscale_image called but improve_frame is None")
             return None
         width = int(self.improve_frame.shape[1] * scale_factor)
         height = int(self.improve_frame.shape[0] * scale_factor)
-        self.improve_frame = cv2.resize(self.improve_frame, (width, height), interpolation=cv2.INTER_CUBIC)
+        self.improve_frame = cv2.resize(
+            self.improve_frame, (width, height), interpolation=cv2.INTER_CUBIC
+        )
         logger.info(f"Image upscaled by {scale_factor}x to {width}x{height}")
         if self.save_frame:
             self.write_output_file(name=filename, frame=self.improve_frame)

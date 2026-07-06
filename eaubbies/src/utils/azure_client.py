@@ -11,10 +11,14 @@ class AzureClient:
         self.save_frame = save_frame
         self.default_folder = "../frames"
         # Only build the real client when we have valid credentials
-        if vision_key and vision_key != "mock" and endpoint_url and endpoint_url != "mock":
+        if (
+            vision_key
+            and vision_key != "mock"
+            and endpoint_url
+            and endpoint_url != "mock"
+        ):
             self.client = ImageAnalysisClient(
-                endpoint=endpoint_url,
-                credential=AzureKeyCredential(vision_key)
+                endpoint=endpoint_url, credential=AzureKeyCredential(vision_key)
             )
         else:
             self.client = None
@@ -37,21 +41,18 @@ class AzureClient:
             with open(image_path, "rb") as f:
                 image_data = f.read()
             result = self.client.analyze(
-                image_data=image_data,
-                visual_features=[VisualFeatures.READ]
+                image_data=image_data, visual_features=[VisualFeatures.READ]
             )
         elif image_url:
             result = self.client.analyze_from_url(
-                image_url=image_url,
-                visual_features=[VisualFeatures.READ]
+                image_url=image_url, visual_features=[VisualFeatures.READ]
             )
         elif frame is not None:
             _, buf = cv2.imencode(".jpg", frame)
             stream = io.BytesIO(buf.tobytes())
             stream.seek(0)
             result = self.client.analyze(
-                image_data=stream.read(),
-                visual_features=[VisualFeatures.READ]
+                image_data=stream.read(), visual_features=[VisualFeatures.READ]
             )
         else:
             raise ValueError("frame, image_path, or image_url must be provided")
@@ -63,10 +64,14 @@ class AzureClient:
             return regions
         for block in result.read.blocks:
             for line in block.lines:
-                regions.append({
-                    "bounding_box": [pt for p in line.bounding_polygon for pt in (p.x, p.y)],
-                    "text": line.text
-                })
+                regions.append(
+                    {
+                        "bounding_box": [
+                            pt for p in line.bounding_polygon for pt in (p.x, p.y)
+                        ],
+                        "text": line.text,
+                    }
+                )
         return regions
 
     # ── Drawing ───────────────────────────────────────────────────────────────
@@ -101,7 +106,9 @@ class AzureClient:
                     [[int(bb[i]), int(bb[i + 1])] for i in range(0, 8, 2)],
                     dtype=np.int32,
                 )
-                cv2.polylines(annotated, [pts], isClosed=True, color=(0, 255, 0), thickness=2)
+                cv2.polylines(
+                    annotated, [pts], isClosed=True, color=(0, 255, 0), thickness=2
+                )
                 cv2.putText(
                     annotated,
                     text,

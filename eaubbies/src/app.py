@@ -73,7 +73,9 @@ def init():
 @app.route("/config")
 def config():
     cron_status = get_cron_status(CRON_COMMAND)
-    return render_template("config.html", config=configuration.data, cron_status=cron_status)
+    return render_template(
+        "config.html", config=configuration.data, cron_status=cron_status
+    )
 
 
 @app.route("/video")
@@ -208,49 +210,146 @@ def save_config():
         configuration.set_param("vision", "engine", value=request.form["vision_engine"])
         logger.info(f"Vision engine updated to: {request.form['vision_engine']}")
     if request.form.get("tesseract_config"):
-        configuration.set_param("vision", "tesseract_config", value=request.form["tesseract_config"])
+        configuration.set_param(
+            "vision", "tesseract_config", value=request.form["tesseract_config"]
+        )
         logger.info(f"Tesseract config updated: {request.form['tesseract_config']}")
     if request.form.get("vision_key"):
         key = request.form["vision_key"]
-        if key != "********************************" and key != configuration.get_param("vision", "key"):
+        if (
+            key != "********************************"
+            and key != configuration.get_param("vision", "key")
+        ):
             configuration.set_param("vision", "key", value=key)
             logger.info("Vision API key updated")
     if request.form.get("endpoint_url"):
-        configuration.set_param("vision", "endpoint", value=request.form["endpoint_url"])
+        configuration.set_param(
+            "vision", "endpoint", value=request.form["endpoint_url"]
+        )
         logger.info(f"Vision endpoint updated: {request.form['endpoint_url']}")
     if request.form.get("vision_integer_digit"):
-        configuration.set_param("vision", "integer", "digit", value=int(request.form["vision_integer_digit"]))
+        configuration.set_param(
+            "vision",
+            "integer",
+            "digit",
+            value=int(request.form["vision_integer_digit"]),
+        )
     if request.form.get("vision_integer_unit_of_measurement"):
-        configuration.set_param("vision", "integer", "unit_of_measurement", value=request.form["vision_integer_unit_of_measurement"])
+        configuration.set_param(
+            "vision",
+            "integer",
+            "unit_of_measurement",
+            value=request.form["vision_integer_unit_of_measurement"],
+        )
     if request.form.get("vision_decimal_digit"):
-        configuration.set_param("vision", "decimal", "digit", value=int(request.form["vision_decimal_digit"]))
+        configuration.set_param(
+            "vision",
+            "decimal",
+            "digit",
+            value=int(request.form["vision_decimal_digit"]),
+        )
     if request.form.get("vision_decimal_unit_of_measurement"):
-        configuration.set_param("vision", "decimal", "unit_of_measurement", value=request.form["vision_decimal_unit_of_measurement"])
+        configuration.set_param(
+            "vision",
+            "decimal",
+            "unit_of_measurement",
+            value=request.form["vision_decimal_unit_of_measurement"],
+        )
 
     # ── Image optimisation ──
-    configuration.set_param("rtsp", "image", "convert_to_bgr",  value="img_convert_bgr"  in request.form)
-    configuration.set_param("rtsp", "image", "convert_to_grey", value="img_convert_grey" in request.form)
-    configuration.set_param("rtsp", "image", "exposure", "active",   value="img_exposure_active" in request.form)
-    configuration.set_param("rtsp", "image", "contrast", "active",   value="img_contrast_active" in request.form)
-    configuration.set_param("rtsp", "image", "sharpen",  "active",   value="img_sharpen_active"  in request.form)
-    configuration.set_param("rtsp", "image", "crop_image", "active", value="img_crop_active"     in request.form)
+    configuration.set_param(
+        "rtsp", "image", "convert_to_bgr", value="img_convert_bgr" in request.form
+    )
+    configuration.set_param(
+        "rtsp", "image", "convert_to_grey", value="img_convert_grey" in request.form
+    )
+    configuration.set_param(
+        "rtsp",
+        "image",
+        "exposure",
+        "active",
+        value="img_exposure_active" in request.form,
+    )
+    configuration.set_param(
+        "rtsp",
+        "image",
+        "contrast",
+        "active",
+        value="img_contrast_active" in request.form,
+    )
+    configuration.set_param(
+        "rtsp", "image", "sharpen", "active", value="img_sharpen_active" in request.form
+    )
+    configuration.set_param(
+        "rtsp", "image", "crop_image", "active", value="img_crop_active" in request.form
+    )
 
-    if request.form.get("img_exposure_in_min") and request.form.get("img_exposure_in_max"):
-        configuration.set_param("rtsp", "image", "exposure", "in_range",
-            value=[int(request.form["img_exposure_in_min"]), int(request.form["img_exposure_in_max"])])
-    if request.form.get("img_exposure_out_min") and request.form.get("img_exposure_out_max"):
-        configuration.set_param("rtsp", "image", "exposure", "out_range",
-            value=[int(request.form["img_exposure_out_min"]), int(request.form["img_exposure_out_max"])])
+    if request.form.get("img_exposure_in_min") and request.form.get(
+        "img_exposure_in_max"
+    ):
+        configuration.set_param(
+            "rtsp",
+            "image",
+            "exposure",
+            "in_range",
+            value=[
+                int(request.form["img_exposure_in_min"]),
+                int(request.form["img_exposure_in_max"]),
+            ],
+        )
+    if request.form.get("img_exposure_out_min") and request.form.get(
+        "img_exposure_out_max"
+    ):
+        configuration.set_param(
+            "rtsp",
+            "image",
+            "exposure",
+            "out_range",
+            value=[
+                int(request.form["img_exposure_out_min"]),
+                int(request.form["img_exposure_out_max"]),
+            ],
+        )
     if request.form.get("img_contrast_alpha"):
-        configuration.set_param("rtsp", "image", "contrast", "alpha", value=float(request.form["img_contrast_alpha"]))
+        configuration.set_param(
+            "rtsp",
+            "image",
+            "contrast",
+            "alpha",
+            value=float(request.form["img_contrast_alpha"]),
+        )
     if request.form.get("img_contrast_beta"):
-        configuration.set_param("rtsp", "image", "contrast", "beta",  value=int(request.form["img_contrast_beta"]))
+        configuration.set_param(
+            "rtsp",
+            "image",
+            "contrast",
+            "beta",
+            value=int(request.form["img_contrast_beta"]),
+        )
     if request.form.get("img_sharpen_amount"):
-        configuration.set_param("rtsp", "image", "sharpen", "amount",    value=float(request.form["img_sharpen_amount"]))
+        configuration.set_param(
+            "rtsp",
+            "image",
+            "sharpen",
+            "amount",
+            value=float(request.form["img_sharpen_amount"]),
+        )
     if request.form.get("img_sharpen_threshold"):
-        configuration.set_param("rtsp", "image", "sharpen", "threshold", value=int(request.form["img_sharpen_threshold"]))
+        configuration.set_param(
+            "rtsp",
+            "image",
+            "sharpen",
+            "threshold",
+            value=int(request.form["img_sharpen_threshold"]),
+        )
     if request.form.get("img_crop_coordinates"):
-        configuration.set_param("rtsp", "image", "crop_image", "coordinates", value=request.form["img_crop_coordinates"])
+        configuration.set_param(
+            "rtsp",
+            "image",
+            "crop_image",
+            "coordinates",
+            value=request.form["img_crop_coordinates"],
+        )
 
     # ── RTSP ──
     if request.form.get("rtsp_url"):
@@ -267,20 +366,36 @@ def save_config():
         configuration.set_param("mqtt", "user", value=request.form["mqtt_user"])
     if request.form.get("mqtt_password"):
         pwd = request.form["mqtt_password"]
-        if pwd != "********************************" and pwd != configuration.get_param("mqtt", "password"):
+        if (
+            pwd != "********************************"
+            and pwd != configuration.get_param("mqtt", "password")
+        ):
             configuration.set_param("mqtt", "password", value=pwd)
             logger.info("MQTT password updated")
     if request.form.get("mqtt_device_name"):
-        configuration.set_param("mqtt", "device", "name", value=request.form["mqtt_device_name"])
+        configuration.set_param(
+            "mqtt", "device", "name", value=request.form["mqtt_device_name"]
+        )
     if request.form.get("mqtt_device_node_id"):
-        configuration.set_param("mqtt", "device", "node_id", value=request.form["mqtt_device_node_id"])
+        configuration.set_param(
+            "mqtt", "device", "node_id", value=request.form["mqtt_device_node_id"]
+        )
     if request.form.get("mqtt_device_unique_id"):
-        configuration.set_param("mqtt", "device", "unique_id", value=request.form["mqtt_device_unique_id"])
+        configuration.set_param(
+            "mqtt", "device", "unique_id", value=request.form["mqtt_device_unique_id"]
+        )
     if request.form.get("mqtt_discovery_prefix"):
-        configuration.set_param("mqtt", "discovery_prefix", value=request.form["mqtt_discovery_prefix"])
+        configuration.set_param(
+            "mqtt", "discovery_prefix", value=request.form["mqtt_discovery_prefix"]
+        )
     if request.form.get("mqtt_sensors_water_unit_of_measurement"):
-        configuration.set_param("mqtt", "sensors", "water", "unit_of_measurement",
-            value=request.form["mqtt_sensors_water_unit_of_measurement"].lower())
+        configuration.set_param(
+            "mqtt",
+            "sensors",
+            "water",
+            "unit_of_measurement",
+            value=request.form["mqtt_sensors_water_unit_of_measurement"].lower(),
+        )
 
     # ── Cron ──
     if request.form.get("cron_time"):
@@ -386,7 +501,9 @@ def receive_coordinates():
         coords["active"] = bool(coords.get("width") and coords.get("height"))
         configuration.set_param("vision", "coordinates", d["name"], value=coords)
         configuration.set_param("vision", "rotate", value=float(d["rotate"]))
-        logger.info(f"Coordinate saved — name={d['name']}, rotate={d['rotate']}, active={coords['active']}")
+        logger.info(
+            f"Coordinate saved — name={d['name']}, rotate={d['rotate']}, active={coords['active']}"
+        )
     if not bool(configuration.get_param("setup", "init_config")):
         configuration.set_param("setup", "init_config", value=True)
         logger.info("Initial configuration marked as done")

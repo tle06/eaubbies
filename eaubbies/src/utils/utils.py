@@ -61,7 +61,7 @@ def get_cron_status(command: str) -> dict:
         for job in cron:
             if job.command == command:
                 enabled = job.is_enabled()
-                schedule = str(job.slices)          # e.g. "0 1 * * *"
+                schedule = str(job.slices)  # e.g. "0 1 * * *"
                 try:
                     render = str(job.description(use_24hour_time=True))
                 except Exception:
@@ -74,7 +74,13 @@ def get_cron_status(command: str) -> dict:
                 }
         return {"found": False, "enabled": False, "schedule": "", "render": ""}
     except Exception as e:
-        return {"found": False, "enabled": False, "schedule": "", "render": "", "error": str(e)}
+        return {
+            "found": False,
+            "enabled": False,
+            "schedule": "",
+            "render": "",
+            "error": str(e),
+        }
 
 
 def generate_unique_id():

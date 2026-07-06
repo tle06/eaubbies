@@ -134,7 +134,9 @@ class TesseractClient:
                         text_regions.append(
                             {"bounding_box": bounding_box, "text": text}
                         )
-            logger.debug(f"Tesseract word-level regions with confidence > 0: {len(text_regions)}")
+            logger.debug(
+                f"Tesseract word-level regions with confidence > 0: {len(text_regions)}"
+            )
 
             result_pages = [MockResultPage(parsed_lines)]
             return result_pages, text_regions
