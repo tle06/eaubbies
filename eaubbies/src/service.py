@@ -4,6 +4,7 @@ import os
 from utils.azure_client import AzureClient
 from utils.configuration import YamlConfigLoader
 from utils.mqtt import MqttCLient
+from utils.paddle_ocr_client import PaddleOCRClient
 from utils.rtsp_client import RTSPClient
 from utils.tesseract_client import TesseractClient
 from utils.utils import generate_result
@@ -137,6 +138,25 @@ def _draw_boxes(text_regions, frame, default_folder, filename="10.ocr_boxes"):
     )
 
 
+def _build_mock_result(all_lines):
+    """Wrap a flat list of MockLine objects in the nested read.blocks structure
+    that the rest of service_process() expects."""
+
+    class _MockBlock:
+        def __init__(self, lines):
+            self.lines = lines
+
+    class _MockRead:
+        def __init__(self, lines):
+            self.blocks = [_MockBlock(lines)]
+
+    class _MockResult:
+        def __init__(self, lines):
+            self.read = _MockRead(lines)
+
+    return _MockResult(all_lines)
+
+
 def service_process(
     increase_cron_count: bool = False, use_file: bool = False, file=None
 ):
@@ -152,6 +172,9 @@ def service_process(
         engine = "azure"
     logger.info(f"OCR engine selected: {engine}")
 
+    # ------------------------------------------------------------------
+    # Engine: Tesseract
+    # ------------------------------------------------------------------
     if engine == "tesseract":
         logger.info("Initialising Tesseract OCR client")
         tesseract_cmd = None
@@ -159,45 +182,53 @@ def service_process(
             tesseract_cmd = configuration.get_param("vision", "tesseract_cmd")
         except Exception:
             pass
-        tesseract_config = "--psm 8 -c tessedit_char_whitelist=0123456789"
+
+        from utils.tesseract_client import DEFAULT_CONFIG as TESS_DEFAULT
+        tesseract_config = TESS_DEFAULT
         try:
             tesseract_config = configuration.get_param("vision", "tesseract_config")
         except Exception:
             pass
         logger.info(f"Tesseract config string: {tesseract_config}")
 
-        client_tesseract = TesseractClient(tesseract_cmd=tesseract_cmd)
-        client_tesseract.default_folder = default_folder
+        client_ocr = TesseractClient(tesseract_cmd=tesseract_cmd)
+        client_ocr.default_folder = default_folder
         logger.info("Running Tesseract OCR on processed frame")
-        result_pages, text_regions = client_tesseract.process_image(
+        result_pages, text_regions = client_ocr.process_image(
             frame=frame_to_process,
             config=tesseract_config,
             filename="9.tesseract_optimized",
         )
-        logger.info(
-            f"Tesseract returned {len(result_pages)} page(s), {len(text_regions)} region(s)"
+
+    # ------------------------------------------------------------------
+    # Engine: PaddleOCR  (set vision.engine: paddle in config.yaml)
+    # ------------------------------------------------------------------
+    elif engine == "paddle":
+        logger.info("Initialising PaddleOCR client")
+        paddle_backend = "auto"
+        try:
+            paddle_backend = configuration.get_param("vision", "paddle_backend")
+        except Exception:
+            pass
+        logger.info(f"PaddleOCR backend: {paddle_backend}")
+
+        client_ocr = PaddleOCRClient(
+            use_angle_cls=False,
+            lang="en",
+            use_gpu=False,
+            save_frame=True,
+            backend=paddle_backend,
         )
-        _draw_boxes(text_regions, frame_to_process, default_folder)
+        client_ocr.default_folder = default_folder
+        logger.info("Running PaddleOCR on processed frame")
+        result_pages, text_regions = client_ocr.process_image(
+            frame=frame_to_process,
+            filename="9.paddle_optimized",
+        )
 
-        all_lines = [line for page in result_pages for line in page.lines]
-        logger.info(f"Tesseract total lines detected: {len(all_lines)}")
-        for i, line in enumerate(all_lines):
-            logger.debug(f"  Tesseract line[{i}]: '{line.text}'")
-
-        class _MockResult:
-            class _Read:
-                class _Block:
-                    def __init__(self, lines):
-                        self.lines = lines
-
-                def __init__(self, lines):
-                    self.blocks = [_MockResult._Read._Block(lines)]
-
-            def __init__(self, lines):
-                self.read = _MockResult._Read(lines)
-
-        ocr_result = _MockResult(all_lines)
-
+    # ------------------------------------------------------------------
+    # Engine: Azure (default)
+    # ------------------------------------------------------------------
     else:
         logger.info("Initialising Azure Vision OCR client")
         subscription_key = configuration.get_param("vision", "key")
@@ -220,19 +251,56 @@ def service_process(
             filename="10.ocr_boxes",
         )
 
+        # Azure returns its own result object — skip the shared path below
+        vision_counter = int(configuration.get_param("vision", "counter"))
+        configuration.set_param("vision", "counter", value=vision_counter + 1)
+
+        line_with_data = configuration.get_param("vision", "line_with_data") or 0
+        read_blocks = ocr_result.read.blocks if ocr_result and ocr_result.read else []
+        all_lines = [line for block in read_blocks for line in block.lines]
+
+        if not all_lines:
+            logger.error("Azure OCR returned no lines")
+            return ValueError("No lines of text were recognized by the OCR engine.")
+
+        raw_result = all_lines[line_with_data].text
+        logger.info(f"Raw OCR result (line {line_with_data}): '{raw_result}'")
+
+        try:
+            result_values = generate_result(raw_result=raw_result)
+        except Exception as e:
+            logger.error(f"Error generating result: {e}", exc_info=True)
+            return ValueError("couldn't get the digitalisation of the meter")
+
+        return _finish_service(
+            result_values=result_values,
+            text_regions=text_regions,
+            frame_to_process=frame_to_process,
+            pipeline_frames=pipeline_frames,
+            default_folder=default_folder,
+            increase_cron_count=increase_cron_count,
+        )
+
+    # ------------------------------------------------------------------
+    # Shared post-processing for Tesseract and PaddleOCR
+    # ------------------------------------------------------------------
+    logger.info(
+        f"{engine} returned {len(result_pages)} page(s), {len(text_regions)} region(s)"
+    )
+    _draw_boxes(text_regions, frame_to_process, default_folder)
+
+    all_lines = [line for page in result_pages for line in page.lines]
+    logger.info(f"Total OCR lines detected: {len(all_lines)}")
+    for i, line in enumerate(all_lines):
+        logger.debug(f"  line[{i}]: '{line.text}'")
+
     vision_counter = int(configuration.get_param("vision", "counter"))
     configuration.set_param("vision", "counter", value=vision_counter + 1)
-    logger.info(f"Vision counter incremented to: {vision_counter + 1}")
 
     line_with_data = configuration.get_param("vision", "line_with_data") or 0
-    logger.info(f"Line with data index: {line_with_data}")
-
-    read_blocks = ocr_result.read.blocks if ocr_result and ocr_result.read else []
-    all_lines = [line for block in read_blocks for line in block.lines]
-    logger.info(f"Total OCR lines available: {len(all_lines)}")
 
     if not all_lines:
-        logger.error("OCR returned no lines of text \u2014 cannot extract meter value")
+        logger.error("OCR returned no lines of text")
         return ValueError("No lines of text were recognized by the OCR engine.")
 
     raw_result = all_lines[line_with_data].text
@@ -242,11 +310,28 @@ def service_process(
         result_values = generate_result(raw_result=raw_result)
         logger.info(f"Parsed result values: {result_values}")
     except Exception as e:
-        logger.error(
-            f"Error generating result from OCR text '{raw_result}': {e}", exc_info=True
-        )
+        logger.error(f"Error generating result: {e}", exc_info=True)
         return ValueError("couldn't get the digitalisation of the meter")
 
+    return _finish_service(
+        result_values=result_values,
+        text_regions=text_regions,
+        frame_to_process=frame_to_process,
+        pipeline_frames=pipeline_frames,
+        default_folder=default_folder,
+        increase_cron_count=increase_cron_count,
+    )
+
+
+def _finish_service(
+    result_values,
+    text_regions,
+    frame_to_process,
+    pipeline_frames,
+    default_folder,
+    increase_cron_count,
+):
+    """Shared tail: value validation, MQTT publish, response building."""
     current_value = float(result_values.get("total_liters"))
     previous_value = configuration.get_param("result", "previous")
     logger.info(
@@ -255,13 +340,11 @@ def service_process(
     if not previous_value:
         configuration.set_param("result", "previous", value=current_value)
         previous_value = current_value
-        logger.info(
-            f"First reading \u2014 previous value initialised to {current_value}"
-        )
+        logger.info(f"First reading \u2014 previous value initialised to {current_value}")
 
     if previous_value > current_value:
         logger.warning(
-            f"Value regression detected: previous={previous_value} > current={current_value}"
+            f"Value regression: previous={previous_value} > current={current_value}"
         )
         return ValueError(
             f"previous value {previous_value} is > to current value {current_value}"
@@ -269,19 +352,15 @@ def service_process(
     configuration.set_param("result", "current", value=current_value)
     logger.info(f"Current meter value saved: {current_value}")
 
-    # \u2500\u2500 Build the full slug \u2192 path map for MQTT frame publishing \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
-    # Start with the three frames that are always present
     frames_to_publish = {
         "source": f"{default_folder}/0.frame_origine.jpg",
         "final": f"{default_folder}/8.frame_final.jpg",
         "ocr_boxes": f"{default_folder}/10.ocr_boxes.jpg",
     }
-    # Add rotation frame if it was applied during this run
     rotate_path = f"{default_folder}/1.rotate.jpg"
     if os.path.exists(rotate_path):
         frames_to_publish["rotate"] = rotate_path
 
-    # Map pipeline_frames filenames to their canonical slugs
     pipeline_slug_map = {
         "2.convert_bgr.jpg": "convert_bgr",
         "3.convert_grey.jpg": "convert_grey",
@@ -298,8 +377,6 @@ def service_process(
         f"Frames to publish via MQTT ({len(frames_to_publish)}): {list(frames_to_publish.keys())}"
     )
 
-    # \u2500\u2500 Publish values + all frames \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
-    logger.info("Publishing meter values and all frames via MQTT")
     client_mqtt = MqttCLient()
     client_mqtt.mqtt_publish_device()
     client_mqtt.send_value(values=result_values)
