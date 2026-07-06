@@ -76,19 +76,7 @@ class TesseractClient:
         # Gaussian blur
         gray = cv2.GaussianBlur(gray, (3, 3), 0)
 
-        # Otsu binarisation (dark text on white)
-        _, binary = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-
-        # Adaptive polarity: flip if digits came out white
-        if cv2.countNonZero(binary) > binary.size * 0.5:
-            binary = cv2.bitwise_not(binary)
-            logger.info("Binary image inverted (light-on-dark source detected)")
-
-        # White border padding
-        binary = cv2.copyMakeBorder(
-            binary, 40, 40, 40, 40, cv2.BORDER_CONSTANT, value=[255, 255, 255]
-        )
-        return binary
+        return gray
 
     def process_image(
         self,

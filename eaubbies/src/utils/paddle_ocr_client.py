@@ -40,7 +40,7 @@ class PaddleOCRClient:
         lang: str = "en",
         use_gpu: bool = False,
         save_frame: bool = True,
-        backend: str = "auto",
+        backend: str = "paddle",
     ):
         """
         Parameters
