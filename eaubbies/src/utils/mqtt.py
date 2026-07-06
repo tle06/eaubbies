@@ -90,7 +90,9 @@ class MqttCLient:
         if not unique_id:
             logger.info("Generating unique ID")
             unique_id = generate_unique_id()
-            self.config_loader.set_param("mqtt", "device", "unique_id", value=unique_id)
+            self.config_loader.set_param(
+                "mqtt", "device", "unique_id", value=unique_id
+            )
             logger.info(f"New ID generated: {unique_id}")
         return unique_id
 
@@ -286,7 +288,9 @@ class MqttCLient:
             )
             global_result.append({name: pub.is_published()})
 
-        # Register one camera entity per pipeline frame slot
+        # Register one camera entity per pipeline frame slot.
+        # entity_category="diagnostic" places them in the Diagnostic section
+        # in the HA device page, separate from the main Sensors section.
         device_ref = {
             "identifiers": self.device_unique_id,
             "name": self.name,
@@ -298,6 +302,7 @@ class MqttCLient:
                 "name": f"{self.name} {label}",
                 "unique_id": f"frame_{slug}_{self.device_unique_id}",
                 "topic": self._camera_image_topic(slug),
+                "entity_category": "diagnostic",
                 "device": device_ref,
             }
             pub = self.publish_payload(
