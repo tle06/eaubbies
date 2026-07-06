@@ -11,16 +11,16 @@ logger = logging.getLogger(__name__)
 # All frames that can be produced by the pipeline.
 # Each entry: (slug used in topic, human-readable label)
 FRAME_SLOTS = [
-    ("source",     "Source frame"),
-    ("rotate",     "Rotated"),
+    ("source", "Source frame"),
+    ("rotate", "Rotated"),
     ("convert_bgr", "BGR convert"),
     ("convert_grey", "Greyscale"),
-    ("exposure",   "Exposure"),
-    ("contrast",   "Contrast"),
-    ("sharpen",    "Sharpen"),
-    ("crop",       "Crop"),
-    ("final",      "Final optimised"),
-    ("ocr_boxes",  "OCR bounding boxes"),
+    ("exposure", "Exposure"),
+    ("contrast", "Contrast"),
+    ("sharpen", "Sharpen"),
+    ("crop", "Crop"),
+    ("final", "Final optimised"),
+    ("ocr_boxes", "OCR bounding boxes"),
 ]
 
 
@@ -106,9 +106,7 @@ class MqttCLient:
         msg_str = message.payload.decode("utf-8")
         logger.info(f"Message received: {msg_str} | Topic: {message.topic}")
 
-    def publish_payload(
-        self, topic: str, payload, qos: int = 0, retain: bool = True
-    ):
+    def publish_payload(self, topic: str, payload, qos: int = 0, retain: bool = True):
         logger.debug(f"Publishing to {topic}")
         response = self.client.publish(
             topic=topic, payload=payload, qos=qos, retain=retain
@@ -333,10 +331,10 @@ class MqttCLient:
         with open(image_path, "rb") as fh:
             jpeg_bytes = fh.read()
         topic = self._camera_image_topic(slug)
-        logger.info(
-            f"Publishing frame [{slug}] ({len(jpeg_bytes)} bytes) to {topic}"
+        logger.info(f"Publishing frame [{slug}] ({len(jpeg_bytes)} bytes) to {topic}")
+        response = self.publish_payload(
+            topic=topic, payload=jpeg_bytes, qos=0, retain=True
         )
-        response = self.publish_payload(topic=topic, payload=jpeg_bytes, qos=0, retain=True)
         logger.info(f"Frame [{slug}] publish result: {response.is_published()}")
         return response
 

@@ -266,24 +266,25 @@ def service_process(
     # ── Build the full slug → path map for MQTT frame publishing ──────────────
     # Start with the three frames that are always present
     frames_to_publish = {
-        "source":    f"{default_folder}/0.frame_origine.jpg",
-        "final":     f"{default_folder}/8.frame_final.jpg",
+        "source": f"{default_folder}/0.frame_origine.jpg",
+        "final": f"{default_folder}/8.frame_final.jpg",
         "ocr_boxes": f"{default_folder}/10.ocr_boxes.jpg",
     }
     # Add rotation frame if it was applied
     rotate_path = f"{default_folder}/1.rotate.jpg"
     import os
+
     if os.path.exists(rotate_path):
         frames_to_publish["rotate"] = rotate_path
 
     # Map pipeline_frames filenames to their canonical slugs
     pipeline_slug_map = {
-        "2.convert_bgr.jpg":  "convert_bgr",
+        "2.convert_bgr.jpg": "convert_bgr",
         "3.convert_grey.jpg": "convert_grey",
-        "4.exposure.jpg":     "exposure",
-        "5.contrast.jpg":     "contrast",
-        "6.sharpen.jpg":      "sharpen",
-        "7.crop.jpg":         "crop",
+        "4.exposure.jpg": "exposure",
+        "5.contrast.jpg": "contrast",
+        "6.sharpen.jpg": "sharpen",
+        "7.crop.jpg": "crop",
     }
     for filename, slug in pipeline_slug_map.items():
         if filename in pipeline_frames.values():
