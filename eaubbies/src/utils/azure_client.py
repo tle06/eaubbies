@@ -1,7 +1,8 @@
 from azure.ai.vision.imageanalysis import ImageAnalysisClient
 from azure.ai.vision.imageanalysis.models import VisualFeatures
 from azure.core.credentials import AzureKeyCredential
-import io, cv2
+import io
+import cv2
 import numpy as np
 from pathlib import Path
 

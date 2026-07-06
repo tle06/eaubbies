@@ -10,7 +10,7 @@ from flask import (
     send_file,
 )
 from utils.rtsp_client import RTSPClient
-from utils.utils import time_to_cron, register_cron_task, get_cron_status
+from utils.utils import register_cron_task, get_cron_status
 from utils.configuration import YamlConfigLoader
 from utils.mqtt import MqttCLient
 from service import service_process
