@@ -62,7 +62,19 @@ def index():
     conf = YamlConfigLoader()
     if not bool(conf.get_param("setup", "init_config")):
         return redirect(url_for("init"))
-    return render_template("index.html", config=configuration.data)
+    # Always reload config so the result values are fresh
+    conf = YamlConfigLoader()
+    result_data = conf.data.get("result", {})
+    service_data = conf.data.get("service", {})
+    vision_data = conf.data.get("vision", {})
+    last_result = {
+        "current": result_data.get("current"),
+        "previous": result_data.get("previous"),
+        "unit": result_data.get("unit", "l"),
+        "service_counter": service_data.get("counter", 0),
+        "vision_counter": vision_data.get("counter", 0),
+    }
+    return render_template("index.html", config=conf.data, last_result=last_result)
 
 
 @app.route("/init")

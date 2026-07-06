@@ -1,6 +1,81 @@
 {% extends 'core.html' %}
 
 {% block content %}
+
+<!-- Last stored result summary -->
+<div class="row mb-4">
+
+  <div class="col-sm-6 col-xl-3 mb-3">
+    <div class="card h-100">
+      <div class="card-body d-flex align-items-center gap-3">
+        <div class="avatar flex-shrink-0">
+          <span class="avatar-initial rounded bg-label-primary"><i class="bx bx-water"></i></span>
+        </div>
+        <div>
+          <p class="mb-0 text-muted small">Current reading</p>
+          <h5 class="mb-0 fw-semibold">
+            {% if last_result.current is not none %}
+              {{ last_result.current }} <small class="text-muted fw-normal">{{ last_result.unit | upper }}</small>
+            {% else %}
+              <span class="text-muted fw-normal">No reading yet</span>
+            {% endif %}
+          </h5>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-sm-6 col-xl-3 mb-3">
+    <div class="card h-100">
+      <div class="card-body d-flex align-items-center gap-3">
+        <div class="avatar flex-shrink-0">
+          <span class="avatar-initial rounded bg-label-secondary"><i class="bx bx-history"></i></span>
+        </div>
+        <div>
+          <p class="mb-0 text-muted small">Previous reading</p>
+          <h5 class="mb-0 fw-semibold">
+            {% if last_result.previous is not none %}
+              {{ last_result.previous }} <small class="text-muted fw-normal">{{ last_result.unit | upper }}</small>
+            {% else %}
+              <span class="text-muted fw-normal">No reading yet</span>
+            {% endif %}
+          </h5>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-sm-6 col-xl-3 mb-3">
+    <div class="card h-100">
+      <div class="card-body d-flex align-items-center gap-3">
+        <div class="avatar flex-shrink-0">
+          <span class="avatar-initial rounded bg-label-success"><i class="bx bx-camera"></i></span>
+        </div>
+        <div>
+          <p class="mb-0 text-muted small">OCR runs (total)</p>
+          <h5 class="mb-0 fw-semibold">{{ last_result.vision_counter }}</h5>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-sm-6 col-xl-3 mb-3">
+    <div class="card h-100">
+      <div class="card-body d-flex align-items-center gap-3">
+        <div class="avatar flex-shrink-0">
+          <span class="avatar-initial rounded bg-label-warning"><i class="bx bx-time-five"></i></span>
+        </div>
+        <div>
+          <p class="mb-0 text-muted small">Cron runs (total)</p>
+          <h5 class="mb-0 fw-semibold">{{ last_result.service_counter }}</h5>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+<!-- /Last stored result summary -->
+
 <div class="row">
   <div class="col-md-12">
     <div class="card mb-4">
