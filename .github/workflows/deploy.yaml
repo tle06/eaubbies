@@ -7,7 +7,12 @@ on:
     types:
       - published
 
-permissions: {}
+permissions:
+  actions: read
+  contents: read
+  packages: read
+  security-events: read
+  pull-requests: read
 
 jobs:
   ci:
