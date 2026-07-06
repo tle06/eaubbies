@@ -143,7 +143,6 @@ def service_process(
         use_file=use_file, file=file
     )
     default_folder = configuration.get_param("frame", "storage_path")
-    source_frame_path = f"{default_folder}/0.frame_origine.jpg"
 
     try:
         engine = configuration.get_param("vision", "engine")
@@ -264,14 +263,43 @@ def service_process(
     configuration.set_param("result", "current", value=current_value)
     logger.info(f"Current meter value saved: {current_value}")
 
-    logger.info("Publishing meter values and frame via MQTT")
+    # ── Build the full slug → path map for MQTT frame publishing ──────────────
+    # Start with the three frames that are always present
+    frames_to_publish = {
+        "source":    f"{default_folder}/0.frame_origine.jpg",
+        "final":     f"{default_folder}/8.frame_final.jpg",
+        "ocr_boxes": f"{default_folder}/10.ocr_boxes.jpg",
+    }
+    # Add rotation frame if it was applied
+    rotate_path = f"{default_folder}/1.rotate.jpg"
+    import os
+    if os.path.exists(rotate_path):
+        frames_to_publish["rotate"] = rotate_path
+
+    # Map pipeline_frames filenames to their canonical slugs
+    pipeline_slug_map = {
+        "2.convert_bgr.jpg":  "convert_bgr",
+        "3.convert_grey.jpg": "convert_grey",
+        "4.exposure.jpg":     "exposure",
+        "5.contrast.jpg":     "contrast",
+        "6.sharpen.jpg":      "sharpen",
+        "7.crop.jpg":         "crop",
+    }
+    for filename, slug in pipeline_slug_map.items():
+        if filename in pipeline_frames.values():
+            frames_to_publish[slug] = f"{default_folder}/{filename}"
+
+    logger.info(
+        f"Frames to publish via MQTT ({len(frames_to_publish)}): {list(frames_to_publish.keys())}"
+    )
+
+    # ── Publish values + all frames ───────────────────────────────────────────
+    logger.info("Publishing meter values and all frames via MQTT")
     client_mqtt = MqttCLient()
     client_mqtt.mqtt_publish_device()
     client_mqtt.send_value(values=result_values)
-    logger.info("MQTT value publish complete")
-
-    client_mqtt.send_frame(image_path=source_frame_path)
-    logger.info(f"MQTT frame publish complete: {source_frame_path}")
+    client_mqtt.send_all_frames(frames=frames_to_publish)
+    logger.info("MQTT publish complete")
 
     step_labels = {
         "convert_bgr": "BGR Convert",
@@ -288,7 +316,7 @@ def service_process(
 
     data = {
         "images": {
-            "source": source_frame_path,
+            "source": f"{default_folder}/0.frame_origine.jpg",
             "final": f"{default_folder}/8.frame_final.jpg",
             "ocr_boxes": f"{default_folder}/10.ocr_boxes.jpg",
         },
