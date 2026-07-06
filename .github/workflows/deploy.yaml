@@ -1,4 +1,3 @@
----
 name: Deploy
 
 # yamllint disable-line rule:truthy
@@ -9,7 +8,7 @@ on:
 
 permissions:
   actions: read
-  contents: read
+  contents: write # 1. Changed to 'write' so the workflow can push commits
   packages: read
   security-events: read
   pull-requests: read
@@ -26,12 +25,20 @@ jobs:
       - name: Checkout the repository
         uses: actions/checkout@v6
         with:
-          persist-credentials: false
+          persist-credentials: true # 2. Changed to 'true' to authenticate our git push
+
       - name: Login to DockerHub
         uses: docker/login-action@v4.2.0
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # 3. Update the file locally so the Home Assistant builder compiles it correctly
+      - name: Update version for builder
+        run: |
+          yq -i '.version = "${{ github.event.release.tag_name }}"' eaubbies/config.yaml
+
+      # 4. Build and publish the Docker images
       - name: Publish
         uses: home-assistant/builder@master
         with:
@@ -40,3 +47,22 @@ jobs:
             --aarch64 \
             --target eaubbies \
             --docker-hub tlnk
+
+      # 5. Safely switch to main, update the file, and push back to GitHub
+      - name: Commit and push version bump to main
+        run: |
+          # Fetch and switch to the main branch (avoiding detached HEAD state)
+          git fetch origin main
+          git checkout main
+
+          # Apply the release tag version to the main branch file
+          yq -i '.version = "${{ github.event.release.tag_name }}"' eaubbies/config.yaml
+
+          # Configure official GitHub Actions Bot identity
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # Stage, commit, and push the change
+          git add eaubbies/config.yaml
+          git commit -m "chore: bump addon version to ${{ github.event.release.tag_name }} [skip ci]"
+          git push origin main
