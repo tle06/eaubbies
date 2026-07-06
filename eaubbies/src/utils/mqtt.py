@@ -47,8 +47,9 @@ class MqttCLient:
         self.topic = f"{self.discovery_prefix}/sensor/{self.name}"
         self.topic_config = f"{self.topic}/watermeter/config"
         self.topic_state = f"{self.topic}/watermeter/state"
-        # Base camera topic — individual frames go under .../camera/<name>/<slug>/
-        self.topic_camera_base = f"{self.discovery_prefix}/camera/{self.name}"
+        # Dedicated camera topic prefix — all frame entities live under
+        # homeassistant/camera/{name}_frames/{slug}/
+        self.topic_camera_base = f"{self.discovery_prefix}/camera/{self.name}_frames"
 
         self.mqtt_connection()
 
@@ -89,7 +90,9 @@ class MqttCLient:
         if not unique_id:
             logger.info("Generating unique ID")
             unique_id = generate_unique_id()
-            self.config_loader.set_param("mqtt", "device", "unique_id", value=unique_id)
+            self.config_loader.set_param(
+                "mqtt", "device", "unique_id", value=unique_id
+            )
             logger.info(f"New ID generated: {unique_id}")
         return unique_id
 
