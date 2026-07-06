@@ -2,6 +2,7 @@ import logging
 from pathlib import Path
 
 import cv2
+import numpy as np
 from PIL import Image
 
 logger = logging.getLogger(__name__)
@@ -13,8 +14,9 @@ class PaddleOCRClient:
     (PP-OCRv4 mobile model by default) for fully local, offline digit recognition.
 
     The caller (service.py) is responsible for all image-pipeline steps.
-    This client passes the already-processed frame straight to the OCR engine
-    with no additional preprocessing — PaddleOCR handles raw BGR frames natively.
+    This client normalises the frame to a 3-channel BGR image (required by
+    PaddleOCR) and passes it straight to the OCR engine — no further
+    preprocessing is applied.
 
     Return signature of process_image() mirrors AzureClient / TesseractClient
     so service.py needs only a one-line engine check.
@@ -46,7 +48,7 @@ class PaddleOCRClient:
         use_angle_cls : bool   Enable text-angle classifier (not needed for upright digits).
         lang          : str    Language code for PaddleOCR ("en" covers digits well).
         use_gpu       : bool   Use GPU inference if available.
-        save_frame    : bool   Write the input frame to disk for debugging.
+        save_frame    : bool   Write the normalised input frame to disk for debugging.
         backend       : str
             "rapid"  – RapidOCR ONNX  (rapidocr-onnxruntime, no PaddlePaddle)
             "paddle" – full PaddleOCR  (paddlepaddle + paddleocr)
@@ -101,6 +103,24 @@ class PaddleOCRClient:
         logger.info(f"Frame saved at {str(fullpath)}")
         return fullpath
 
+    @staticmethod
+    def _to_bgr(frame):
+        """
+        Normalise any frame from the service pipeline to a 3-channel BGR
+        numpy array, which PaddleOCR / RapidOCR require.
+
+        The pipeline may deliver:
+          - a 3-channel BGR frame  (standard case)
+          - a 1-channel greyscale  (after convert_to_grey pipeline step)
+        """
+        if frame.ndim == 2 or (frame.ndim == 3 and frame.shape[2] == 1):
+            bgr = cv2.cvtColor(frame.squeeze(), cv2.COLOR_GRAY2BGR)
+            logger.info("PaddleOCR: greyscale frame converted to BGR")
+        else:
+            bgr = frame
+            logger.info("PaddleOCR: frame is already BGR")
+        return bgr
+
     # ------------------------------------------------------------------
     # public API  (mirrors TesseractClient / AzureClient)
     # ------------------------------------------------------------------
@@ -114,8 +134,7 @@ class PaddleOCRClient:
     ):
         """
         Run PaddleOCR on a pipeline-processed frame or image path.
-        No additional preprocessing is applied — the frame from service.py
-        is passed directly to the OCR engine.
+        The frame is normalised to BGR and passed directly to the OCR engine.
 
         Returns
         -------
@@ -127,8 +146,8 @@ class PaddleOCRClient:
                 raise FileNotFoundError(f"Could not open image: {image_path}")
             logger.info(f"Loaded image from path: {image_path}")
         elif frame is not None:
-            img = frame
-            logger.info("Using pipeline frame directly (no additional preprocessing)")
+            img = self._to_bgr(frame)
+            logger.info("Using normalised pipeline frame for PaddleOCR")
             if self.save_frame:
                 self.write_output_file(
                     image=Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB)),

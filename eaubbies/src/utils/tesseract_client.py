@@ -23,11 +23,10 @@ class TesseractClient:
     Tesseract-specific preparation that is always required regardless of
     the upstream pipeline:
 
-      1. Convert BGR → greyscale.
+      1. Normalise to greyscale safely (handles 1-ch greyscale OR 3-ch BGR).
       2. Upscale 3x  — Tesseract degrades sharply on small images.
-      3. Gaussian blur to suppress compression/sensor noise.
-      4. Otsu binarisation with adaptive polarity correction
-         (works for both dark-on-light and light-on-dark meters).
+      3. Gaussian blur to suppress compression / sensor noise.
+      4. Otsu binarisation with adaptive polarity correction.
       5. White border padding so Tesseract has breathing room.
     """
 
@@ -49,22 +48,47 @@ class TesseractClient:
         return fullpath
 
     @staticmethod
-    def _prepare_for_tesseract(frame):
+    def _to_gray(frame):
         """
-        Minimal Tesseract-specific preparation applied to the already
-        pipeline-processed frame coming from service.py.
+        Safely convert any frame coming from the service pipeline to greyscale.
+        The pipeline may output:
+          - a 3-channel BGR frame  (no greyscale step, or after RGB→BGR)
+          - a 1-channel greyscale  (after convert_to_grey step)
         """
-        # 1 – greyscale
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        if frame.ndim == 2 or (frame.ndim == 3 and frame.shape[2] == 1):
+            # Already greyscale — squeeze to 2D
+            gray = frame.squeeze()
+            logger.info("Frame is already greyscale, skipping cvtColor")
+        else:
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            logger.info("Converted BGR frame to greyscale")
+        return gray
 
-        # 2 – 3x upscale
+    @staticmethod
+    def _prepare_for_tesseract(gray):
+        """
+        Tesseract-specific preparation applied to a greyscale frame.
+        """
+        # 3x upscale
         gray = cv2.resize(gray, None, fx=3, fy=3, interpolation=cv2.INTER_CUBIC)
         logger.info("Frame upscaled 3x for Tesseract")
 
-        # 3 – Gaussian blur
+        # Gaussian blur
         gray = cv2.GaussianBlur(gray, (3, 3), 0)
 
-        return gray
+        # Otsu binarisation (dark text on white)
+        _, binary = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+
+        # Adaptive polarity: flip if digits came out white
+        if cv2.countNonZero(binary) > binary.size * 0.5:
+            binary = cv2.bitwise_not(binary)
+            logger.info("Binary image inverted (light-on-dark source detected)")
+
+        # White border padding
+        binary = cv2.copyMakeBorder(
+            binary, 40, 40, 40, 40, cv2.BORDER_CONSTANT, value=[255, 255, 255]
+        )
+        return binary
 
     def process_image(
         self,
@@ -78,7 +102,7 @@ class TesseractClient:
 
         Parameters
         ----------
-        frame       : numpy.ndarray  BGR frame already processed by service.py pipeline.
+        frame       : numpy.ndarray  Frame from service.py pipeline (BGR or greyscale).
         image_path  : str            Path to an image file (bypasses preparation).
         config      : str            Tesseract config string.
         filename    : str            Base name for the debug frame saved to disk.
@@ -92,7 +116,8 @@ class TesseractClient:
             logger.info(f"Loaded image from path: {image_path}")
         elif frame is not None:
             logger.info("Applying Tesseract-specific preparation to pipeline frame")
-            prepared = self._prepare_for_tesseract(frame)
+            gray = self._to_gray(frame)
+            prepared = self._prepare_for_tesseract(gray)
             image = Image.fromarray(prepared)
             if self.save_frame:
                 self.write_output_file(image=image, name=filename)
