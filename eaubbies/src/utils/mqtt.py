@@ -1,12 +1,14 @@
-# eaubbies/src/utils/mqtt.py
-import logging
 import json
+import logging
 import os
-from paho.mqtt.client import Client, CallbackAPIVersion
+
+from paho.mqtt.client import CallbackAPIVersion, Client
+
 from utils.configuration import YamlConfigLoader
 from utils.utils import generate_unique_id
 
 logger = logging.getLogger(__name__)
+
 
 # All frames that can be produced by the pipeline.
 # Each entry: (slug used in topic, human-readable label)
@@ -87,7 +89,9 @@ class MqttCLient:
         if not unique_id:
             logger.info("Generating unique ID")
             unique_id = generate_unique_id()
-            self.config_loader.set_param("mqtt", "device", "unique_id", value=unique_id)
+            self.config_loader.set_param(
+                "mqtt", "device", "unique_id", value=unique_id
+            )
             logger.info(f"New ID generated: {unique_id}")
         return unique_id
 
@@ -342,7 +346,8 @@ class MqttCLient:
         """
         Publish every available frame.
 
-        *frames* is a dict mapping slug -> absolute file path, e.g.:
+        *frames* is a dict mapping slug -> absolute file path, e.g.::
+
             {
                 "source":     "/path/static/img/frames/0.frame_origine.jpg",
                 "final":      "/path/static/img/frames/8.frame_final.jpg",
@@ -350,6 +355,7 @@ class MqttCLient:
                 "contrast":   "/path/static/img/frames/5.contrast.jpg",
                 ...
             }
+
         Slugs not in *frames* (pipeline steps that were inactive) are silently skipped.
         """
         results = {}

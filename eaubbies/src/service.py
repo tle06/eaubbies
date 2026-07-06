@@ -1,10 +1,12 @@
-from utils.rtsp_client import RTSPClient
-from utils.azure_client import AzureClient
-from utils.tesseract_client import TesseractClient
-from utils.configuration import YamlConfigLoader
-from utils.utils import generate_result
-from utils.mqtt import MqttCLient
 import logging
+import os
+
+from utils.azure_client import AzureClient
+from utils.configuration import YamlConfigLoader
+from utils.mqtt import MqttCLient
+from utils.rtsp_client import RTSPClient
+from utils.tesseract_client import TesseractClient
+from utils.utils import generate_result
 
 logger = logging.getLogger("troubleshoot")
 configuration = YamlConfigLoader()
@@ -17,12 +19,12 @@ def apply_image_pipeline(client_rtsp: RTSPClient, config: YamlConfigLoader) -> d
     logger.info("Starting image pipeline")
 
     if bool(img_cfg.get("convert_to_bgr")):
-        logger.info("Pipeline step: RGB → BGR conversion")
+        logger.info("Pipeline step: RGB \u2192 BGR conversion")
         client_rtsp.convert_rgb2bgr(filename="2.convert_bgr")
         saved_frames["convert_bgr"] = "2.convert_bgr.jpg"
 
     if bool(img_cfg.get("convert_to_grey")):
-        logger.info("Pipeline step: BGR → Greyscale conversion")
+        logger.info("Pipeline step: BGR \u2192 Greyscale conversion")
         client_rtsp.convert_bgr2gray(filename="3.convert_grey")
         saved_frames["convert_grey"] = "3.convert_grey.jpg"
 
@@ -83,7 +85,7 @@ def apply_image_pipeline(client_rtsp: RTSPClient, config: YamlConfigLoader) -> d
             )
         else:
             logger.warning(
-                f"Crop skipped — incomplete coordinates for key '{coord_key}': {coordinates}"
+                f"Crop skipped \u2014 incomplete coordinates for key '{coord_key}': {coordinates}"
             )
 
     logger.info(f"Image pipeline completed. Steps applied: {list(saved_frames.keys())}")
@@ -111,7 +113,7 @@ def create_improved_frame(use_file: bool = False, file=None):
     rotate = configuration.get_param("vision", "rotate")
     logger.info(f"Rotation angle: {rotate}")
     if rotate > 0:
-        logger.info(f"Applying rotation: {rotate}°")
+        logger.info(f"Applying rotation: {rotate}\u00b0")
         client_rtsp.rotate_frame(angle=rotate, filename="1.rotate")
 
     pipeline_frames = apply_image_pipeline(client_rtsp, configuration)
@@ -124,7 +126,7 @@ def create_improved_frame(use_file: bool = False, file=None):
 
 
 def _draw_boxes(text_regions, frame, default_folder, filename="10.ocr_boxes"):
-    """Shared drawing helper — creates a temporary AzureClient just for its draw method."""
+    """Shared drawing helper \u2014 creates a temporary AzureClient just for its draw method."""
     logger.info(f"Drawing {len(text_regions)} OCR bounding boxes onto frame")
     drawer = AzureClient(vision_key="mock", endpoint_url="mock", save_frame=True)
     drawer.default_folder = default_folder
@@ -230,7 +232,7 @@ def service_process(
     logger.info(f"Total OCR lines available: {len(all_lines)}")
 
     if not all_lines:
-        logger.error("OCR returned no lines of text — cannot extract meter value")
+        logger.error("OCR returned no lines of text \u2014 cannot extract meter value")
         return ValueError("No lines of text were recognized by the OCR engine.")
 
     raw_result = all_lines[line_with_data].text
@@ -247,11 +249,11 @@ def service_process(
 
     current_value = float(result_values.get("total_liters"))
     previous_value = configuration.get_param("result", "previous")
-    logger.info(f"Meter value — current: {current_value}, previous: {previous_value}")
+    logger.info(f"Meter value \u2014 current: {current_value}, previous: {previous_value}")
     if not previous_value:
         configuration.set_param("result", "previous", value=current_value)
         previous_value = current_value
-        logger.info(f"First reading — previous value initialised to {current_value}")
+        logger.info(f"First reading \u2014 previous value initialised to {current_value}")
 
     if previous_value > current_value:
         logger.warning(
@@ -263,17 +265,15 @@ def service_process(
     configuration.set_param("result", "current", value=current_value)
     logger.info(f"Current meter value saved: {current_value}")
 
-    # ── Build the full slug → path map for MQTT frame publishing ──────────────
+    # \u2500\u2500 Build the full slug \u2192 path map for MQTT frame publishing \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
     # Start with the three frames that are always present
     frames_to_publish = {
         "source": f"{default_folder}/0.frame_origine.jpg",
         "final": f"{default_folder}/8.frame_final.jpg",
         "ocr_boxes": f"{default_folder}/10.ocr_boxes.jpg",
     }
-    # Add rotation frame if it was applied
+    # Add rotation frame if it was applied during this run
     rotate_path = f"{default_folder}/1.rotate.jpg"
-    import os
-
     if os.path.exists(rotate_path):
         frames_to_publish["rotate"] = rotate_path
 
@@ -294,7 +294,7 @@ def service_process(
         f"Frames to publish via MQTT ({len(frames_to_publish)}): {list(frames_to_publish.keys())}"
     )
 
-    # ── Publish values + all frames ───────────────────────────────────────────
+    # \u2500\u2500 Publish values + all frames \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
     logger.info("Publishing meter values and all frames via MQTT")
     client_mqtt = MqttCLient()
     client_mqtt.mqtt_publish_device()
