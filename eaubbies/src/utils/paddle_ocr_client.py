@@ -9,20 +9,25 @@ logger = logging.getLogger(__name__)
 
 class PaddleOCRClient:
     """
-    Drop-in replacement for TesseractClient / AzureClient that uses PaddleOCR
+    Drop-in replacement for TesseractClient / AzureClient using PaddleOCR
     (PP-OCRv4 mobile model by default) for fully local, offline digit recognition.
 
-    The return signature of process_image() mirrors AzureClient so service.py
-    needs only a one-line engine check — no other changes required.
+    The caller (service.py) is responsible for all image-pipeline steps.
+    This client passes the already-processed frame straight to the OCR engine
+    with no additional preprocessing — PaddleOCR handles raw BGR frames natively.
+
+    Return signature of process_image() mirrors AzureClient / TesseractClient
+    so service.py needs only a one-line engine check.
 
     Installation
     ------------
-    Option A – full PaddlePaddle stack (more accurate, larger install):
-        pip install paddlepaddle paddleocr
-
-    Option B – lightweight ONNX runtime wrapper, zero heavy deps (recommended
-    for Raspberry Pi / embedded use):
+    Lightweight (recommended for Raspberry Pi / embedded):
         pip install rapidocr-onnxruntime
+        # or: uv sync --extra paddleocr-lite
+
+    Full PaddleOCR stack (highest accuracy):
+        pip install paddlepaddle paddleocr
+        # or: uv sync --extra paddleocr-full
     """
 
     default_folder = "../frames"
@@ -38,18 +43,14 @@ class PaddleOCRClient:
         """
         Parameters
         ----------
-        use_angle_cls : bool
-            Enable text-angle classifier (not needed for upright meter digits).
-        lang : str
-            Language code passed to PaddleOCR ("en" covers digits well).
-        use_gpu : bool
-            Use GPU inference if available.
-        save_frame : bool
-            Write the preprocessed frame to disk for debugging.
-        backend : str
-            "paddle"  – use full PaddleOCR (paddlepaddle + paddleocr)
-            "rapid"   – use RapidOCR (rapidocr-onnxruntime, no PaddlePaddle needed)
-            "auto"    – try RapidOCR first, fall back to PaddleOCR
+        use_angle_cls : bool   Enable text-angle classifier (not needed for upright digits).
+        lang          : str    Language code for PaddleOCR ("en" covers digits well).
+        use_gpu       : bool   Use GPU inference if available.
+        save_frame    : bool   Write the input frame to disk for debugging.
+        backend       : str
+            "rapid"  – RapidOCR ONNX  (rapidocr-onnxruntime, no PaddlePaddle)
+            "paddle" – full PaddleOCR  (paddlepaddle + paddleocr)
+            "auto"   – try RapidOCR first, fall back to PaddleOCR
         """
         self.save_frame = save_frame
         self._ocr = None
@@ -64,7 +65,7 @@ class PaddleOCRClient:
             except ImportError:
                 if backend == "rapid":
                     raise ImportError(
-                        "rapidocr-onnxruntime is not installed. "
+                        "rapidocr-onnxruntime not installed. "
                         "Run: pip install rapidocr-onnxruntime"
                     )
                 logger.info("RapidOCR not available, falling back to PaddleOCR")
@@ -83,7 +84,7 @@ class PaddleOCRClient:
             except ImportError:
                 raise ImportError(
                     "No OCR backend found. Install one of:\n"
-                    "  pip install rapidocr-onnxruntime   (lightweight, recommended)\n"
+                    "  pip install rapidocr-onnxruntime   (lightweight)\n"
                     "  pip install paddlepaddle paddleocr  (full accuracy)"
                 )
 
@@ -100,21 +101,6 @@ class PaddleOCRClient:
         logger.info(f"Frame saved at {str(fullpath)}")
         return fullpath
 
-    @staticmethod
-    def _preprocess(frame):
-        """
-        Lightweight preprocessing for PaddleOCR — less aggressive than the
-        Tesseract pipeline because PaddleOCR handles more variation natively:
-        1. Convert to greyscale.
-        2. Upscale 2x (helps on very small crops; PaddleOCR is more robust than
-           Tesseract on small inputs so 2x is enough).
-        3. Convert back to BGR (PaddleOCR expects a 3-channel image).
-        """
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        gray = cv2.resize(gray, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
-        bgr = cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
-        return bgr
-
     # ------------------------------------------------------------------
     # public API  (mirrors TesseractClient / AzureClient)
     # ------------------------------------------------------------------
@@ -124,17 +110,16 @@ class PaddleOCRClient:
         frame=None,
         image_path: str = None,
         filename: str = "paddle_optimized",
-        # config kwarg accepted but ignored (kept for API compatibility)
-        config: str = "",
+        config: str = "",   # accepted for API compatibility, not used
     ):
         """
-        Run PaddleOCR on a frame or image path.
+        Run PaddleOCR on a pipeline-processed frame or image path.
+        No additional preprocessing is applied — the frame from service.py
+        is passed directly to the OCR engine.
 
         Returns
         -------
-        (result_pages, text_regions)
-            Same structure as TesseractClient.process_image() so service.py
-            requires no changes.
+        (result_pages, text_regions)  same structure as TesseractClient.
         """
         if image_path:
             img = cv2.imread(str(image_path))
@@ -142,8 +127,8 @@ class PaddleOCRClient:
                 raise FileNotFoundError(f"Could not open image: {image_path}")
             logger.info(f"Loaded image from path: {image_path}")
         elif frame is not None:
-            logger.info("Preprocessing frame for PaddleOCR")
-            img = self._preprocess(frame)
+            img = frame
+            logger.info("Using pipeline frame directly (no additional preprocessing)")
             if self.save_frame:
                 self.write_output_file(
                     image=Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB)),
@@ -155,7 +140,6 @@ class PaddleOCRClient:
         try:
             if self._backend == "rapid":
                 raw_results, _ = self._ocr(img)
-                # RapidOCR result: list of [[[x,y],...], (text, score)]
                 ocr_lines = raw_results if raw_results else []
                 paddle_format = [
                     [box, (text, score)]
@@ -165,15 +149,9 @@ class PaddleOCRClient:
                 ]
             else:
                 raw_results = self._ocr.ocr(img, cls=False)
-                # PaddleOCR result: list of pages, each page is list of
-                # [[[x,y],...], (text, score)]
                 paddle_format = raw_results[0] if raw_results and raw_results[0] else []
 
-            logger.info(f"PaddleOCR raw results ({len(paddle_format)} region(s))")
-            for entry in paddle_format:
-                logger.debug(f"  region text='{entry[1][0]}' conf={entry[1][1]:.3f}")
-
-            # --- Build MockLine / MockResultPage (same shape as TesseractClient) ---
+            logger.info(f"PaddleOCR raw results: {len(paddle_format)} region(s)")
 
             class MockLine:
                 def __init__(self, text, bounding_box=None):
@@ -188,28 +166,21 @@ class PaddleOCRClient:
             parsed_lines = []
 
             for entry in paddle_format:
-                box_pts = entry[0]   # [[x1,y1],[x2,y1],[x2,y2],[x1,y2]]
+                box_pts = entry[0]          # [[x1,y1],[x2,y1],[x2,y2],[x1,y2]]
                 text = entry[1][0].strip()
                 conf = float(entry[1][1])
 
                 if not text:
                     continue
 
-                # Flatten box to the 8-value format used elsewhere
                 flat_box = [coord for pt in box_pts for coord in pt]
-
                 parsed_lines.append(MockLine(text=text, bounding_box=flat_box))
                 text_regions.append({"bounding_box": flat_box, "text": text})
                 logger.info(f"PaddleOCR detected: '{text}' (conf={conf:.3f})")
 
-            logger.info(
-                f"PaddleOCR parsed {len(parsed_lines)} non-empty line(s)"
-            )
-
+            logger.info(f"PaddleOCR parsed {len(parsed_lines)} non-empty line(s)")
             return [MockResultPage(parsed_lines)], text_regions
 
         except Exception as e:
-            logger.error(
-                f"Error processing image with PaddleOCR: {e}", exc_info=True
-            )
+            logger.error(f"PaddleOCR error: {e}", exc_info=True)
             raise

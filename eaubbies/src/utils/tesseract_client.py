@@ -8,15 +8,27 @@ from PIL import Image
 logger = logging.getLogger(__name__)
 
 # Default Tesseract config:
-#   --psm 7  = single text line (better than psm 8 for a row of digits)
-#   --oem 1  = LSTM engine only (most accurate for digits)
-#   -c tessedit_char_whitelist  = restrict to digits and decimal separator
+#   --psm 7  = single text line (best for a row of digits)
+#   --oem 1  = LSTM engine only (most accurate)
+#   -c tessedit_char_whitelist = restrict to digits and decimal separator
 DEFAULT_CONFIG = "--psm 7 --oem 1 -c tessedit_char_whitelist=0123456789."
 
 
 class TesseractClient:
     """
-    Client wrapper for Tesseract OCR, optimised for water-meter digit reading.
+    Tesseract OCR wrapper optimised for water-meter digit reading.
+
+    The caller (service.py) is responsible for all image-pipeline steps
+    (crop, contrast, sharpen …).  This client only applies the minimal
+    Tesseract-specific preparation that is always required regardless of
+    the upstream pipeline:
+
+      1. Convert BGR → greyscale.
+      2. Upscale 3x  — Tesseract degrades sharply on small images.
+      3. Gaussian blur to suppress compression/sensor noise.
+      4. Otsu binarisation with adaptive polarity correction
+         (works for both dark-on-light and light-on-dark meters).
+      5. White border padding so Tesseract has breathing room.
     """
 
     default_folder = "../frames"
@@ -37,52 +49,30 @@ class TesseractClient:
         return fullpath
 
     @staticmethod
-    def _preprocess(frame):
+    def _prepare_for_tesseract(frame):
         """
-        Preprocess an OpenCV BGR frame for digit OCR:
-
-        1. Convert to greyscale.
-        2. Upscale 3x — Tesseract accuracy degrades on small images.
-        3. Gaussian blur to reduce sensor/compression noise.
-        4. Otsu binarisation — adapts to both light-on-dark and dark-on-light digits.
-        5. Adaptive inversion — ensure digits are always dark on a white background.
-        6. Auto-crop tight around the digit region using the binary mask (not raw grey).
-        7. Add white border padding so Tesseract has breathing room around text.
+        Minimal Tesseract-specific preparation applied to the already
+        pipeline-processed frame coming from service.py.
         """
         # 1 – greyscale
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
         # 2 – 3x upscale
         gray = cv2.resize(gray, None, fx=3, fy=3, interpolation=cv2.INTER_CUBIC)
-        logger.info("Image upscaled 3x for Tesseract")
+        logger.info("Frame upscaled 3x for Tesseract")
 
-        # 3 – light Gaussian blur
+        # 3 – Gaussian blur
         gray = cv2.GaussianBlur(gray, (3, 3), 0)
 
-        # 4 – Otsu threshold — dark text on white
+        # 4 – Otsu binarisation (dark text on white)
         _, binary = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
 
-        # 5 – adaptive inversion: if majority of pixels are white, digits came out
-        #     white (inverted source) — flip so text is always dark on white
-        white_px = cv2.countNonZero(binary)
-        if white_px > binary.size * 0.5:
+        # Adaptive polarity: if digits came out white, flip them dark
+        if cv2.countNonZero(binary) > binary.size * 0.5:
             binary = cv2.bitwise_not(binary)
             logger.info("Binary image inverted (light-on-dark source detected)")
 
-        # 6 – auto-crop on the binary mask, NOT on the raw inverted grey
-        #     bitwise_not(binary) makes text pixels white so findNonZero finds them
-        coords = cv2.findNonZero(cv2.bitwise_not(binary))
-        if coords is not None:
-            x, y, w, h = cv2.boundingRect(coords)
-            pad = 10
-            x = max(0, x - pad)
-            y = max(0, y - pad)
-            x2 = min(binary.shape[1], x + w + 2 * pad)
-            y2 = min(binary.shape[0], y + h + 2 * pad)
-            binary = binary[y:y2, x:x2]
-            logger.info(f"Auto-crop applied: x={x} y={y} w={w} h={h}")
-
-        # 7 – white border
+        # 5 – white border
         binary = cv2.copyMakeBorder(
             binary, 40, 40, 40, 40, cv2.BORDER_CONSTANT, value=[255, 255, 255]
         )
@@ -97,18 +87,26 @@ class TesseractClient:
         filename: str = "tesseract_optimized",
     ):
         """
-        Run Tesseract OCR on a frame or image path.
+        Run Tesseract OCR on a pipeline-processed frame or image path.
 
-        Returns (result_pages, text_regions) where the structure mirrors
-        AzureClient output so service.py requires no changes.
+        Parameters
+        ----------
+        frame       : numpy.ndarray  BGR frame already processed by service.py pipeline.
+        image_path  : str            Path to an image file (bypasses preparation).
+        config      : str            Tesseract config string.
+        filename    : str            Base name for the debug frame saved to disk.
+
+        Returns
+        -------
+        (result_pages, text_regions)  same structure as AzureClient.
         """
         if image_path:
             image = Image.open(image_path)
             logger.info(f"Loaded image from path: {image_path}")
         elif frame is not None:
-            logger.info("Preprocessing frame for Tesseract")
-            processed = self._preprocess(frame)
-            image = Image.fromarray(processed)
+            logger.info("Applying Tesseract-specific preparation to pipeline frame")
+            prepared = self._prepare_for_tesseract(frame)
+            image = Image.fromarray(prepared)
             if self.save_frame:
                 self.write_output_file(image=image, name=filename)
         else:
@@ -153,11 +151,11 @@ class TesseractClient:
                             {"bounding_box": bounding_box, "text": text}
                         )
             logger.debug(
-                f"Tesseract word-level regions with confidence > 0: {len(text_regions)}"
+                f"Tesseract regions with confidence > 0: {len(text_regions)}"
             )
 
             return [MockResultPage(parsed_lines)], text_regions
 
         except Exception as e:
-            logger.error(f"Error processing image with Tesseract: {e}", exc_info=True)
+            logger.error(f"Tesseract error: {e}", exc_info=True)
             raise
