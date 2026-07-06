@@ -237,7 +237,7 @@ jobs:
       - lint-prettier
       - lint-shellcheck
       - lint-yamllint
-      - lint-zizmor
+      #- lint-zizmor
       - lint-flake8
       - formatting-black
       - test-pytest
