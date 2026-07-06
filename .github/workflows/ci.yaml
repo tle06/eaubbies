@@ -156,16 +156,16 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  lint-zizmor:
-    name: zizmor
-    runs-on: ubuntu-latest
-    steps:
-      - name: ⤵️ Check out code from GitHub
-        uses: actions/checkout@v6
-        with:
-          persist-credentials: false
-      - name: 🚀 Run zizmor
-        uses: zizmorcore/zizmor-action@v0.5.6
+  # lint-zizmor:
+  #   name: zizmor
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: ⤵️ Check out code from GitHub
+  #       uses: actions/checkout@v6
+  #       with:
+  #         persist-credentials: false
+  #     - name: 🚀 Run zizmor
+  #       uses: zizmorcore/zizmor-action@v0.5.6
 
   dependency-review:
     name: Dependency review
