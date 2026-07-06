@@ -31,7 +31,9 @@ function ResetErrorMessages(errorid) {
 
 function EmptyTableBody(bodyid) {
   var tbody = document.getElementById(bodyid);
-  tbody.querySelectorAll("tr").forEach(function (r) { r.remove(); });
+  tbody.querySelectorAll("tr").forEach(function (r) {
+    r.remove();
+  });
 }
 
 // cache-bust a src so the browser reloads the file
@@ -68,13 +70,13 @@ function drawImageWithRotation(ctx, img, angle, canvas) {
 // ─── Result rendering ────────────────────────────────────────────────────────
 
 var RESULT_LABELS = {
-  total_liters:         { label: "Total",          icon: "bx-droplet",    primary: true },
-  left_number:          { label: "Integer part",   icon: "bx-hash" },
-  right_number:         { label: "Decimal part",   icon: "bx-hash" },
-  integer_uom:          { label: "Integer UoM",    icon: "bx-ruler" },
-  decimal_uom:          { label: "Decimal UoM",    icon: "bx-ruler" },
-  main_uom:             { label: "Report UoM",     icon: "bx-ruler" },
-  raw_result:           { label: "Raw OCR",         icon: "bx-text" },
+  total_liters: { label: "Total", icon: "bx-droplet", primary: true },
+  left_number: { label: "Integer part", icon: "bx-hash" },
+  right_number: { label: "Decimal part", icon: "bx-hash" },
+  integer_uom: { label: "Integer UoM", icon: "bx-ruler" },
+  decimal_uom: { label: "Decimal UoM", icon: "bx-ruler" },
+  main_uom: { label: "Report UoM", icon: "bx-ruler" },
+  raw_result: { label: "Raw OCR", icon: "bx-text" },
   raw_result_without_space: { label: "Raw (no space)", icon: "bx-text" },
 };
 
@@ -95,7 +97,10 @@ function renderResultCards(result) {
       : "card h-100 text-center p-2";
 
     var icon = document.createElement("i");
-    icon.className = "bx " + meta.icon + (isPrimary ? " fs-1 text-primary" : " fs-4 text-secondary");
+    icon.className =
+      "bx " +
+      meta.icon +
+      (isPrimary ? " fs-1 text-primary" : " fs-4 text-secondary");
 
     var val = document.createElement("div");
     val.className = isPrimary ? "fs-3 fw-bold mt-1" : "fw-semibold mt-1 small";
@@ -117,9 +122,10 @@ function renderPipelineStrip(source, pipeline, final, ocr) {
   var container = document.getElementById("pipeline-strip");
   container.innerHTML = "";
 
-  var steps = [{label: "Source", path: source}]
-    .concat(pipeline)
-    .concat([{label: "Final", path: final}, {label: "OCR", path: ocr}]);
+  var steps = [{ label: "Source", path: source }].concat(pipeline).concat([
+    { label: "Final", path: final },
+    { label: "OCR", path: ocr },
+  ]);
 
   steps.forEach(function (step) {
     var col = document.createElement("div");
@@ -129,10 +135,13 @@ function renderPipelineStrip(source, pipeline, final, ocr) {
     img.src = bustCache(step.path);
     img.alt = step.label;
     img.className = "img-fluid rounded border";
-    img.style.cssText = "max-height:130px;object-fit:contain;width:100%;cursor:pointer;";
+    img.style.cssText =
+      "max-height:130px;object-fit:contain;width:100%;cursor:pointer;";
     img.title = step.label;
     // click to open full-size in new tab
-    img.addEventListener("click", function () { window.open(bustCache(step.path), "_blank"); });
+    img.addEventListener("click", function () {
+      window.open(bustCache(step.path), "_blank");
+    });
 
     var lbl = document.createElement("p");
     lbl.className = "text-muted small text-center mt-1 mb-0";
@@ -164,7 +173,8 @@ function StartProcess() {
 
   fetch("/run_process", fetchOptions)
     .then(function (response) {
-      if (!response.ok) ShowErrorMessages("error-message-process", "HTTP " + response.status);
+      if (!response.ok)
+        ShowErrorMessages("error-message-process", "HTTP " + response.status);
       return response.json();
     })
     .then(function (data) {
@@ -175,9 +185,13 @@ function StartProcess() {
       }
 
       // Update comparison images with cache-bust
-      document.getElementById("sourceFrame").src = bustCache(data.images.source);
-      document.getElementById("finalFrame").src  = bustCache(data.images.final);
-      document.getElementById("ocrFrame").src    = bustCache(data.images.ocr_boxes);
+      document.getElementById("sourceFrame").src = bustCache(
+        data.images.source,
+      );
+      document.getElementById("finalFrame").src = bustCache(data.images.final);
+      document.getElementById("ocrFrame").src = bustCache(
+        data.images.ocr_boxes,
+      );
 
       // Render result metric cards
       renderResultCards(data.result);
@@ -187,12 +201,14 @@ function StartProcess() {
         data.images.source,
         data.pipeline || [],
         data.images.final,
-        data.images.ocr_boxes
+        data.images.ocr_boxes,
       );
 
       document.getElementById("result-section").style.display = "block";
       // Smooth scroll to results
-      document.getElementById("result-section").scrollIntoView({ behavior: "smooth" });
+      document
+        .getElementById("result-section")
+        .scrollIntoView({ behavior: "smooth" });
     })
     .catch(function (error) {
       HideLoader("loader-process-wrap");
@@ -205,7 +221,9 @@ function StartProcess() {
 
 function CreateHomeAssistantMqttSensor() {
   fetch("/create_sensor")
-    .then(function (r) { return r.json(); })
+    .then(function (r) {
+      return r.json();
+    })
     .then(function (data) {
       document.getElementById("mqttStatus").innerHTML =
         data.mqtt && data.mqtt[1] && data.mqtt[1]["water"]
@@ -213,13 +231,15 @@ function CreateHomeAssistantMqttSensor() {
           : "🔴 MQTT sensors creation error, check logs";
     })
     .catch(function () {
-      document.getElementById("mqttStatus").innerHTML = "🔴 MQTT error, check logs";
+      document.getElementById("mqttStatus").innerHTML =
+        "🔴 MQTT error, check logs";
     });
 }
 
 function EmptyCanvas(canvasid) {
   var canvas = document.getElementById(canvasid);
-  if (canvas) canvas.getContext("2d").clearRect(0, 0, canvas.width, canvas.height);
+  if (canvas)
+    canvas.getContext("2d").clearRect(0, 0, canvas.width, canvas.height);
 }
 
 function LoadFrame() {
@@ -234,7 +254,8 @@ function LoadFrame() {
   function loadImage(data) {
     HideLoader("loader-frame");
     img.onload = function () {
-      var angle = parseFloat(document.getElementById("input-rotate-image").value) || 0;
+      var angle =
+        parseFloat(document.getElementById("input-rotate-image").value) || 0;
       drawImageWithRotation(ctx, img, angle, canvas);
       canvas.addEventListener("mousedown", startDrawing);
       canvas.addEventListener("mouseup", stopDrawing);
@@ -244,13 +265,21 @@ function LoadFrame() {
 
   if (fileInput.files.length > 0) {
     var reader = new FileReader();
-    reader.onload = function (e) { loadImage(e.target.result); };
+    reader.onload = function (e) {
+      loadImage(e.target.result);
+    };
     reader.readAsDataURL(fileInput.files[0]);
   } else {
     fetch("/load_frame")
-      .then(function (r) { return r.json(); })
-      .then(function (d) { loadImage(d); })
-      .catch(function (e) { console.error("Error loading frame:", e); });
+      .then(function (r) {
+        return r.json();
+      })
+      .then(function (d) {
+        loadImage(d);
+      })
+      .catch(function (e) {
+        console.error("Error loading frame:", e);
+      });
   }
 
   document.getElementById("input-rotate-image").disabled = false;
@@ -259,9 +288,11 @@ function LoadFrame() {
     document.getElementById("button-send-edit").disabled = false;
   }
 
-  document.getElementById("input-rotate-image").addEventListener("input", function () {
-    drawImageWithRotation(ctx, img, parseFloat(this.value) || 0, canvas);
-  });
+  document
+    .getElementById("input-rotate-image")
+    .addEventListener("input", function () {
+      drawImageWithRotation(ctx, img, parseFloat(this.value) || 0, canvas);
+    });
 
   function startDrawing(e) {
     var bounds = canvas.getBoundingClientRect();
@@ -270,7 +301,8 @@ function LoadFrame() {
     rectangles[currentRectangleIndex].coordinates = {
       x: (e.clientX - bounds.left) * sx,
       y: (e.clientY - bounds.top) * sy,
-      width: 0, height: 0
+      width: 0,
+      height: 0,
     };
     canvas.addEventListener("mousemove", drawRectangle);
   }
@@ -278,9 +310,16 @@ function LoadFrame() {
   function drawRectangle(e) {
     var rect = rectangles[currentRectangleIndex].coordinates;
     var bounds = canvas.getBoundingClientRect();
-    rect.width  = (e.clientX - bounds.left) * (canvas.width  / bounds.width)  - rect.x;
-    rect.height = (e.clientY - bounds.top)  * (canvas.height / bounds.height) - rect.y;
-    drawImageWithRotation(ctx, img, parseFloat(document.getElementById("input-rotate-image").value) || 0, canvas);
+    rect.width =
+      (e.clientX - bounds.left) * (canvas.width / bounds.width) - rect.x;
+    rect.height =
+      (e.clientY - bounds.top) * (canvas.height / bounds.height) - rect.y;
+    drawImageWithRotation(
+      ctx,
+      img,
+      parseFloat(document.getElementById("input-rotate-image").value) || 0,
+      canvas,
+    );
   }
 
   function stopDrawing() {
@@ -290,7 +329,8 @@ function LoadFrame() {
 }
 
 function selectRectangle() {
-  currentRectangleIndex = parseInt(document.getElementById("select-rectangle").value) - 1;
+  currentRectangleIndex =
+    parseInt(document.getElementById("select-rectangle").value) - 1;
   updateCoordinates();
 }
 
@@ -308,30 +348,44 @@ function updateCoordinates() {
 }
 
 function SendEdit() {
-  var rotateValue = parseFloat(document.getElementById("input-rotate-image").value) || 0;
-  rectangles.forEach(function (r) { r.rotate = rotateValue; });
+  var rotateValue =
+    parseFloat(document.getElementById("input-rotate-image").value) || 0;
+  rectangles.forEach(function (r) {
+    r.rotate = rotateValue;
+  });
   fetch("/send_edit", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(rectangles),
   })
-    .then(function (r) { window.location.href = r.url; })
-    .catch(function (e) { console.error("Error sending coordinates:", e); });
+    .then(function (r) {
+      window.location.href = r.url;
+    })
+    .catch(function (e) {
+      console.error("Error sending coordinates:", e);
+    });
 }
 
 function SendConfig() {
   var form = document.getElementById("init-config-form");
   fetch("/save_config", { method: "POST", body: new FormData(form) })
     .then(function () {
-      document.querySelector('div[data-target="#create-mqtt-sensor"] .step-trigger').click();
+      document
+        .querySelector('div[data-target="#create-mqtt-sensor"] .step-trigger')
+        .click();
     })
-    .catch(function (e) { console.error("Error saving config:", e); });
+    .catch(function (e) {
+      console.error("Error saving config:", e);
+    });
 }
 
 // ─── Page init ────────────────────────────────────────────────────────────────
 
 document.addEventListener("DOMContentLoaded", function () {
-  if (window.location.pathname === "/" || window.location.pathname === "/index") {
+  if (
+    window.location.pathname === "/" ||
+    window.location.pathname === "/index"
+  ) {
     var canvas = document.getElementById("canvas");
     var ctx = canvas.getContext("2d");
     var img = new Image();
@@ -340,12 +394,18 @@ document.addEventListener("DOMContentLoaded", function () {
     if (coordinates_from_flask) {
       rectangles.forEach(function (rect) {
         var c = coordinates_from_flask[rect.name];
-        if (c) rect.coordinates = { x: c.x, y: c.y, width: c.width, height: c.height };
+        if (c)
+          rect.coordinates = {
+            x: c.x,
+            y: c.y,
+            width: c.width,
+            height: c.height,
+          };
       });
     }
 
     img.onload = function () {
-      canvas.width  = img.width;
+      canvas.width = img.width;
       canvas.height = img.height;
       drawImageWithRotation(ctx, img, rotate_from_flask || 0, canvas);
     };
