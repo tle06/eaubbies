@@ -249,11 +249,15 @@ def service_process(
 
     current_value = float(result_values.get("total_liters"))
     previous_value = configuration.get_param("result", "previous")
-    logger.info(f"Meter value \u2014 current: {current_value}, previous: {previous_value}")
+    logger.info(
+        f"Meter value \u2014 current: {current_value}, previous: {previous_value}"
+    )
     if not previous_value:
         configuration.set_param("result", "previous", value=current_value)
         previous_value = current_value
-        logger.info(f"First reading \u2014 previous value initialised to {current_value}")
+        logger.info(
+            f"First reading \u2014 previous value initialised to {current_value}"
+        )
 
     if previous_value > current_value:
         logger.warning(

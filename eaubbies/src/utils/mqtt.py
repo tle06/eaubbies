@@ -89,9 +89,7 @@ class MqttCLient:
         if not unique_id:
             logger.info("Generating unique ID")
             unique_id = generate_unique_id()
-            self.config_loader.set_param(
-                "mqtt", "device", "unique_id", value=unique_id
-            )
+            self.config_loader.set_param("mqtt", "device", "unique_id", value=unique_id)
             logger.info(f"New ID generated: {unique_id}")
         return unique_id
 
