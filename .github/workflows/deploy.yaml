@@ -48,21 +48,30 @@ jobs:
             --target eaubbies \
             --docker-hub tlnk
 
-      # 5. Safely switch to main, update the file, and push back to GitHub
-      - name: Commit and push version bump to main
+      # 5. Create a new branch, commit the change, and open a Pull Request
+      - name: Create Pull Request for version bump
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Fetch and switch to the main branch (avoiding detached HEAD state)
-          git fetch origin main
-          git checkout main
+          # Create a distinct branch for this version bump
+          BRANCH_NAME="bump-version-${{ github.event.release.tag_name }}"
+          git checkout -b $BRANCH_NAME
 
-          # Apply the release tag version to the main branch file
+          # Apply the release tag version
           yq -i '.version = "${{ github.event.release.tag_name }}"' eaubbies/config.yaml
 
           # Configure official GitHub Actions Bot identity
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          # Stage, commit, and push the change
+          # Stage, commit, and push the new branch
           git add eaubbies/config.yaml
-          git commit -m "chore: bump addon version to ${{ github.event.release.tag_name }} [skip ci]"
-          git push origin main
+          git commit -m "chore: bump addon version to ${{ github.event.release.tag_name }}"
+          git push origin $BRANCH_NAME
+
+          # Open the Pull Request using GitHub CLI
+          gh pr create \
+            --title "chore: bump addon version to ${{ github.event.release.tag_name }}" \
+            --body "Automated version bump triggered by release ${{ github.event.release.tag_name }}." \
+            --base main \
+            --head $BRANCH_NAME
