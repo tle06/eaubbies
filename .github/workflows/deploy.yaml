@@ -81,8 +81,8 @@ jobs:
 
           echo "Created Pull Request at: $PR_URL"
 
-          # 2. Approve the PR using your Personal Access Token
-          GH_TOKEN="$REVIEWER_TOKEN" gh pr review "$PR_URL" --approve --comment "Auto-approved by Release Workflow"
+          # 2. Approve the PR using your Personal Access Token (Fixed flag here)
+          GH_TOKEN="$REVIEWER_TOKEN" gh pr review "$PR_URL" --approve -b "Auto-approved by Release Workflow"
 
-          # 3. Merge the PR automatically (using squash merge to keep history clean)
+          # 3. Merge the PR automatically
           GH_TOKEN="$REVIEWER_TOKEN" gh pr merge "$PR_URL" --squash --delete-branch
