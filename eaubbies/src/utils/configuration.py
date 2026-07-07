@@ -54,16 +54,16 @@ class YamlConfigLoader:
             "rtsp": {
                 "url": None,
                 "image": {
-                    "contrast": {"active": False, "alpha": 1.2, "beta": 1},
+                    "contrast": {"active": False, "alpha": 1.5, "beta": 15},
                     "convert_to_bgr": False,
-                    "convert_to_grey": False,
+                    "convert_to_grey": True,
                     "exposure": {
                         "active": False,
-                        "in_range": [0, 129],
+                        "in_range": [50, 200],
                         "out_range": [0, 255],
                     },
                     "crop_image": {"active": True, "coordinates": "integer"},
-                    "sharpen": {"active": False, "amount": 30, "threshold": 3},
+                    "sharpen": {"active": False, "amount": 3.0, "threshold": 0},
                 },
             },
             "mqtt": {
