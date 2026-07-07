@@ -35,7 +35,7 @@ class YamlConfigLoader:
             "vision": {
                 "engine": "azure",  # Option between 'azure' or 'tesseract'
                 "tesseract_cmd": None,
-                "tesseract_config": "--psm 8 -c tessedit_char_whitelist=0123456789",
+                "tesseract_config": "--psm 7 --oem 1 -c tessedit_char_whitelist=0123456789.",
                 "counter": 0,
                 "rotate": 0.0,
                 "endpoint": None,
