@@ -56,9 +56,12 @@ jobs:
           # Used to APPROVE and MERGE the PR (Reviewer: You)
           REVIEWER_TOKEN: ${{ secrets.AUTO_APPROVE_PAT }}
         run: |
-          # Create a distinct branch for this version bump
+          # 1. Fetch the absolute latest main branch to avoid conflicts
+          git fetch origin main
+
+          # 2. Create the distinct branch BASED on the latest origin/main
           BRANCH_NAME="bump-version-${{ github.event.release.tag_name }}"
-          git checkout -b $BRANCH_NAME
+          git checkout -b $BRANCH_NAME origin/main
 
           # Apply the release tag version
           yq -i '.version = "${{ github.event.release.tag_name }}"' eaubbies/config.yaml
@@ -72,7 +75,7 @@ jobs:
           git commit -m "chore: bump addon version to ${{ github.event.release.tag_name }}"
           git push origin $BRANCH_NAME
 
-          # 1. Create the PR and capture its URL
+          # 3. Create the PR and capture its URL
           PR_URL=$(gh pr create \
             --title "chore: bump addon version to ${{ github.event.release.tag_name }}" \
             --body "Automated version bump triggered by release ${{ github.event.release.tag_name }}." \
@@ -81,8 +84,8 @@ jobs:
 
           echo "Created Pull Request at: $PR_URL"
 
-          # 2. Approve the PR using your Personal Access Token (Fixed flag here)
+          # 4. Approve the PR using your Personal Access Token
           GH_TOKEN="$REVIEWER_TOKEN" gh pr review "$PR_URL" --approve -b "Auto-approved by Release Workflow"
 
-          # 3. Merge the PR automatically
-          GH_TOKEN="$REVIEWER_TOKEN" gh pr merge "$PR_URL" --squash --delete-branch
+          # 5. Merge the PR using --auto to bypass the GitHub API race condition
+          GH_TOKEN="$REVIEWER_TOKEN" gh pr merge "$PR_URL" --squash --delete-branch --auto
