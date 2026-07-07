@@ -14,3 +14,5 @@ schema:
   message: "str?"
 image: "tlnk/{arch}-addon-eaubbies"
 ingress: true
+ports:
+  8099/tcp: 8099
