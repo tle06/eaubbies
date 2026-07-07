@@ -224,13 +224,13 @@ def save_config():
     if request.form.get("vision_engine"):
         configuration.set_param("vision", "engine", value=request.form["vision_engine"])
         logger.info(f"Vision engine updated to: {request.form['vision_engine']}")
-    
+
     if request.form.get("tesseract_config"):
         configuration.set_param(
             "vision", "tesseract_config", value=request.form["tesseract_config"]
         )
         logger.info(f"Tesseract config updated: {request.form['tesseract_config']}")
-    
+
     if request.form.get("vision_key"):
         key = request.form["vision_key"]
         if (
@@ -239,13 +239,13 @@ def save_config():
         ):
             configuration.set_param("vision", "key", value=key)
             logger.info("Vision API key updated")
-    
+
     if request.form.get("endpoint_url"):
         configuration.set_param(
             "vision", "endpoint", value=request.form["endpoint_url"]
         )
         logger.info(f"Vision endpoint updated: {request.form['endpoint_url']}")
-    
+
     if request.form.get("vision_integer_digit"):
         configuration.set_param(
             "vision",
@@ -278,23 +278,15 @@ def save_config():
     # ── Image optimisation ──
 
     if request.form.get("img_convert_bgr"):
-        configuration.set_param(
-                "rtsp", "image", "convert_to_bgr", value=True
-            )
+        configuration.set_param("rtsp", "image", "convert_to_bgr", value=True)
     else:
-        configuration.set_param(
-            "rtsp", "image", "convert_to_bgr", value=False
-        )
-    
+        configuration.set_param("rtsp", "image", "convert_to_bgr", value=False)
+
     if request.form.get("img_convert_grey"):
-        configuration.set_param(
-                "rtsp", "image", "convert_to_grey", value=True
-            )
+        configuration.set_param("rtsp", "image", "convert_to_grey", value=True)
     else:
-        configuration.set_param(
-            "rtsp", "image", "convert_to_grey", value=False
-        )
-    
+        configuration.set_param("rtsp", "image", "convert_to_grey", value=False)
+
     if request.form.get("img_exposure_active"):
         configuration.set_param(
             "rtsp",
@@ -311,7 +303,7 @@ def save_config():
             "active",
             value=False,
         )
-    
+
     if request.form.get("img_contrast_active"):
         configuration.set_param(
             "rtsp",
@@ -328,24 +320,28 @@ def save_config():
             "active",
             value=False,
         )
-    
+
     if request.form.get("img_sharpen_active"):
         configuration.set_param(
-            "rtsp", "image", "sharpen", "active", value=True,
+            "rtsp",
+            "image",
+            "sharpen",
+            "active",
+            value=True,
         )
     else:
         configuration.set_param(
-            "rtsp", "image", "sharpen", "active", value=False,
+            "rtsp",
+            "image",
+            "sharpen",
+            "active",
+            value=False,
         )
-    
+
     if request.form.get("img_crop_active"):
-        configuration.set_param(
-                "rtsp", "image", "crop_image", "active", value=True
-            )
+        configuration.set_param("rtsp", "image", "crop_image", "active", value=True)
     else:
-        configuration.set_param(
-            "rtsp", "image", "crop_image", "active", value=False
-        )
+        configuration.set_param("rtsp", "image", "crop_image", "active", value=False)
 
     if request.form.get("img_exposure_in_min") and request.form.get(
         "img_exposure_in_max"
@@ -373,7 +369,7 @@ def save_config():
                 int(request.form["img_exposure_out_max"]),
             ],
         )
-        
+
     if request.form.get("img_contrast_alpha"):
         configuration.set_param(
             "rtsp",
@@ -424,13 +420,15 @@ def save_config():
     if request.form.get("mqtt_server"):
         configuration.set_param("mqtt", "server", value=request.form.get("mqtt_server"))
         logger.info(f"MQTT server updated: {request.form.get('mqtt_server')}")
-    
+
     if request.form.get("mqtt_port"):
-        configuration.set_param("mqtt", "port", value=int(request.form.get("mqtt_port")))
-    
+        configuration.set_param(
+            "mqtt", "port", value=int(request.form.get("mqtt_port"))
+        )
+
     if request.form.get("mqtt_user"):
         configuration.set_param("mqtt", "user", value=request.form.get("mqtt_user"))
-    
+
     if request.form.get("mqtt_password"):
         pwd = request.form.get("mqtt_password")
         if (
@@ -439,7 +437,7 @@ def save_config():
         ):
             configuration.set_param("mqtt", "password", value=pwd)
             logger.info("MQTT password updated")
-    
+
     if request.form.get("mqtt_device_name"):
         configuration.set_param(
             "mqtt", "device", "name", value=request.form.get("mqtt_device_name")
@@ -448,17 +446,20 @@ def save_config():
         configuration.set_param(
             "mqtt", "device", "node_id", value=request.form.get("mqtt_device_node_id")
         )
-    
+
     if request.form.get("mqtt_device_unique_id"):
         configuration.set_param(
-            "mqtt", "device", "unique_id", value=request.form.get("mqtt_device_unique_id")
+            "mqtt",
+            "device",
+            "unique_id",
+            value=request.form.get("mqtt_device_unique_id"),
         )
-    
+
     if request.form.get("mqtt_discovery_prefix"):
         configuration.set_param(
             "mqtt", "discovery_prefix", value=request.form.get("mqtt_discovery_prefix")
         )
-    
+
     if request.form.get("mqtt_sensors_water_unit_of_measurement"):
         configuration.set_param(
             "mqtt",
@@ -484,7 +485,6 @@ def save_config():
         logger.info(f"Setup initialization status updated: {init_config_value}")
     else:
         configuration.set_param("setup", "init_config", value=False)
-
 
     logger.info("Configuration saved successfully")
 
