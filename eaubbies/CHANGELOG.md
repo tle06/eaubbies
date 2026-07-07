@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+
+## [0.0.21] - 2026-07-07
+
+### Added
+
+- Update configuration page to handle the switch input
+- Add CD to update changelogs file automatically
+- Add CD to update the app version automatically via PR
 ## [0.0.20] - 2026-07-07
 
 ### Added
