@@ -94,6 +94,7 @@ def apply_image_pipeline(client_rtsp: RTSPClient, config: YamlConfigLoader) -> d
 
 def create_improved_frame(use_file: bool = False, file=None):
     rtsp_url = None if use_file else configuration.get_param("rtsp", "url")
+    logger.info(f"RTSP URL: {rtsp_url if rtsp_url else 'N/A (using uploaded file)'}")
     client_rtsp = RTSPClient(rtsp_url=rtsp_url)
 
     default_folder = configuration.get_param("frame", "storage_path")

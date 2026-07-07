@@ -18,7 +18,7 @@
 <div class="mb-3 col-md-12 tesseract-only">
   <label class="form-label" for="tesseract_config">Tesseract Config Flags:</label>
   <input class="form-control" type="text" id="tesseract_config" name="tesseract_config"
-    value="{{ config['vision']['tesseract_config'] or '--psm 6' }}">
+    value="{{ config['vision']['tesseract_config'] or '--psm 7 --oem 1 -c tessedit_char_whitelist=0123456789.' }}">
 </div>
 <div class="mb-3 col-md-6">
   <label class="form-label" for="vision_integer_digit">Vision integer digit:</label>

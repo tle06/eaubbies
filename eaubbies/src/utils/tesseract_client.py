@@ -37,7 +37,7 @@ class TesseractClient:
         self,
         frame=None,
         image_path: str = None,
-        config: str = "--psm 8 -c tessedit_char_whitelist=0123456789",
+        config: str = "--psm 7 --oem 1 -c tessedit_char_whitelist=0123456789.",
         filename: str = "tesseract_optimized",
     ):
         """

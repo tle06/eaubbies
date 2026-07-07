@@ -217,15 +217,20 @@ def logs_download():
 @app.route("/save_config", methods=["POST"])
 def save_config():
 
+    logger.info("Saving configuration from form submission")
+    logger.debug(f"Form data received: {request.form}")
+
     # ── OCR engine ──
     if request.form.get("vision_engine"):
         configuration.set_param("vision", "engine", value=request.form["vision_engine"])
         logger.info(f"Vision engine updated to: {request.form['vision_engine']}")
+
     if request.form.get("tesseract_config"):
         configuration.set_param(
             "vision", "tesseract_config", value=request.form["tesseract_config"]
         )
         logger.info(f"Tesseract config updated: {request.form['tesseract_config']}")
+
     if request.form.get("vision_key"):
         key = request.form["vision_key"]
         if (
@@ -234,11 +239,13 @@ def save_config():
         ):
             configuration.set_param("vision", "key", value=key)
             logger.info("Vision API key updated")
+
     if request.form.get("endpoint_url"):
         configuration.set_param(
             "vision", "endpoint", value=request.form["endpoint_url"]
         )
         logger.info(f"Vision endpoint updated: {request.form['endpoint_url']}")
+
     if request.form.get("vision_integer_digit"):
         configuration.set_param(
             "vision",
@@ -269,32 +276,72 @@ def save_config():
         )
 
     # ── Image optimisation ──
-    configuration.set_param(
-        "rtsp", "image", "convert_to_bgr", value="img_convert_bgr" in request.form
-    )
-    configuration.set_param(
-        "rtsp", "image", "convert_to_grey", value="img_convert_grey" in request.form
-    )
-    configuration.set_param(
-        "rtsp",
-        "image",
-        "exposure",
-        "active",
-        value="img_exposure_active" in request.form,
-    )
-    configuration.set_param(
-        "rtsp",
-        "image",
-        "contrast",
-        "active",
-        value="img_contrast_active" in request.form,
-    )
-    configuration.set_param(
-        "rtsp", "image", "sharpen", "active", value="img_sharpen_active" in request.form
-    )
-    configuration.set_param(
-        "rtsp", "image", "crop_image", "active", value="img_crop_active" in request.form
-    )
+
+    if request.form.get("img_convert_bgr"):
+        configuration.set_param("rtsp", "image", "convert_to_bgr", value=True)
+    else:
+        configuration.set_param("rtsp", "image", "convert_to_bgr", value=False)
+
+    if request.form.get("img_convert_grey"):
+        configuration.set_param("rtsp", "image", "convert_to_grey", value=True)
+    else:
+        configuration.set_param("rtsp", "image", "convert_to_grey", value=False)
+
+    if request.form.get("img_exposure_active"):
+        configuration.set_param(
+            "rtsp",
+            "image",
+            "exposure",
+            "active",
+            value=True,
+        )
+    else:
+        configuration.set_param(
+            "rtsp",
+            "image",
+            "exposure",
+            "active",
+            value=False,
+        )
+
+    if request.form.get("img_contrast_active"):
+        configuration.set_param(
+            "rtsp",
+            "image",
+            "contrast",
+            "active",
+            value=True,
+        )
+    else:
+        configuration.set_param(
+            "rtsp",
+            "image",
+            "contrast",
+            "active",
+            value=False,
+        )
+
+    if request.form.get("img_sharpen_active"):
+        configuration.set_param(
+            "rtsp",
+            "image",
+            "sharpen",
+            "active",
+            value=True,
+        )
+    else:
+        configuration.set_param(
+            "rtsp",
+            "image",
+            "sharpen",
+            "active",
+            value=False,
+        )
+
+    if request.form.get("img_crop_active"):
+        configuration.set_param("rtsp", "image", "crop_image", "active", value=True)
+    else:
+        configuration.set_param("rtsp", "image", "crop_image", "active", value=False)
 
     if request.form.get("img_exposure_in_min") and request.form.get(
         "img_exposure_in_max"
@@ -322,6 +369,7 @@ def save_config():
                 int(request.form["img_exposure_out_max"]),
             ],
         )
+
     if request.form.get("img_contrast_alpha"):
         configuration.set_param(
             "rtsp",
@@ -365,56 +413,78 @@ def save_config():
 
     # ── RTSP ──
     if request.form.get("rtsp_url"):
-        configuration.set_param("rtsp", "url", value=request.form["rtsp_url"])
-        logger.info(f"RTSP URL updated: {request.form['rtsp_url']}")
+        configuration.set_param("rtsp", "url", value=request.form.get("rtsp_url"))
+        logger.info(f"RTSP URL updated: {request.form.get('rtsp_url')}")
 
     # ── MQTT ──
     if request.form.get("mqtt_server"):
-        configuration.set_param("mqtt", "server", value=request.form["mqtt_server"])
-        logger.info(f"MQTT server updated: {request.form['mqtt_server']}")
+        configuration.set_param("mqtt", "server", value=request.form.get("mqtt_server"))
+        logger.info(f"MQTT server updated: {request.form.get('mqtt_server')}")
+
     if request.form.get("mqtt_port"):
-        configuration.set_param("mqtt", "port", value=int(request.form["mqtt_port"]))
+        configuration.set_param(
+            "mqtt", "port", value=int(request.form.get("mqtt_port"))
+        )
+
     if request.form.get("mqtt_user"):
-        configuration.set_param("mqtt", "user", value=request.form["mqtt_user"])
+        configuration.set_param("mqtt", "user", value=request.form.get("mqtt_user"))
+
     if request.form.get("mqtt_password"):
-        pwd = request.form["mqtt_password"]
+        pwd = request.form.get("mqtt_password")
         if (
             pwd != "********************************"
             and pwd != configuration.get_param("mqtt", "password")
         ):
             configuration.set_param("mqtt", "password", value=pwd)
             logger.info("MQTT password updated")
+
     if request.form.get("mqtt_device_name"):
         configuration.set_param(
-            "mqtt", "device", "name", value=request.form["mqtt_device_name"]
+            "mqtt", "device", "name", value=request.form.get("mqtt_device_name")
         )
     if request.form.get("mqtt_device_node_id"):
         configuration.set_param(
-            "mqtt", "device", "node_id", value=request.form["mqtt_device_node_id"]
+            "mqtt", "device", "node_id", value=request.form.get("mqtt_device_node_id")
         )
+
     if request.form.get("mqtt_device_unique_id"):
         configuration.set_param(
-            "mqtt", "device", "unique_id", value=request.form["mqtt_device_unique_id"]
+            "mqtt",
+            "device",
+            "unique_id",
+            value=request.form.get("mqtt_device_unique_id"),
         )
+
     if request.form.get("mqtt_discovery_prefix"):
         configuration.set_param(
-            "mqtt", "discovery_prefix", value=request.form["mqtt_discovery_prefix"]
+            "mqtt", "discovery_prefix", value=request.form.get("mqtt_discovery_prefix")
         )
+
     if request.form.get("mqtt_sensors_water_unit_of_measurement"):
         configuration.set_param(
             "mqtt",
             "sensors",
             "water",
             "unit_of_measurement",
-            value=request.form["mqtt_sensors_water_unit_of_measurement"].lower(),
+            value=request.form.get("mqtt_sensors_water_unit_of_measurement").lower(),
         )
 
     # ── Cron ──
     if request.form.get("cron_time"):
-        cron_time = request.form["cron_time"]
+        cron_time = request.form.get("cron_time")
         configuration.set_param("service", "cron", value=cron_time)
         register_cron_task(command=CRON_COMMAND, selected_time=cron_time)
         logger.info(f"Cron schedule updated: {cron_time}")
+
+    # ── Setup ──
+    if request.form.get("init_config"):
+        init_config_value = request.form.get("init_config")
+        logger.info(f"Received init_config value: {init_config_value}")
+        if init_config_value == "on":
+            configuration.set_param("setup", "init_config", value=True)
+        logger.info(f"Setup initialization status updated: {init_config_value}")
+    else:
+        configuration.set_param("setup", "init_config", value=False)
 
     logger.info("Configuration saved successfully")
 

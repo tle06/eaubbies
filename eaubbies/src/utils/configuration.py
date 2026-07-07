@@ -35,7 +35,7 @@ class YamlConfigLoader:
             "vision": {
                 "engine": "azure",  # Option between 'azure' or 'tesseract'
                 "tesseract_cmd": None,
-                "tesseract_config": "--psm 8 -c tessedit_char_whitelist=0123456789",
+                "tesseract_config": "--psm 7 --oem 1 -c tessedit_char_whitelist=0123456789.",
                 "counter": 0,
                 "rotate": 0.0,
                 "endpoint": None,
@@ -54,16 +54,16 @@ class YamlConfigLoader:
             "rtsp": {
                 "url": None,
                 "image": {
-                    "contrast": {"active": False, "alpha": 1.2, "beta": 1},
+                    "contrast": {"active": False, "alpha": 1.5, "beta": 15},
                     "convert_to_bgr": False,
-                    "convert_to_grey": False,
+                    "convert_to_grey": True,
                     "exposure": {
                         "active": False,
-                        "in_range": [0, 129],
+                        "in_range": [50, 200],
                         "out_range": [0, 255],
                     },
                     "crop_image": {"active": True, "coordinates": "integer"},
-                    "sharpen": {"active": False, "amount": 30, "threshold": 3},
+                    "sharpen": {"active": False, "amount": 3.0, "threshold": 0},
                 },
             },
             "mqtt": {

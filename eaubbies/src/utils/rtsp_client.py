@@ -72,6 +72,7 @@ class RTSPClient:
         filename: str = "origine",
     ):
         if self.video_url:
+            logger.info(f"Attempting to open RTSP stream: {self.video_url}")
             cap = cv2.VideoCapture(self.video_url)
             if not cap.isOpened():
                 logger.error("Unable to open RTSP stream: %s", self.video_url)
