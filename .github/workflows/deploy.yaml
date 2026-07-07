@@ -55,6 +55,8 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Used to APPROVE and MERGE the PR (Reviewer: You)
           REVIEWER_TOKEN: ${{ secrets.AUTO_APPROVE_PAT }}
+          # Safely capture the multiline release notes to prevent bash syntax errors
+          RELEASE_BODY: ${{ github.event.release.body }}
         run: |
           # 1. Fetch the absolute latest main branch to avoid conflicts
           git fetch origin main
@@ -63,29 +65,41 @@ jobs:
           BRANCH_NAME="bump-version-${{ github.event.release.tag_name }}"
           git checkout -b $BRANCH_NAME origin/main
 
-          # Apply the release tag version
+          # Update the config version
           yq -i '.version = "${{ github.event.release.tag_name }}"' eaubbies/config.yaml
+
+          # 3. Dynamic Changelog Insertion
+          CURRENT_DATE=$(date +%Y-%m-%d)
+
+          # Create a temporary patch file containing the new version block with proper spacing
+          printf "\n\n## [%s] - %s\n\n%s" "${{ github.event.release.tag_name }}" "$CURRENT_DATE" "$RELEASE_BODY" > patch.md
+
+          # Use GNU sed to find '## [Unreleased]' and read 'patch.md' directly after it
+          sed -i '/## \[Unreleased\]/r patch.md' eaubbies/CHANGELOG.md
+
+          # Clean up the patch file
+          rm patch.md
 
           # Configure official GitHub Actions Bot identity
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          # Stage, commit, and push the new branch
-          git add eaubbies/config.yaml
-          git commit -m "chore: bump addon version to ${{ github.event.release.tag_name }}"
+          # 4. Stage and commit BOTH files
+          git add eaubbies/config.yaml eaubbies/CHANGELOG.md
+          git commit -m "chore: bump version and update changelog for ${{ github.event.release.tag_name }}"
           git push origin $BRANCH_NAME
 
-          # 3. Create the PR and capture its URL
+          # 5. Create the PR and capture its URL
           PR_URL=$(gh pr create \
             --title "chore: bump addon version to ${{ github.event.release.tag_name }}" \
-            --body "Automated version bump triggered by release ${{ github.event.release.tag_name }}." \
+            --body "Automated version bump and changelog update triggered by release ${{ github.event.release.tag_name }}." \
             --base main \
             --head $BRANCH_NAME)
 
           echo "Created Pull Request at: $PR_URL"
 
-          # 4. Approve the PR using your Personal Access Token
+          # 6. Approve the PR using your Personal Access Token
           GH_TOKEN="$REVIEWER_TOKEN" gh pr review "$PR_URL" --approve -b "Auto-approved by Release Workflow"
 
-          # 5. Merge the PR using --auto to bypass the GitHub API race condition
+          # 7. Merge the PR automatically
           GH_TOKEN="$REVIEWER_TOKEN" gh pr merge "$PR_URL" --squash --delete-branch --auto

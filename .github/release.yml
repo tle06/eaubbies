@@ -1,0 +1,17 @@
+changelog:
+  categories:
+    - title: "### Added"
+      labels:
+        - "feature"
+        - "enhancement"
+        - "added"
+    - title: "### Fixed"
+      labels:
+        - "bug"
+        - "fix"
+        - "fixed"
+  exclude:
+    labels:
+      - "ignore-for-release"
+    authors:
+      - "github-actions[bot]"
