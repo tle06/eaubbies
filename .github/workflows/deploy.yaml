@@ -48,10 +48,13 @@ jobs:
             --target eaubbies \
             --docker-hub tlnk
 
-      # 5. Create a new branch, commit the change, and open a Pull Request
-      - name: Create Pull Request for version bump
+      # 5. Create, Approve, and Auto-Merge the Pull Request
+      - name: Create and Auto-Approve Pull Request
         env:
+          # Used to CREATE the PR (Author: github-actions[bot])
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Used to APPROVE and MERGE the PR (Reviewer: You)
+          REVIEWER_TOKEN: ${{ secrets.AUTO_APPROVE_PAT }}
         run: |
           # Create a distinct branch for this version bump
           BRANCH_NAME="bump-version-${{ github.event.release.tag_name }}"
@@ -69,9 +72,17 @@ jobs:
           git commit -m "chore: bump addon version to ${{ github.event.release.tag_name }}"
           git push origin $BRANCH_NAME
 
-          # Open the Pull Request using GitHub CLI
-          gh pr create \
+          # 1. Create the PR and capture its URL
+          PR_URL=$(gh pr create \
             --title "chore: bump addon version to ${{ github.event.release.tag_name }}" \
             --body "Automated version bump triggered by release ${{ github.event.release.tag_name }}." \
             --base main \
-            --head $BRANCH_NAME
+            --head $BRANCH_NAME)
+
+          echo "Created Pull Request at: $PR_URL"
+
+          # 2. Approve the PR using your Personal Access Token
+          GH_TOKEN="$REVIEWER_TOKEN" gh pr review "$PR_URL" --approve --comment "Auto-approved by Release Workflow"
+
+          # 3. Merge the PR automatically (using squash merge to keep history clean)
+          GH_TOKEN="$REVIEWER_TOKEN" gh pr merge "$PR_URL" --squash --delete-branch
