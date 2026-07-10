@@ -26,7 +26,7 @@ uv run -- flask run --debug
 
 ```cmd
 cd eaubbies
-docker build --build-arg BUILD_FROM="ghcr.io/hassio-addons/debian-base:9.3.0" -t eaubbies:local .
+docker build -t eaubbies:local .
 ```
 
 ## Home assistant build
@@ -45,12 +45,12 @@ docker run \
 ## Run local build
 
 ```cmd
-docker run --name test --rm -p 8099:8099 eaubbies:local
+docker run --name test --rm -p 8090:8090 eaubbies:local
 ```
 
 # Docker-compose
 
-The compose will start the eaubbies app by default (port 8099)
+The compose will start the eaubbies app by default (port 8090)
 
 ```cmd
 docker-compose up
