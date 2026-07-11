@@ -25,7 +25,12 @@ on:
   workflow_dispatch:
   workflow_call:
 
-permissions: {}
+permissions:
+  actions: read
+  contents: read
+  packages: read
+  pull-requests: read
+  security-events: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}

@@ -25,7 +25,7 @@ jobs:
       actions: read
       contents: write
       packages: write
-      security-events: read
+      security-events: write
       pull-requests: write
     steps:
       - name: Checkout the repository
