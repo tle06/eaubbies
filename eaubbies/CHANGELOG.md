@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 
+## [0.0.24] - 2026-07-11
+
+ ### Added
+* Test new docker config by @tle06 in https://github.com/tle06/eaubbies/pull/12
+
+### Fix
+* Zizmor CI integration
+
 ## [0.0.21] - 2026-07-07
 
 ### Added
