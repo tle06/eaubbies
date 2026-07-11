@@ -151,7 +151,7 @@
         "Delete frame",
         'Delete \"' + filename + '\"? This cannot be undone.',
         function () {
-          fetch("/delete_frame/" + encodeURIComponent(filename), { method: "DELETE" })
+          fetch("delete_frame/" + encodeURIComponent(filename), { method: "DELETE" })
             .then(function (r) { return r.json(); })
             .then(function (data) {
               if (data.success) {
@@ -174,7 +174,7 @@
         "Delete all frames",
         "Delete all " + count + " frame(s)? This cannot be undone.",
         function () {
-          fetch("/delete_all_frames", { method: "POST" })
+          fetch("delete_all_frames", { method: "POST" })
             .then(function (r) { return r.json(); })
             .then(function (data) {
               if (data.errors && data.errors.length) {

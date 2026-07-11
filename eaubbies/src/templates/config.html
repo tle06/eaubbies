@@ -115,7 +115,7 @@
       var orig = btn.innerText;
       btn.innerText = "Publishing\u2026";
       btn.disabled = true;
-      fetch("/create_sensor")
+      fetch("create_sensor")
         .then(function (r) { return r.json(); })
         .then(function (data) {
           if (data.error) { alert("MQTT Error: " + data.error); }
@@ -148,7 +148,7 @@
     document.getElementById("btn-refresh-cron").addEventListener("click", function () {
       var btn = this;
       btn.disabled = true;
-      fetch("/cron_status")
+      fetch("cron_status")
         .then(function (r) { return r.json(); })
         .then(function (data) { applyBadge(data); })
         .catch(function (e) { console.error("cron_status error:", e); })
@@ -165,7 +165,7 @@
       // Pick the currently selected time from the dropdown
       var selectedTime = document.getElementById("cron_time").value;
 
-      fetch("/register_cron", {
+      fetch("register_cron", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ time: selectedTime }),

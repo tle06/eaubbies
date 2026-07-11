@@ -113,7 +113,7 @@
       } catch (e) {
         // Canvas tainted (cross-origin stream) – fall back to server-side capture
         capStatus.textContent = "Saving via server\u2026";
-        fetch("/load_frame")
+        fetch("load_frame")
           .then(function (r) { return r.json(); })
           .then(function () {
             capStatus.textContent = "\u2713 Frame saved to frames folder.";
