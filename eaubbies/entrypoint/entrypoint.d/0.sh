@@ -2,14 +2,17 @@
 echo "[EXECUTION] 0.sh file"
 
 # If PORT is unset or empty, default to 8099
-export PORT=${PORT:-8099}
-echo "[INFO] Target port is set to: $PORT"
+export INGRESS_PORT="${INGRESS_PORT:-8099}"
+echo "[INFO] Target port is set to: $INGRESS_PORT"
 
 start_web() {
     echo "-------------------------------------"
     echo "[PREPARATION] Create NGINX configuration file at /etc/nginx/sites-available/app.conf"
-    echo "NGINX will use the PORT: $PORT"
-    envsubst "\$PORT" < /etc/nginx/conf.d/app.template > /etc/nginx/sites-available/app.conf
+
+
+    echo "NGINX will use the PORT: $INGRESS_PORT"
+    envsubst "\$INGRESS_PORT" < /etc/nginx/conf.d/app.template > /etc/nginx/sites-available/app.conf
+
 
     echo "[PREPARATION] Activate NGINX configuration file"
     # Added -f (force) to prevent errors if the symlink already exists on container restart

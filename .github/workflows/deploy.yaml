@@ -8,10 +8,10 @@ on:
 
 permissions:
   actions: read
-  contents: write # 1. Changed to 'write' so the workflow can push commits
+  contents: read
   packages: read
   security-events: read
-  pull-requests: write
+  pull-requests: read
 
 jobs:
   ci:
@@ -21,6 +21,12 @@ jobs:
     name: Publish
     needs: ci
     runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: write
+      packages: write
+      security-events: read
+      pull-requests: write
     steps:
       - name: Checkout the repository
         uses: actions/checkout@v6
@@ -36,7 +42,9 @@ jobs:
       # 3. Update the file locally so the Home Assistant builder compiles it correctly
       - name: Update version for builder
         run: |
-          yq -i '.version = "${{ github.event.release.tag_name }}"' eaubbies/config.yaml
+          yq -i '.version = "${GITHUB_EVENT_RELEASE_TAG_NAME}"' eaubbies/config.yaml
+        env:
+          GITHUB_EVENT_RELEASE_TAG_NAME: ${{ github.event.release.tag_name }}
 
       # 4. Build and publish the Docker images
       - name: Publish
@@ -57,22 +65,23 @@ jobs:
           REVIEWER_TOKEN: ${{ secrets.AUTO_APPROVE_PAT }}
           # Safely capture the multiline release notes to prevent bash syntax errors
           RELEASE_BODY: ${{ github.event.release.body }}
+          GITHUB_EVENT_RELEASE_TAG_NAME: ${{ github.event.release.tag_name }}
         run: |
           # 1. Fetch the absolute latest main branch to avoid conflicts
           git fetch origin main
 
           # 2. Create the distinct branch BASED on the latest origin/main
-          BRANCH_NAME="bump-version-${{ github.event.release.tag_name }}"
+          BRANCH_NAME="bump-version-${GITHUB_EVENT_RELEASE_TAG_NAME}"
           git checkout -b $BRANCH_NAME origin/main
 
           # Update the config version
-          yq -i '.version = "${{ github.event.release.tag_name }}"' eaubbies/config.yaml
+          yq -i '.version = "${GITHUB_EVENT_RELEASE_TAG_NAME}"' eaubbies/config.yaml
 
           # 3. Dynamic Changelog Insertion
           CURRENT_DATE=$(date +%Y-%m-%d)
 
           # Create a temporary patch file containing the new version block with proper spacing
-          printf "\n\n## [%s] - %s\n\n%s" "${{ github.event.release.tag_name }}" "$CURRENT_DATE" "$RELEASE_BODY" > patch.md
+          printf "\n\n## [%s] - %s\n\n%s" "${GITHUB_EVENT_RELEASE_TAG_NAME}" "$CURRENT_DATE" "$RELEASE_BODY" > patch.md
 
           # Use GNU sed to find '## [Unreleased]' and read 'patch.md' directly after it
           sed -i '/## \[Unreleased\]/r patch.md' eaubbies/CHANGELOG.md
@@ -86,13 +95,13 @@ jobs:
 
           # 4. Stage and commit BOTH files
           git add eaubbies/config.yaml eaubbies/CHANGELOG.md
-          git commit -m "chore: bump version and update changelog for ${{ github.event.release.tag_name }}"
+          git commit -m "chore: bump version and update changelog for ${GITHUB_EVENT_RELEASE_TAG_NAME}"
           git push origin $BRANCH_NAME
 
           # 5. Create the PR and capture its URL
           PR_URL=$(gh pr create \
-            --title "chore: bump addon version to ${{ github.event.release.tag_name }}" \
-            --body "Automated version bump and changelog update triggered by release ${{ github.event.release.tag_name }}." \
+            --title "chore: bump addon version to ${GITHUB_EVENT_RELEASE_TAG_NAME}" \
+            --body "Automated version bump and changelog update triggered by release ${GITHUB_EVENT_RELEASE_TAG_NAME}." \
             --base main \
             --head $BRANCH_NAME)
 

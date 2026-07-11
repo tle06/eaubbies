@@ -25,11 +25,11 @@ services:
       context: eaubbies
       dockerfile: Dockerfile
       args:
-        BUILD_FROM: "ghcr.io/hassio-addons/debian-base:9.3.0"
+        BUILD_FROM: "ghcr.io/home-assistant/aarch64-base-debian:latest"
     volumes:
       - ./docker-hassio-config/eaubbies:/data
     environment:
-      PORT: 8099
+      INGRESS_PORT: 8090
     restart: unless-stopped
     ports:
-      - 8099:8099
+      - 8090:8090
