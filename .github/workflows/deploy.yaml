@@ -18,19 +18,14 @@ jobs:
     name: CI
     uses: ./.github/workflows/ci.yaml
     permissions:
-      actions: read
-      contents: read
-      packages: read
-      pull-requests: read
       security-events: write
+  
   publish:
     name: Publish
     needs: ci
     runs-on: ubuntu-latest
     permissions:
-      actions: read
       contents: write
-      packages: write
       pull-requests: write
     env:
       GITHUB_EVENT_RELEASE_TAG_NAME: ${{ github.event.release.tag_name }}
@@ -50,14 +45,10 @@ jobs:
       - name: Update version for builder
         run: |
           yq -i '.version = "${GITHUB_EVENT_RELEASE_TAG_NAME}"' eaubbies/config.yaml
-        env:
-          GITHUB_EVENT_RELEASE_TAG_NAME: ${{ github.event.release.tag_name }}
 
       # 4. Build and publish the Docker images
       - name: Publish
         uses: home-assistant/builder@master
-        env:
-          GITHUB_EVENT_RELEASE_TAG_NAME: ${{ github.event.release.tag_name }}
         with:
           args: |
             --amd64 \
@@ -74,7 +65,6 @@ jobs:
           REVIEWER_TOKEN: ${{ secrets.AUTO_APPROVE_PAT }}
           # Safely capture the multiline release notes to prevent bash syntax errors
           RELEASE_BODY: ${{ github.event.release.body }}
-          GITHUB_EVENT_RELEASE_TAG_NAME: ${{ github.event.release.tag_name }}
         run: |
           # 1. Fetch the absolute latest main branch to avoid conflicts
           git fetch origin main
