@@ -11,13 +11,25 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
 # ── System dependencies ───────────────────────────────────────────────────────
-RUN apt-get update -y && \
-    apt-get install --no-install-recommends -y \
+RUN set -eux; \
+    if command -v apt-get >/dev/null 2>&1; then \
+      apt-get update -y && \
+      apt-get install --no-install-recommends -y \
         nano gettext-base python3 ffmpeg nginx \
         python3-pip python3-dev supervisor cron \
         tesseract-ocr tesseract-ocr-eng && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+      apt-get clean && \
+      rm -rf /var/lib/apt/lists/*; \
+    elif command -v apk >/dev/null 2>&1; then \
+      apk add --no-cache \
+        bash nano gettext python3 ffmpeg nginx \
+        py3-pip python3-dev supervisor dcron \
+        tesseract-ocr tesseract-ocr-data-eng \
+        curl; \
+    else \
+      echo "Unsupported base image: no apt-get/apk found" >&2; \
+      exit 1; \
+    fi
 
 # ── Entrypoint & config files ─────────────────────────────────────────────────
 COPY /entrypoint /entrypoint
