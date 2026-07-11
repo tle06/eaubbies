@@ -159,6 +159,8 @@ jobs:
   lint-zizmor:
     name: zizmor
     runs-on: ubuntu-latest
+    permissions:
+      security-events: write
     steps:
       - name: ⤵️ Check out code from GitHub
         uses: actions/checkout@v6
