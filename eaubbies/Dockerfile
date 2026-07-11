@@ -1,7 +1,9 @@
 # ── Build args ────────────────────────────────────────────────────────────────
 # BUILD_FROM is injected by HA Supervisor. For standalone builds supply it:
-#   docker build --build-arg BUILD_FROM=ghcr.io/home-assistant/amd64-base:latest
-ARG BUILD_FROM=ghcr.io/home-assistant/amd64-base:latest
+#   docker build --build-arg BUILD_FROM=ghcr.io/home-assistant/aarch64-base-debian:latest
+ARG BUILD_FROM=ghcr.io/home-assistant/aarch64-base-debian:latest
+ARG TARGETPLATFORM
+ARG BUILDPLATFORM
 FROM ${BUILD_FROM} AS runtime
 
 WORKDIR /app
@@ -41,6 +43,7 @@ RUN chmod a+x /entrypoint/entrypoint.sh && \
 
 # ── Python dependencies via uv ────────────────────────────────────────────────
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uvx /bin/uvx
 COPY /src/uv.lock /app/uv.lock
 COPY /src/pyproject.toml /app/pyproject.toml
 COPY /src/.python-version /app/.python-version

@@ -25,7 +25,7 @@ services:
       context: eaubbies
       dockerfile: Dockerfile
       args:
-        BUILD_FROM: "ghcr.io/hassio-addons/debian-base:9.3.0"
+        BUILD_FROM: "ghcr.io/home-assistant/aarch64-base-debian:latest"
     volumes:
       - ./docker-hassio-config/eaubbies:/data
     environment:
