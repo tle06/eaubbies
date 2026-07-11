@@ -19,6 +19,10 @@ jobs:
     uses: ./.github/workflows/ci.yaml
     permissions:
       security-events: write
+      actions: read
+      contents: read
+      packages: read
+      pull-requests: read
   
   publish:
     name: Publish
@@ -27,6 +31,9 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+      actions: read
+      packages: read
+      security-events: read
     env:
       GITHUB_EVENT_RELEASE_TAG_NAME: ${{ github.event.release.tag_name }}
     steps:
