@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 
+## [0.0.25] - 2026-07-11
+
+### Fixed
+* fix: handle HA ingress path routing in nginx and entrypoint by @tle06 in https://github.com/tle06/eaubbies/pull/14
+
 ## [0.0.24] - 2026-07-11
 
  ### Added
