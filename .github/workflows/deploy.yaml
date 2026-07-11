@@ -51,8 +51,8 @@ jobs:
       # 3. Update the file locally so the Home Assistant builder compiles it correctly
       - name: Update version for builder
         run: |
-          yq -i '.version = "${GITHUB_EVENT_RELEASE_TAG_NAME}"' eaubbies/config.yaml
-
+          VERSION="${GITHUB_EVENT_RELEASE_TAG_NAME#v}"
+          yq -i ".version = \"${VERSION}\"" eaubbies/config.yaml
       # 4. Build and publish the Docker images
       - name: Publish
         uses: home-assistant/builder@master
@@ -81,7 +81,8 @@ jobs:
           git checkout -b $BRANCH_NAME origin/main
 
           # Update the config version
-          yq -i '.version = "${GITHUB_EVENT_RELEASE_TAG_NAME}"' eaubbies/config.yaml
+          VERSION="${GITHUB_EVENT_RELEASE_TAG_NAME#v}"
+          yq -i ".version = \"${VERSION}\"" eaubbies/config.yaml
 
           # 3. Dynamic Changelog Insertion
           CURRENT_DATE=$(date +%Y-%m-%d)
