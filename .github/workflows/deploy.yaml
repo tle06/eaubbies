@@ -21,19 +21,16 @@ jobs:
       actions: read
       contents: read
       packages: read
-      security-events: write
       pull-requests: read
+      security-events: write
   publish:
     name: Publish
     needs: ci
     runs-on: ubuntu-latest
-    env:
-      GITHUB_EVENT_RELEASE_TAG_NAME: ${{ github.event.release.tag_name }}
     permissions:
       actions: read
       contents: write
       packages: write
-      security-events: read
       pull-requests: write
     steps:
       - name: Checkout the repository
@@ -57,8 +54,6 @@ jobs:
       # 4. Build and publish the Docker images
       - name: Publish
         uses: home-assistant/builder@master
-        env:
-          GITHUB_EVENT_RELEASE_TAG_NAME: ${{ github.event.release.tag_name }}
         with:
           args: |
             --amd64 \
