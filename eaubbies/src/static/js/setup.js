@@ -171,7 +171,7 @@ function StartProcess() {
     fetchOptions = { method: "GET", signal: AbortSignal.timeout(30000) };
   }
 
-  fetch("/run_process", fetchOptions)
+  fetch("run_process", fetchOptions)
     .then(function (response) {
       if (!response.ok)
         ShowErrorMessages("error-message-process", "HTTP " + response.status);
@@ -220,7 +220,7 @@ function StartProcess() {
 // ─── Canvas / frame drawing ───────────────────────────────────────────────────
 
 function CreateHomeAssistantMqttSensor() {
-  fetch("/create_sensor")
+  fetch("create_sensor")
     .then(function (r) {
       return r.json();
     })
@@ -270,7 +270,7 @@ function LoadFrame() {
     };
     reader.readAsDataURL(fileInput.files[0]);
   } else {
-    fetch("/load_frame")
+    fetch("load_frame")
       .then(function (r) {
         return r.json();
       })
@@ -353,7 +353,7 @@ function SendEdit() {
   rectangles.forEach(function (r) {
     r.rotate = rotateValue;
   });
-  fetch("/send_edit", {
+  fetch("send_edit", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(rectangles),
@@ -368,7 +368,7 @@ function SendEdit() {
 
 function SendConfig() {
   var form = document.getElementById("init-config-form");
-  fetch("/save_config", { method: "POST", body: new FormData(form) })
+  fetch("save_config", { method: "POST", body: new FormData(form) })
     .then(function () {
       document
         .querySelector('div[data-target="#create-mqtt-sensor"] .step-trigger')

@@ -7,6 +7,10 @@ server {
         proxy_pass          http://unix:/app/ipc.sock:/;
         proxy_set_header    Host $host;
         proxy_set_header    X-Real-IP $remote_addr;
+        
+        # Add this line to map the Ingress prefix path dynamically
+        proxy_set_header    X-Script-Name $http_x_ingress_path;
+
         proxy_http_version  1.1;
         proxy_set_header    Upgrade $http_upgrade;
         proxy_set_header    Connection "upgrade";
