@@ -17,6 +17,12 @@ jobs:
   ci:
     name: CI
     uses: ./.github/workflows/ci.yaml
+    permissions:
+      actions: read
+      contents: read
+      packages: read
+      security-events: write
+      pull-requests: read
   publish:
     name: Publish
     needs: ci
@@ -25,7 +31,7 @@ jobs:
       actions: read
       contents: write
       packages: write
-      security-events: write
+      security-events: read
       pull-requests: write
     steps:
       - name: Checkout the repository
