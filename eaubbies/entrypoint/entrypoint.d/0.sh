@@ -3,18 +3,23 @@ echo "[EXECUTION] 0.sh file"
 
 # INGRESS_PORT: injected by HA Supervisor at runtime, fallback for standalone
 export INGRESS_PORT="${INGRESS_PORT:-8099}"
-# INGRESS_ENTRY: ingress path prefix injected by HA Supervisor, fallback for standalone
-export INGRESS_ENTRY="${INGRESS_ENTRY:-/}"
-
 echo "[INFO] INGRESS_PORT : $INGRESS_PORT"
-echo "[INFO] INGRESS_ENTRY: $INGRESS_ENTRY"
+
+if [ -n "${SUPERVISOR_TOKEN}" ]; then
+    echo "[INFO] Running as Home Assistant add-on — restricting to Supervisor IP"
+    export INGRESS_ACL="allow 172.30.32.2;
+    deny all;"
+else
+    echo "[INFO] Running standalone — no IP restriction applied"
+    export INGRESS_ACL=""
+fi
 
 start_web() {
     echo "-------------------------------------"
     echo "[PREPARATION] Create NGINX configuration file at /etc/nginx/sites-available/app.conf"
     echo "NGINX will use PORT: $INGRESS_PORT and ENTRY: $INGRESS_ENTRY"
 
-    envsubst "\$INGRESS_PORT \$INGRESS_ENTRY" \
+    envsubst "\$INGRESS_PORT \$INGRESS_ACL" \
         < /etc/nginx/conf.d/app.template \
         > /etc/nginx/sites-available/app.conf
 
