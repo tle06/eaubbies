@@ -57,10 +57,11 @@ class ReverseProxied:
             path_info = environ.get("PATH_INFO", "")
             logger.debug(f"Original PATH_INFO: {path_info}")
             if path_info.startswith(script_name):
-                environ["PATH_INFO"] = path_info[len(script_name):]
+                environ["PATH_INFO"] = path_info[len(script_name) :]
                 logger.debug(f"Adjusted PATH_INFO: {environ['PATH_INFO']}")
         return self.app(environ, start_response)
-    
+
+
 app = Flask(__name__)
 app.wsgi_app = ReverseProxied(app.wsgi_app)
 
