@@ -11,7 +11,7 @@
           <span class="badge bg-secondary ms-2" id="frame-count">{{ files | length }}</span>
         </h5>
         <div class="d-flex gap-2">
-          <a href="/download_all_frames" class="btn btn-sm btn-outline-primary" id="btn-download-all"
+          <a href="{{ url_for('download_all_frames') }}" class="btn btn-sm btn-outline-primary" id="btn-download-all"
             {% if not files %}style="pointer-events:none;opacity:.5;"{% endif %}>
             <i class="bx bx-download me-1"></i>Download all
           </a>
