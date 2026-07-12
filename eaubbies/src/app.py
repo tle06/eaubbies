@@ -44,6 +44,7 @@ root_logger.addHandler(file_handler)
 logger = logging.getLogger("troubleshoot")
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 class ReverseProxied:
     def __init__(self, app):
         self.app = app
