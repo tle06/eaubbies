@@ -21,7 +21,7 @@ import logging
 import json
 from datetime import datetime, timedelta
 
-LOG_FILE = "/tmp/eaubbies.log"
+LOG_FILE = "/app/eaubbies.log"
 
 # ── Logging setup ─────────────────────────────────────────────────────────────
 log_formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
@@ -172,7 +172,7 @@ def logs():
     cutoff = datetime.now() - timedelta(days=30)
     entries = []
     if os.path.exists(LOG_FILE):
-        with open(LOG_FILE, "r") as fh:
+        with open(LOG_FILE, "r", encoding="utf-8") as fh:
             for line in fh:
                 line = line.rstrip("\n")
                 if not line:
