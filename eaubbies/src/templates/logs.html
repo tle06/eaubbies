@@ -5,7 +5,7 @@
     <div class="card">
       <div class="card-header d-flex justify-content-between align-items-center">
         <h5 class="mb-0">Application Logs <small class="text-muted">(last 30 days — most recent first)</small></h5>
-        <a href="/logs/download" class="btn btn-sm btn-outline-primary">
+        <a href="{{ url_for('logs_download') }}" class="btn btn-sm btn-outline-primary">
           <i class="bx bx-download me-1"></i>Download log file
         </a>
       </div>

@@ -54,7 +54,7 @@
 
       <aside id="layout-menu" class="layout-menu menu-vertical menu bg-menu-theme">
         <div class="app-brand demo">
-          <a href="/" class="app-brand-link">
+          <a href="{{ url_for('index') }}" class="app-brand-link">
 
             <img src="{{url_for('static', filename='img/app/logo.png')}}" alt="Logo" class="app-brand-logo demo"
               width="20%" />
@@ -74,27 +74,27 @@
           <li class="menu-item active open">
             <ul class="menu-sub">
               <li class="menu-item">
-                <a href="/" class="menu-link">
+                <a href="{{ url_for('index') }}" class="menu-link">
                   <div data-i18n="Home">Home</div>
                 </a>
               </li>
               <li class="menu-item">
-                <a href="/video" class="menu-link">
+                <a href="{{ url_for('video') }}" class="menu-link">
                   <div data-i18n="Video feed">Video feed</div>
                 </a>
               </li>
               <li class="menu-item">
-                <a href="/config" class="menu-link">
+                <a href="{{ url_for('config') }}" class="menu-link">
                   <div data-i18n="Config">Config</div>
                 </a>
               </li>
               <li class="menu-item">
-                <a href="/frames" class="menu-link">
+                <a href="{{ url_for('frames') }}" class="menu-link">
                   <div data-i18n="Frames">Frames</div>
                 </a>
               </li>
               <li class="menu-item">
-                <a href="/logs" class="menu-link">
+                <a href="{{ url_for('logs') }}" class="menu-link">
                   <div data-i18n="Logs">Logs</div>
                 </a>
               </li>
