@@ -12,5 +12,7 @@ map:
   - share:rw
 schema:
   message: "str?"
+  log_level: list(trace|debug|info|notice|warning|error|fatal)?
 image: "tlnk/{arch}-addon-eaubbies"
 ingress: true
+panel_icon: mdi:water
