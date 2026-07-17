@@ -249,7 +249,7 @@ def save_config():
     form_print = request.form.copy()
     form_print.pop("vision_key", None)  # Avoid logging sensitive info
     form_print.pop("mqtt_password", None)  # Avoid logging sensitive info
-    
+
     logger.info(f"Form data received: {form_print}")  # Avoid logging sensitive info
     local_config = YamlConfigLoader()
 
@@ -266,17 +266,14 @@ def save_config():
 
     if request.form.get("vision_key"):
         key = request.form["vision_key"]
-        if (
-            key != "********************************"
-            and key != local_config.get_param("vision", "key")
+        if key != "********************************" and key != local_config.get_param(
+            "vision", "key"
         ):
             local_config.set_param("vision", "key", value=key)
             logger.info("Vision API key updated")
 
     if request.form.get("endpoint_url"):
-        local_config.set_param(
-            "vision", "endpoint", value=request.form["endpoint_url"]
-        )
+        local_config.set_param("vision", "endpoint", value=request.form["endpoint_url"])
         logger.info(f"Vision endpoint updated: {request.form['endpoint_url']}")
 
     if request.form.get("vision_integer_digit"):
@@ -455,18 +452,15 @@ def save_config():
         logger.info(f"MQTT server updated: {request.form.get('mqtt_server')}")
 
     if request.form.get("mqtt_port"):
-        local_config.set_param(
-            "mqtt", "port", value=int(request.form.get("mqtt_port"))
-        )
+        local_config.set_param("mqtt", "port", value=int(request.form.get("mqtt_port")))
 
     if request.form.get("mqtt_user"):
         local_config.set_param("mqtt", "user", value=request.form.get("mqtt_user"))
 
     if request.form.get("mqtt_password"):
         pwd = request.form.get("mqtt_password")
-        if (
-            pwd != "********************************"
-            and pwd != local_config.get_param("mqtt", "password")
+        if pwd != "********************************" and pwd != local_config.get_param(
+            "mqtt", "password"
         ):
             local_config.set_param("mqtt", "password", value=pwd)
             logger.info("MQTT password updated")
