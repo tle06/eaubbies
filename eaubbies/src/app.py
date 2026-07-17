@@ -98,26 +98,30 @@ def index():
 
 @app.route("/init")
 def init():
-    return render_template("init-config.html", config=configuration.data)
+    local_config = YamlConfigLoader()
+    return render_template("init-config.html", config=local_config.data)
 
 
 @app.route("/config")
 def config():
     cron_status = get_cron_status(CRON_COMMAND)
+    local_config = YamlConfigLoader()
     return render_template(
-        "config.html", config=configuration.data, cron_status=cron_status
+        "config.html", config=local_config.data, cron_status=cron_status
     )
 
 
 @app.route("/video")
 def video():
     # Pass the YAML config so the template can read config['rtsp']['url']
-    return render_template("video.html", config=configuration.data)
+    local_config = YamlConfigLoader()
+    return render_template("video.html", config=local_config.data)
 
 
 @app.route("/frames")
 def frames():
-    folder = configuration.get_param("frame", "storage_path")
+    local_config = YamlConfigLoader()
+    folder = local_config.get_param("frame", "storage_path")
     try:
         files = sorted(os.listdir(folder))
     except Exception as e:
@@ -128,14 +132,16 @@ def frames():
 
 @app.route("/download/<path:filename>")
 def download_file(filename):
+    local_config = YamlConfigLoader()
     return send_from_directory(
-        configuration.get_param("frame", "storage_path"), filename, as_attachment=True
+        local_config.get_param("frame", "storage_path"), filename, as_attachment=True
     )
 
 
 @app.route("/delete_frame/<path:filename>", methods=["DELETE"])
 def delete_frame(filename):
-    folder = configuration.get_param("frame", "storage_path")
+    local_config = YamlConfigLoader()
+    folder = local_config.get_param("frame", "storage_path")
     filepath = os.path.join(folder, filename)
     try:
         if not os.path.abspath(filepath).startswith(os.path.abspath(folder)):
@@ -151,7 +157,8 @@ def delete_frame(filename):
 
 @app.route("/delete_all_frames", methods=["POST"])
 def delete_all_frames():
-    folder = configuration.get_param("frame", "storage_path")
+    local_config = YamlConfigLoader()
+    folder = local_config.get_param("frame", "storage_path")
     deleted, errors = [], []
     try:
         for f in os.listdir(folder):
@@ -169,7 +176,8 @@ def delete_all_frames():
 
 @app.route("/download_all_frames")
 def download_all_frames():
-    folder = configuration.get_param("frame", "storage_path")
+    local_config = YamlConfigLoader()
+    folder = local_config.get_param("frame", "storage_path")
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
         for f in sorted(os.listdir(folder)):
@@ -237,57 +245,60 @@ def logs_download():
 def save_config():
 
     logger.info("Saving configuration from form submission")
-    logger.debug(f"Form data received: {request.form}")
+
+    form_print = request.form.copy()
+    form_print.pop("vision_key", None)  # Avoid logging sensitive info
+    form_print.pop("mqtt_password", None)  # Avoid logging sensitive info
+
+    logger.info(f"Form data received: {form_print}")  # Avoid logging sensitive info
+    local_config = YamlConfigLoader()
 
     # ── OCR engine ──
     if request.form.get("vision_engine"):
-        configuration.set_param("vision", "engine", value=request.form["vision_engine"])
+        local_config.set_param("vision", "engine", value=request.form["vision_engine"])
         logger.info(f"Vision engine updated to: {request.form['vision_engine']}")
 
     if request.form.get("tesseract_config"):
-        configuration.set_param(
+        local_config.set_param(
             "vision", "tesseract_config", value=request.form["tesseract_config"]
         )
         logger.info(f"Tesseract config updated: {request.form['tesseract_config']}")
 
     if request.form.get("vision_key"):
         key = request.form["vision_key"]
-        if (
-            key != "********************************"
-            and key != configuration.get_param("vision", "key")
+        if key != "********************************" and key != local_config.get_param(
+            "vision", "key"
         ):
-            configuration.set_param("vision", "key", value=key)
+            local_config.set_param("vision", "key", value=key)
             logger.info("Vision API key updated")
 
     if request.form.get("endpoint_url"):
-        configuration.set_param(
-            "vision", "endpoint", value=request.form["endpoint_url"]
-        )
+        local_config.set_param("vision", "endpoint", value=request.form["endpoint_url"])
         logger.info(f"Vision endpoint updated: {request.form['endpoint_url']}")
 
     if request.form.get("vision_integer_digit"):
-        configuration.set_param(
+        local_config.set_param(
             "vision",
             "integer",
             "digit",
             value=int(request.form["vision_integer_digit"]),
         )
     if request.form.get("vision_integer_unit_of_measurement"):
-        configuration.set_param(
+        local_config.set_param(
             "vision",
             "integer",
             "unit_of_measurement",
             value=request.form["vision_integer_unit_of_measurement"],
         )
     if request.form.get("vision_decimal_digit"):
-        configuration.set_param(
+        local_config.set_param(
             "vision",
             "decimal",
             "digit",
             value=int(request.form["vision_decimal_digit"]),
         )
     if request.form.get("vision_decimal_unit_of_measurement"):
-        configuration.set_param(
+        local_config.set_param(
             "vision",
             "decimal",
             "unit_of_measurement",
@@ -297,17 +308,17 @@ def save_config():
     # ── Image optimisation ──
 
     if request.form.get("img_convert_bgr"):
-        configuration.set_param("rtsp", "image", "convert_to_bgr", value=True)
+        local_config.set_param("rtsp", "image", "convert_to_bgr", value=True)
     else:
-        configuration.set_param("rtsp", "image", "convert_to_bgr", value=False)
+        local_config.set_param("rtsp", "image", "convert_to_bgr", value=False)
 
     if request.form.get("img_convert_grey"):
-        configuration.set_param("rtsp", "image", "convert_to_grey", value=True)
+        local_config.set_param("rtsp", "image", "convert_to_grey", value=True)
     else:
-        configuration.set_param("rtsp", "image", "convert_to_grey", value=False)
+        local_config.set_param("rtsp", "image", "convert_to_grey", value=False)
 
     if request.form.get("img_exposure_active"):
-        configuration.set_param(
+        local_config.set_param(
             "rtsp",
             "image",
             "exposure",
@@ -315,7 +326,7 @@ def save_config():
             value=True,
         )
     else:
-        configuration.set_param(
+        local_config.set_param(
             "rtsp",
             "image",
             "exposure",
@@ -324,7 +335,7 @@ def save_config():
         )
 
     if request.form.get("img_contrast_active"):
-        configuration.set_param(
+        local_config.set_param(
             "rtsp",
             "image",
             "contrast",
@@ -332,7 +343,7 @@ def save_config():
             value=True,
         )
     else:
-        configuration.set_param(
+        local_config.set_param(
             "rtsp",
             "image",
             "contrast",
@@ -341,7 +352,7 @@ def save_config():
         )
 
     if request.form.get("img_sharpen_active"):
-        configuration.set_param(
+        local_config.set_param(
             "rtsp",
             "image",
             "sharpen",
@@ -349,7 +360,7 @@ def save_config():
             value=True,
         )
     else:
-        configuration.set_param(
+        local_config.set_param(
             "rtsp",
             "image",
             "sharpen",
@@ -358,14 +369,14 @@ def save_config():
         )
 
     if request.form.get("img_crop_active"):
-        configuration.set_param("rtsp", "image", "crop_image", "active", value=True)
+        local_config.set_param("rtsp", "image", "crop_image", "active", value=True)
     else:
-        configuration.set_param("rtsp", "image", "crop_image", "active", value=False)
+        local_config.set_param("rtsp", "image", "crop_image", "active", value=False)
 
     if request.form.get("img_exposure_in_min") and request.form.get(
         "img_exposure_in_max"
     ):
-        configuration.set_param(
+        local_config.set_param(
             "rtsp",
             "image",
             "exposure",
@@ -378,7 +389,7 @@ def save_config():
     if request.form.get("img_exposure_out_min") and request.form.get(
         "img_exposure_out_max"
     ):
-        configuration.set_param(
+        local_config.set_param(
             "rtsp",
             "image",
             "exposure",
@@ -390,7 +401,7 @@ def save_config():
         )
 
     if request.form.get("img_contrast_alpha"):
-        configuration.set_param(
+        local_config.set_param(
             "rtsp",
             "image",
             "contrast",
@@ -398,7 +409,7 @@ def save_config():
             value=float(request.form["img_contrast_alpha"]),
         )
     if request.form.get("img_contrast_beta"):
-        configuration.set_param(
+        local_config.set_param(
             "rtsp",
             "image",
             "contrast",
@@ -406,7 +417,7 @@ def save_config():
             value=int(request.form["img_contrast_beta"]),
         )
     if request.form.get("img_sharpen_amount"):
-        configuration.set_param(
+        local_config.set_param(
             "rtsp",
             "image",
             "sharpen",
@@ -414,7 +425,7 @@ def save_config():
             value=float(request.form["img_sharpen_amount"]),
         )
     if request.form.get("img_sharpen_threshold"):
-        configuration.set_param(
+        local_config.set_param(
             "rtsp",
             "image",
             "sharpen",
@@ -422,7 +433,7 @@ def save_config():
             value=int(request.form["img_sharpen_threshold"]),
         )
     if request.form.get("img_crop_coordinates"):
-        configuration.set_param(
+        local_config.set_param(
             "rtsp",
             "image",
             "crop_image",
@@ -432,42 +443,39 @@ def save_config():
 
     # ── RTSP ──
     if request.form.get("rtsp_url"):
-        configuration.set_param("rtsp", "url", value=request.form.get("rtsp_url"))
+        local_config.set_param("rtsp", "url", value=request.form.get("rtsp_url"))
         logger.info(f"RTSP URL updated: {request.form.get('rtsp_url')}")
 
     # ── MQTT ──
     if request.form.get("mqtt_server"):
-        configuration.set_param("mqtt", "server", value=request.form.get("mqtt_server"))
+        local_config.set_param("mqtt", "server", value=request.form.get("mqtt_server"))
         logger.info(f"MQTT server updated: {request.form.get('mqtt_server')}")
 
     if request.form.get("mqtt_port"):
-        configuration.set_param(
-            "mqtt", "port", value=int(request.form.get("mqtt_port"))
-        )
+        local_config.set_param("mqtt", "port", value=int(request.form.get("mqtt_port")))
 
     if request.form.get("mqtt_user"):
-        configuration.set_param("mqtt", "user", value=request.form.get("mqtt_user"))
+        local_config.set_param("mqtt", "user", value=request.form.get("mqtt_user"))
 
     if request.form.get("mqtt_password"):
         pwd = request.form.get("mqtt_password")
-        if (
-            pwd != "********************************"
-            and pwd != configuration.get_param("mqtt", "password")
+        if pwd != "********************************" and pwd != local_config.get_param(
+            "mqtt", "password"
         ):
-            configuration.set_param("mqtt", "password", value=pwd)
+            local_config.set_param("mqtt", "password", value=pwd)
             logger.info("MQTT password updated")
 
     if request.form.get("mqtt_device_name"):
-        configuration.set_param(
+        local_config.set_param(
             "mqtt", "device", "name", value=request.form.get("mqtt_device_name")
         )
     if request.form.get("mqtt_device_node_id"):
-        configuration.set_param(
+        local_config.set_param(
             "mqtt", "device", "node_id", value=request.form.get("mqtt_device_node_id")
         )
 
     if request.form.get("mqtt_device_unique_id"):
-        configuration.set_param(
+        local_config.set_param(
             "mqtt",
             "device",
             "unique_id",
@@ -475,12 +483,12 @@ def save_config():
         )
 
     if request.form.get("mqtt_discovery_prefix"):
-        configuration.set_param(
+        local_config.set_param(
             "mqtt", "discovery_prefix", value=request.form.get("mqtt_discovery_prefix")
         )
 
     if request.form.get("mqtt_sensors_water_unit_of_measurement"):
-        configuration.set_param(
+        local_config.set_param(
             "mqtt",
             "sensors",
             "water",
@@ -491,7 +499,7 @@ def save_config():
     # ── Cron ──
     if request.form.get("cron_time"):
         cron_time = request.form.get("cron_time")
-        configuration.set_param("service", "cron", value=cron_time)
+        local_config.set_param("service", "cron", value=cron_time)
         register_cron_task(command=CRON_COMMAND, selected_time=cron_time)
         logger.info(f"Cron schedule updated: {cron_time}")
 
@@ -500,10 +508,10 @@ def save_config():
         init_config_value = request.form.get("init_config")
         logger.info(f"Received init_config value: {init_config_value}")
         if init_config_value == "on":
-            configuration.set_param("setup", "init_config", value=True)
+            local_config.set_param("setup", "init_config", value=True)
         logger.info(f"Setup initialization status updated: {init_config_value}")
     else:
-        configuration.set_param("setup", "init_config", value=False)
+        local_config.set_param("setup", "init_config", value=False)
 
     logger.info("Configuration saved successfully")
 
@@ -521,7 +529,8 @@ def cron_status():
 @app.route("/register_cron", methods=["POST"])
 def register_cron():
     try:
-        selected_time = configuration.get_param("service", "cron")
+        local_config = YamlConfigLoader()
+        selected_time = local_config.get_param("service", "cron")
         register_cron_task(command=CRON_COMMAND, selected_time=selected_time)
         status = get_cron_status(CRON_COMMAND)
         logger.info(f"Cron task registered, status: {status}")
@@ -533,7 +542,8 @@ def register_cron():
 
 @app.route("/video_feed")
 def video_feed():
-    rtsp_url = configuration.get_param("rtsp", "url")
+    local_config = YamlConfigLoader()
+    rtsp_url = local_config.get_param("rtsp", "url")
     logger.info(f"Starting video feed from: {rtsp_url}")
     client = RTSPClient(rtsp_url=rtsp_url, save_frame=False)
     return Response(
@@ -569,10 +579,11 @@ def run_process():
 
 @app.route("/load_frame")
 def load_frame():
-    rtsp_url = configuration.get_param("rtsp", "url")
+    local_config = YamlConfigLoader()
+    rtsp_url = local_config.get_param("rtsp", "url")
     logger.info(f"Loading frame from RTSP: {rtsp_url}")
     client_rtsp = RTSPClient(rtsp_url=rtsp_url)
-    default_folder = configuration.get_param("frame", "storage_path")
+    default_folder = local_config.get_param("frame", "storage_path")
     client_rtsp.set_default_folder(default_folder=default_folder)
     client_rtsp.get_frame(filename="0.frame_origine")
     image_path = f"{default_folder}/0.frame_origine.jpg"
@@ -597,16 +608,17 @@ def create_sensor():
 def receive_coordinates():
     data = request.json
     logger.info(f"Received coordinates: {data}")
+    local_config = YamlConfigLoader()
     for d in data:
         coords = d["coordinates"]
         coords["active"] = bool(coords.get("width") and coords.get("height"))
-        configuration.set_param("vision", "coordinates", d["name"], value=coords)
-        configuration.set_param("vision", "rotate", value=float(d["rotate"]))
+        local_config.set_param("vision", "coordinates", d["name"], value=coords)
+        local_config.set_param("vision", "rotate", value=float(d["rotate"]))
         logger.info(
             f"Coordinate saved — name={d['name']}, rotate={d['rotate']}, active={coords['active']}"
         )
-    if not bool(configuration.get_param("setup", "init_config")):
-        configuration.set_param("setup", "init_config", value=True)
+    if not bool(local_config.get_param("setup", "init_config")):
+        local_config.set_param("setup", "init_config", value=True)
         logger.info("Initial configuration marked as done")
     return redirect(url_for("index"), code=302)
 
