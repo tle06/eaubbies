@@ -27,9 +27,14 @@ services:
       args:
         BUILD_FROM: "ghcr.io/home-assistant/aarch64-base-debian:latest"
     volumes:
+      # Mount the persistent data directory at /data (standalone path)
       - ./docker-hassio-config/eaubbies:/data
     environment:
       INGRESS_PORT: 8090
+      # Tell the app where to store config/logs when running standalone.
+      # The entrypoint also derives this from SUPERVISOR_TOKEN presence,
+      # but setting it explicitly here makes standalone runs self-documenting.
+      CONFIG_PATH: /data
     restart: unless-stopped
     ports:
       - 8090:8090

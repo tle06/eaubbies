@@ -6,10 +6,22 @@ from environs import Env
 env = Env()
 env.read_env()
 
+# CONFIG_PATH is set by the entrypoint:
+#   /config  when running as an HA add-on (Supervisor mounts the share there)
+#   /data    when running standalone (docker-compose mounts the volume there)
+# Falls back to /config so existing HA deployments are unaffected.
+_config_base = env.str("CONFIG_PATH", "/config")
+
 
 class YamlConfigLoader:
-    default_config_file = env.str("DEFAULT_CONFIG_FILE", "config/eaubbies/main.yaml")
-    default_frames_path = env.str("DEFAULT_FRAMES_PATH", "config/eaubbies/img/frames")
+    default_config_file = env.str(
+        "DEFAULT_CONFIG_FILE",
+        os.path.join(_config_base, "eaubbies", "main.yaml"),
+    )
+    default_frames_path = env.str(
+        "DEFAULT_FRAMES_PATH",
+        os.path.join(_config_base, "eaubbies", "img", "frames"),
+    )
 
     def __init__(self, filename=None):
         self.filename = filename or self.default_config_file
