@@ -1,14 +1,20 @@
 import yaml
 import os
 from utils.utils import generate_unique_id
+from environs import Env
 
-default_config_file = "config/eaubbies/main.yaml"
+env = Env()
+env.read_env()
+
+
 
 
 class YamlConfigLoader:
+    default_config_file = env.str("DEFAULT_CONFIG_FILE", "config/eaubbies/main.yaml")
+    default_frames_path = env.str("DEFAULT_FRAMES_PATH", "config/eaubbies/img/frames")
 
     def __init__(self, filename=None):
-        self.filename = filename or default_config_file
+        self.filename = filename or self.default_config_file
         self.data = self.load_config()
 
     def load_config(self):
@@ -29,7 +35,7 @@ class YamlConfigLoader:
         # Modify this dictionary according to your default configuration
         default_config = {
             "frame": {
-                "storage_path": "config/eaubbies/img/frames",
+                "storage_path": self.default_frames_path,
             },
             "result": {"current": None, "previous": None, "unit": "l"},
             "vision": {
