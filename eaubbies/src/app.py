@@ -21,7 +21,7 @@ import logging
 import json
 from datetime import datetime, timedelta
 
-LOG_FILE = "/app/eaubbies.log"
+LOG_FILE = "/config/eaubbies/logs/eaubbies.log"
 
 # ── Logging setup ─────────────────────────────────────────────────────────────
 log_formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")

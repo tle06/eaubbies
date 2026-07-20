@@ -39,7 +39,9 @@ COPY /etc /etc
 
 RUN chmod a+x /entrypoint/entrypoint.sh && \
     chmod a+x /entrypoint/entrypoint.d/*.sh && \
-    mkdir -p /var/run/nginx
+    mkdir -p /var/run/nginx && \
+    mkdir -p /config/eaubbies/logs/ && \
+    mkdir -p /config/eaubbies/img/frames/
 
 # ── Python dependencies via uv ────────────────────────────────────────────────
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
@@ -54,7 +56,7 @@ ENV PATH="/app/.venv/bin:$PATH"
 
 COPY /src /app
 
-RUN chown -R www-data:www-data /app /var/log/supervisor /var/log/nginx /var/run/nginx
+RUN chown -R www-data:www-data /app /var/log/supervisor /var/log/nginx /var/run/nginx /config/eaubbies/logs/ /config/eaubbies/img/frames/
 
 # ── Health check (works both inside HA and standalone) ────────────────────────
 HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \

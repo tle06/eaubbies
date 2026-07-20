@@ -9,6 +9,7 @@ arch:
   - aarch64
 init: false
 map:
+  - config:rw
   - share:rw
 schema:
   message: "str?"

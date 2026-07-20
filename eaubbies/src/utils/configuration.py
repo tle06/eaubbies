@@ -2,7 +2,7 @@ import yaml
 import os
 from utils.utils import generate_unique_id
 
-default_config_file = "data/config/main.yaml"
+default_config_file = "config/eaubbies/main.yaml"
 
 
 class YamlConfigLoader:
@@ -29,7 +29,7 @@ class YamlConfigLoader:
         # Modify this dictionary according to your default configuration
         default_config = {
             "frame": {
-                "storage_path": "static/img/frames",
+                "storage_path": "config/eaubbies/img/frames",
             },
             "result": {"current": None, "previous": None, "unit": "l"},
             "vision": {
