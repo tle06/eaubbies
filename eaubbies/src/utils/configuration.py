@@ -7,8 +7,6 @@ env = Env()
 env.read_env()
 
 
-
-
 class YamlConfigLoader:
     default_config_file = env.str("DEFAULT_CONFIG_FILE", "config/eaubbies/main.yaml")
     default_frames_path = env.str("DEFAULT_FRAMES_PATH", "config/eaubbies/img/frames")
