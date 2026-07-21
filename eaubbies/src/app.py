@@ -11,7 +11,7 @@ from flask import (
 )
 from utils.rtsp_client import RTSPClient
 from utils.utils import register_cron_task, get_cron_status
-from utils.configuration import YamlConfigLoader
+from utils.configuration import YamlConfigLoader, _config_base
 from utils.mqtt import MqttCLient
 from service import service_process
 import os
@@ -21,7 +21,9 @@ import logging
 import json
 from datetime import datetime, timedelta
 
-LOG_FILE = "/app/eaubbies.log"
+# Derive log path from the same CONFIG_PATH used by the config loader so
+# logs are always written to the mounted volume regardless of run mode.
+LOG_FILE = os.path.join(_config_base, "eaubbies", "logs", "eaubbies.log")
 
 # ── Logging setup ─────────────────────────────────────────────────────────────
 log_formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
@@ -30,6 +32,9 @@ log_formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
 console_handler = logging.StreamHandler()
 console_handler.setFormatter(log_formatter)
 console_handler.setLevel(logging.INFO)
+
+# Ensure the log directory exists before opening the FileHandler
+os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)
 
 # File handler — persists logs for the viewer page
 file_handler = logging.FileHandler(LOG_FILE)

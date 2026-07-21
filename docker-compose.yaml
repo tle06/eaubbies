@@ -30,6 +30,7 @@ services:
       - ./docker-hassio-config/eaubbies:/data
     environment:
       INGRESS_PORT: 8090
+      CONFIG_PATH: /data
     restart: unless-stopped
     ports:
       - 8090:8090
