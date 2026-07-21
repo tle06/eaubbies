@@ -10,12 +10,12 @@ if [ -n "${SUPERVISOR_TOKEN}" ]; then
     export INGRESS_ACL="allow 172.30.32.2;
     deny all;"
     # HA Supervisor mounts the persistent share at /config
-    export CONFIG_PATH="/config"
+    export CONFIG_PATH="${CONFIGURATION_PATH:-"/config"}"
 else
     echo "[INFO] Running standalone — no IP restriction applied"
     export INGRESS_ACL=""
     # Standalone: data volume is mounted at /data
-    export CONFIG_PATH="/data"
+    export CONFIG_PATH="${CONFIGURATION_PATH:-"/data"}"
 fi
 
 echo "[INFO] CONFIG_PATH : $CONFIG_PATH"
