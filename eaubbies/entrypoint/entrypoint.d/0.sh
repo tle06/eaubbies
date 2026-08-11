@@ -11,6 +11,10 @@ if [ -n "${SUPERVISOR_TOKEN}" ]; then
     deny all;"
     # HA Supervisor mounts the persistent share at /config
     export CONFIG_PATH="${CONFIGURATION_PATH:-"/config"}"
+    mkdir -p "$CONFIG_PATH/eaubbies/logs" "$CONFIG_PATH/eaubbies/img/frames"
+    touch "$CONFIG_PATH/eaubbies/main.yaml"
+    chown -R www-data:www-data "$CONFIG_PATH/eaubbies"
+    chmod 755 "$CONFIG_PATH/eaubbies" "$CONFIG_PATH/eaubbies/logs" "$CONFIG_PATH/eaubbies/img" "$CONFIG_PATH/eaubbies/img/frames"
 else
     echo "[INFO] Running standalone — no IP restriction applied"
     export INGRESS_ACL=""
