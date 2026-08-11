@@ -80,14 +80,53 @@ class ReverseProxied:
 app = Flask(__name__)
 app.wsgi_app = ReverseProxied(app.wsgi_app)
 
-configuration = YamlConfigLoader()
-path_frame_folder = configuration.get_param("frame", "storage_path")
-logger.info(f"Frame folder path: {path_frame_folder}")
-os.makedirs(path_frame_folder, exist_ok=True)
 CRON_COMMAND = "/app/.venv/bin/python /app/cron.py"
-register_cron_task(
-    command=CRON_COMMAND, selected_time=configuration.get_param("service", "cron")
-)
+
+
+def init_app(flask_app=None):
+    """
+    Perform runtime initialisation that has external side effects.
+
+    This ensures the frames directory exists and (re)registers the scheduled
+    cron job. It is intentionally kept out of module import so that importing
+    ``app`` (e.g. in unit tests or tooling) does not touch ``/config`` or the
+    user crontab. Set the ``EAUBBIES_SKIP_INIT`` environment variable to skip
+    it entirely.
+
+    Parameters:
+        flask_app: The Flask application (unused today, accepted for a clean
+            app-factory signature and future extension).
+    """
+    configuration = YamlConfigLoader()
+    path_frame_folder = configuration.get_param("frame", "storage_path")
+    logger.info(f"Frame folder path: {path_frame_folder}")
+    os.makedirs(path_frame_folder, exist_ok=True)
+    register_cron_task(
+        command=CRON_COMMAND,
+        selected_time=configuration.get_param("service", "cron"),
+    )
+    return flask_app
+
+
+def create_app():
+    """
+    Application factory.
+
+    Returns the module-level Flask app after running :func:`init_app` (unless
+    ``EAUBBIES_SKIP_INIT`` is set). Provided for WSGI servers/tests that prefer
+    an explicit factory entrypoint.
+    """
+    if not os.environ.get("EAUBBIES_SKIP_INIT"):
+        init_app(app)
+    return app
+
+
+# Run runtime initialisation on import for the normal serving paths
+# (gunicorn ``app:app``, ``flask run``, direct execution). Tests and tooling
+# set ``EAUBBIES_SKIP_INIT`` so that a bare import stays side-effect free and
+# never touches ``/config`` or the user crontab.
+if not os.environ.get("EAUBBIES_SKIP_INIT"):
+    init_app(app)
 
 
 def _safe_frame_path(folder: str, filename: str):

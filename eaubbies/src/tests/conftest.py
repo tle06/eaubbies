@@ -23,3 +23,6 @@ os.environ.setdefault(
 os.environ.setdefault(
     "DEFAULT_FRAMES_PATH", os.path.join(_TEST_ROOT, "eaubbies", "img", "frames")
 )
+# Skip app.py runtime initialisation (frames dir + cron registration) on
+# import so importing the module in tests has no external side effects.
+os.environ.setdefault("EAUBBIES_SKIP_INIT", "1")

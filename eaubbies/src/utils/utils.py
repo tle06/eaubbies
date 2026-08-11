@@ -1,5 +1,8 @@
 from crontab import CronTab
+import logging
 import uuid
+
+logger = logging.getLogger(__name__)
 
 
 def volume_converter(number, from_unit: str, to_unit: str):
@@ -18,7 +21,7 @@ def volume_converter(number, from_unit: str, to_unit: str):
         ValueError: If either unit is not supported.
     """
     units = {"l": 1, "cl": 0.01, "dl": 0.1, "hl": 100, "m3": 1000}
-    print(number, from_unit, to_unit)
+    logger.debug(f"volume_converter: {number} {from_unit} -> {to_unit}")
 
     if from_unit not in units or to_unit not in units:
         raise ValueError("Invalid unit provided (l,cl,dl,hl,m3)")
@@ -68,13 +71,13 @@ def register_cron_task(command, selected_time):
         if job.command == command:
             job.setall(cron_expression)
             cron.write()
-            print("Cron job updated successfully.")
+            logger.info("Cron job updated successfully.")
             return
 
     job = cron.new(command=command)
     job.setall(cron_expression)
     cron.write()
-    print("Cron job registered successfully.")
+    logger.info("Cron job registered successfully.")
 
 
 def get_cron_status(command: str) -> dict:
@@ -130,6 +133,9 @@ def generate_result(raw_result: str):
     active coordinate region), converts both to the main unit of measurement,
     and returns a rich payload used for MQTT publishing.
 
+    When there is no dot, the first ``integer_digit`` characters form the
+    integer part and the remaining trailing characters form the decimal part.
+
     Parameters:
         raw_result (str): The raw text produced by the OCR engine.
 
@@ -142,7 +148,7 @@ def generate_result(raw_result: str):
     """
     from utils.configuration import YamlConfigLoader
 
-    print(raw_result)
+    logger.debug(f"generate_result raw input: '{raw_result}'")
     configuration = YamlConfigLoader()
 
     integer_digit = int(configuration.get_param("vision", "integer", "digit"))
@@ -186,32 +192,40 @@ def generate_result(raw_result: str):
     ).lower()
 
     rotate = configuration.get_param("vision", "rotate")
-    print(integer_digit, integer_uom, decimal_digit, decimal_uom, main_uom)
+    logger.debug(
+        f"config: integer_digit={integer_digit} integer_uom={integer_uom} "
+        f"decimal_digit={decimal_digit} decimal_uom={decimal_uom} main_uom={main_uom}"
+    )
     raw_result_without_space = raw_result.replace(" ", "")
-    print(raw_result_without_space)
+    logger.debug(f"raw_result_without_space: '{raw_result_without_space}'")
     right_number = 0
     left_number = 0
 
     if vision_all:
         if "." in raw_result_without_space:
-            print("dot detected")
+            logger.debug("dot detected in OCR result")
             parts = raw_result.split(".")
-            print(parts)
+            logger.debug(f"dotted parts: {parts}")
             try:
                 left_number = int(parts[0])
                 right_number = int(parts[1])
             except Exception as e:
-                print(e)
+                logger.warning(f"Failed to parse dotted parts {parts}: {e}")
                 raise ValueError(f"Can't convert parts: {parts} to integers")
         else:
             try:
-                print("no dot detected")
+                logger.debug("no dot detected in OCR result")
                 left_number = int(raw_result_without_space[:integer_digit])
-                print(len(raw_result_without_space))
+                # The decimal portion is the trailing digits *after* the
+                # integer portion. Its digit count is len - integer_digit;
+                # slice from integer_digit (not from that count) so the
+                # integer and decimal parts do not overlap.
                 decimal_digit = len(raw_result_without_space) - integer_digit
-                right_number = int(raw_result_without_space[decimal_digit:])
+                right_number = int(raw_result_without_space[integer_digit:] or 0)
             except Exception as e:
-                print(e)
+                logger.warning(
+                    f"Digit-split failed for '{raw_result_without_space}': {e}"
+                )
                 left_number = int(raw_result_without_space)
                 right_number = 0
     if vision_integer:
@@ -219,17 +233,17 @@ def generate_result(raw_result: str):
     if vision_digit:
         right_number = 0
 
-    print(left_number, right_number)
+    logger.debug(f"parsed left_number={left_number} right_number={right_number}")
     left_number_to_liters = volume_converter(
         number=left_number, from_unit=integer_uom, to_unit=main_uom
     )
-    print(left_number_to_liters)
+    logger.debug(f"left_number_to_liters={left_number_to_liters}")
     right_number_to_liters = volume_converter(
         number=right_number, from_unit=decimal_uom, to_unit=main_uom
     )
-    print(right_number_to_liters)
+    logger.debug(f"right_number_to_liters={right_number_to_liters}")
     total_liters = left_number_to_liters + right_number_to_liters
-    print(total_liters)
+    logger.debug(f"total_liters={total_liters}")
     data = {
         "raw_result": raw_result,
         "raw_result_without_space": raw_result_without_space,

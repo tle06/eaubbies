@@ -9,7 +9,22 @@ from utils.tesseract_client import TesseractClient
 from utils.utils import generate_result
 
 logger = logging.getLogger("troubleshoot")
-configuration = YamlConfigLoader()
+
+_configuration = None
+
+
+def _get_configuration():
+    """
+    Return a lazily-created, cached :class:`YamlConfigLoader`.
+
+    Instantiating the loader at import time wrote to ``/config`` (only valid
+    inside the container) and broke importing this module in tests/tools. This
+    accessor defers that side effect until the service is actually invoked.
+    """
+    global _configuration
+    if _configuration is None:
+        _configuration = YamlConfigLoader()
+    return _configuration
 
 
 def apply_image_pipeline(client_rtsp: RTSPClient, config: YamlConfigLoader) -> dict:
@@ -107,6 +122,7 @@ def create_improved_frame(use_file: bool = False, file=None):
         ``frame_to_process`` is the final OpenCV frame and ``pipeline_frames``
         maps applied pipeline step slugs to their saved filenames.
     """
+    configuration = _get_configuration()
     rtsp_url = None if use_file else configuration.get_param("rtsp", "url")
     logger.info(f"RTSP URL: {rtsp_url if rtsp_url else 'N/A (using uploaded file)'}")
     client_rtsp = RTSPClient(rtsp_url=rtsp_url)
@@ -152,6 +168,78 @@ def _draw_boxes(text_regions, frame, default_folder, filename="10.ocr_boxes"):
     )
 
 
+def _run_azure_ocr(configuration, frame, default_folder):
+    """
+    Run Azure OCR and return ``(lines, text_regions)``.
+
+    ``lines`` is a flat list of line objects (each exposing ``.text``) and
+    ``text_regions`` is the list of ``{"bounding_box", "text"}`` dicts already
+    drawn onto the annotated frame.
+    """
+    subscription_key = configuration.get_param("vision", "key")
+    endpoint = configuration.get_param("vision", "endpoint")
+    logger.info(f"Azure endpoint: {endpoint}")
+
+    client_azure = AzureClient(vision_key=subscription_key, endpoint_url=endpoint)
+    client_azure.default_folder = default_folder
+
+    logger.info("Sending frame to Azure OCR...")
+    result = client_azure.process_image(frame=frame)
+    logger.info(f"Azure OCR raw result: {result}")
+
+    text_regions = client_azure.get_regions(result=result)
+    logger.info(f"Azure OCR text regions ({len(text_regions)}): {text_regions}")
+
+    client_azure.draw_text_boxes(
+        text_regions=text_regions,
+        frame=frame,
+        filename="10.ocr_boxes",
+    )
+
+    read_blocks = result.read.blocks if result and result.read else []
+    lines = [line for block in read_blocks for line in block.lines]
+    return lines, text_regions
+
+
+def _run_tesseract_ocr(configuration, frame, default_folder):
+    """
+    Run Tesseract OCR and return ``(lines, text_regions)``.
+
+    Mirrors :func:`_run_azure_ocr` so both engines share one downstream code
+    path, removing the previous ``_MockResult`` shim and duplicated line
+    flattening.
+    """
+    tesseract_cmd = None
+    try:
+        tesseract_cmd = configuration.get_param("vision", "tesseract_cmd")
+    except Exception:
+        pass
+    tesseract_config = "--psm 8 -c tessedit_char_whitelist=0123456789"
+    try:
+        tesseract_config = configuration.get_param("vision", "tesseract_config")
+    except Exception:
+        pass
+    logger.info(f"Tesseract config string: {tesseract_config}")
+
+    client_tesseract = TesseractClient(tesseract_cmd=tesseract_cmd)
+    client_tesseract.default_folder = default_folder
+    logger.info("Running Tesseract OCR on processed frame")
+    result_pages, text_regions = client_tesseract.process_image(
+        frame=frame,
+        config=tesseract_config,
+        filename="9.tesseract_optimized",
+    )
+    logger.info(
+        f"Tesseract returned {len(result_pages)} page(s), {len(text_regions)} region(s)"
+    )
+    _draw_boxes(text_regions, frame, default_folder)
+
+    lines = [line for page in result_pages for line in page.lines]
+    for i, line in enumerate(lines):
+        logger.debug(f"  Tesseract line[{i}]: '{line.text}'")
+    return lines, text_regions
+
+
 def service_process(
     increase_cron_count: bool = False, use_file: bool = False, file=None
 ):
@@ -176,6 +264,7 @@ def service_process(
         surface a message without a stack trace.
     """
     logger.info("=== service_process START ===")
+    configuration = _get_configuration()
     frame_to_process, pipeline_frames = create_improved_frame(
         use_file=use_file, file=file
     )
@@ -189,71 +278,12 @@ def service_process(
 
     if engine == "tesseract":
         logger.info("Initialising Tesseract OCR client")
-        tesseract_cmd = None
-        try:
-            tesseract_cmd = configuration.get_param("vision", "tesseract_cmd")
-        except Exception:
-            pass
-        tesseract_config = "--psm 8 -c tessedit_char_whitelist=0123456789"
-        try:
-            tesseract_config = configuration.get_param("vision", "tesseract_config")
-        except Exception:
-            pass
-        logger.info(f"Tesseract config string: {tesseract_config}")
-
-        client_tesseract = TesseractClient(tesseract_cmd=tesseract_cmd)
-        client_tesseract.default_folder = default_folder
-        logger.info("Running Tesseract OCR on processed frame")
-        result_pages, text_regions = client_tesseract.process_image(
-            frame=frame_to_process,
-            config=tesseract_config,
-            filename="9.tesseract_optimized",
+        all_lines, _ = _run_tesseract_ocr(
+            configuration, frame_to_process, default_folder
         )
-        logger.info(
-            f"Tesseract returned {len(result_pages)} page(s), {len(text_regions)} region(s)"
-        )
-        _draw_boxes(text_regions, frame_to_process, default_folder)
-
-        all_lines = [line for page in result_pages for line in page.lines]
-        logger.info(f"Tesseract total lines detected: {len(all_lines)}")
-        for i, line in enumerate(all_lines):
-            logger.debug(f"  Tesseract line[{i}]: '{line.text}'")
-
-        class _MockResult:
-            class _Read:
-                class _Block:
-                    def __init__(self, lines):
-                        self.lines = lines
-
-                def __init__(self, lines):
-                    self.blocks = [_MockResult._Read._Block(lines)]
-
-            def __init__(self, lines):
-                self.read = _MockResult._Read(lines)
-
-        ocr_result = _MockResult(all_lines)
-
     else:
         logger.info("Initialising Azure Vision OCR client")
-        subscription_key = configuration.get_param("vision", "key")
-        endpoint = configuration.get_param("vision", "endpoint")
-        logger.info(f"Azure endpoint: {endpoint}")
-
-        client_azure = AzureClient(vision_key=subscription_key, endpoint_url=endpoint)
-        client_azure.default_folder = default_folder
-
-        logger.info("Sending frame to Azure OCR...")
-        ocr_result = client_azure.process_image(frame=frame_to_process)
-        logger.info(f"Azure OCR raw result: {ocr_result}")
-
-        text_regions = client_azure.get_regions(result=ocr_result)
-        logger.info(f"Azure OCR text regions ({len(text_regions)}): {text_regions}")
-
-        client_azure.draw_text_boxes(
-            text_regions=text_regions,
-            frame=frame_to_process,
-            filename="10.ocr_boxes",
-        )
+        all_lines, _ = _run_azure_ocr(configuration, frame_to_process, default_folder)
 
     vision_counter = int(configuration.get_param("vision", "counter"))
     configuration.set_param("vision", "counter", value=vision_counter + 1)
@@ -262,8 +292,6 @@ def service_process(
     line_with_data = configuration.get_param("vision", "line_with_data") or 0
     logger.info(f"Line with data index: {line_with_data}")
 
-    read_blocks = ocr_result.read.blocks if ocr_result and ocr_result.read else []
-    all_lines = [line for block in read_blocks for line in block.lines]
     logger.info(f"Total OCR lines available: {len(all_lines)}")
 
     if not all_lines:

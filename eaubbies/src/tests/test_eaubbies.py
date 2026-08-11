@@ -132,18 +132,21 @@ def _all_mode_config():
 
 
 def test_generate_result_no_dot_splits_by_integer_digits(monkeypatch):
-    """Without a dot, the left number uses the configured integer digit count.
-
-    NOTE: the current implementation derives the right number as
-    ``raw[len(raw) - integer_digit:]`` (start index), not the trailing
-    ``decimal_digit`` characters. This test documents the *actual* behaviour;
-    see the review notes for the latent parsing bug this exposes.
-    """
+    """Without a dot, the first integer_digit chars are the integer part and
+    the remaining trailing chars are the decimal part."""
     monkeypatch.setattr("utils.configuration.YamlConfigLoader", _all_mode_config())
     res = generate_result("123456789")
     assert res["left_number"] == 123456
-    # Right number = int("123456789"[3:]) with the current slicing logic.
-    assert res["right_number"] == 456789
+    # Trailing digits after the 6 integer digits -> "789".
+    assert res["right_number"] == 789
+
+
+def test_generate_result_no_decimal_digits_yields_zero(monkeypatch):
+    """When the string length equals the integer digits, the decimal is 0."""
+    monkeypatch.setattr("utils.configuration.YamlConfigLoader", _all_mode_config())
+    res = generate_result("123456")
+    assert res["left_number"] == 123456
+    assert res["right_number"] == 0
 
 
 def test_generate_result_strips_spaces(monkeypatch):
