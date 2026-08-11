@@ -27,7 +27,16 @@ FRAME_SLOTS = [
 
 
 class MqttCLient:
+    """
+    Manage the MQTT connection and Home Assistant discovery for the water meter.
+
+    On construction it connects to the broker and derives the discovery/state
+    topics. It publishes sensor + camera discovery configs, meter state values,
+    and pipeline frames as retained camera images.
+    """
+
     def __init__(self):
+        """Load MQTT config, derive topics, and open the broker connection."""
         self.config_loader = YamlConfigLoader()
         self.configuration = self.config_loader.data.get("mqtt", {})
 
@@ -58,12 +67,15 @@ class MqttCLient:
     # ------------------------------------------------------------------
 
     def _camera_image_topic(self, slug: str) -> str:
+        """Return the retained-image topic for a given frame *slug*."""
         return f"{self.topic_camera_base}/{slug}/image"
 
     def _camera_config_topic(self, slug: str) -> str:
+        """Return the discovery-config topic for a given frame *slug*."""
         return f"{self.topic_camera_base}/{slug}/config"
 
     def mqtt_connection(self):
+        """Create the paho client, wire callbacks, authenticate and connect."""
         mqtt_user = self.configuration.get("user")
         mqtt_password = self.configuration.get("password")
         mqtt_server = self.configuration.get("server")
@@ -86,6 +98,7 @@ class MqttCLient:
             logger.error(f"MQTT Connection failed: {e}")
 
     def get_device_unique_id(self):
+        """Return the persisted device unique id, generating+saving one if absent."""
         unique_id = self.device_config.get("unique_id")
         if not unique_id:
             logger.info("Generating unique ID")
@@ -95,21 +108,25 @@ class MqttCLient:
         return unique_id
 
     def on_connect(self, client, userdata, flags, rc, properties=None):
+        """paho on_connect callback — log success/failure by result code."""
         if rc == 0:
             logger.info(f"Connected OK Returned code={rc}")
         else:
             logger.error(f"Bad connection Returned code={rc}")
 
     def on_disconnect(self, client, userdata, flags, rc, properties=None):
+        """paho on_disconnect callback — warn on unexpected drops and stop the loop."""
         if rc != 0:
             logger.warning(f"Unexpected disconnection. Code: {rc}")
         self.client.loop_stop()
 
     def on_message(self, client, userdata, message):
+        """paho on_message callback — log any received message."""
         msg_str = message.payload.decode("utf-8")
         logger.info(f"Message received: {msg_str} | Topic: {message.topic}")
 
     def publish_payload(self, topic: str, payload, qos: int = 0, retain: bool = True):
+        """Publish *payload* to *topic* and return the paho publish result."""
         logger.debug(f"Publishing to {topic}")
         response = self.client.publish(
             topic=topic, payload=payload, qos=qos, retain=retain
@@ -122,6 +139,7 @@ class MqttCLient:
     # ------------------------------------------------------------------
 
     def mqtt_publish_device(self):
+        """Publish HA discovery configs for all sensor and camera entities."""
         sensors = [
             {
                 "name": "main",
@@ -320,6 +338,7 @@ class MqttCLient:
     # ------------------------------------------------------------------
 
     def send_value(self, values: dict):
+        """Publish the meter *values* dict to the state topic as JSON."""
         if values:
             response = self.publish_payload(
                 topic=self.topic_state, payload=json.dumps(values)

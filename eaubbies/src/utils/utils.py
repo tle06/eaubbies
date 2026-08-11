@@ -3,6 +3,20 @@ import uuid
 
 
 def volume_converter(number, from_unit: str, to_unit: str):
+    """
+    Convert *number* between water volume units.
+
+    Parameters:
+        number (float): Quantity to convert.
+        from_unit (str): Source unit, one of ``l, cl, dl, hl, m3``.
+        to_unit (str): Target unit, one of ``l, cl, dl, hl, m3``.
+
+    Returns:
+        float: The converted quantity.
+
+    Raises:
+        ValueError: If either unit is not supported.
+    """
     units = {"l": 1, "cl": 0.01, "dl": 0.1, "hl": 100, "m3": 1000}
     print(number, from_unit, to_unit)
 
@@ -19,6 +33,18 @@ def volume_converter(number, from_unit: str, to_unit: str):
 
 
 def time_to_cron(selected_time):
+    """
+    Convert a ``HH:MM`` time into a daily cron expression.
+
+    A zero hour or minute is mapped to ``*`` (every hour / every minute) to
+    preserve the existing scheduling behaviour.
+
+    Parameters:
+        selected_time (str): Time in ``HH:MM`` 24-hour format.
+
+    Returns:
+        str: A 5-field cron expression.
+    """
     hours, minutes = map(int, selected_time.split(":"))
     if hours == 0:
         hours = "*"
@@ -28,6 +54,13 @@ def time_to_cron(selected_time):
 
 
 def register_cron_task(command, selected_time):
+    """
+    Create or update the user crontab entry for *command*.
+
+    Parameters:
+        command (str): The exact command line the cron job runs.
+        selected_time (str): Schedule time in ``HH:MM`` format.
+    """
     cron = CronTab(user=True)
     cron_expression = time_to_cron(selected_time)
 
@@ -84,10 +117,29 @@ def get_cron_status(command: str) -> dict:
 
 
 def generate_unique_id():
+    """Return a short (8-char) unique identifier derived from a UUID4."""
     return str(uuid.uuid4()).split("-")[0]
 
 
 def generate_result(raw_result: str):
+    """
+    Turn a raw OCR string into a structured meter reading.
+
+    Splits the recognised digits into the integer and decimal portions (based
+    either on an explicit dot, the configured integer digit count, or the
+    active coordinate region), converts both to the main unit of measurement,
+    and returns a rich payload used for MQTT publishing.
+
+    Parameters:
+        raw_result (str): The raw text produced by the OCR engine.
+
+    Returns:
+        dict: Parsed values including ``left_number``, ``right_number`` and
+        ``total_liters``.
+
+    Raises:
+        ValueError: If a detected dotted value cannot be parsed to integers.
+    """
     from utils.configuration import YamlConfigLoader
 
     print(raw_result)

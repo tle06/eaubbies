@@ -51,10 +51,20 @@ logger = logging.getLogger("troubleshoot")
 
 
 class ReverseProxied:
+    """
+    WSGI middleware that honours the ``X-Script-Name`` header.
+
+    Home Assistant's ingress proxy serves the add-on under a path prefix. This
+    middleware rewrites ``SCRIPT_NAME``/``PATH_INFO`` so Flask generates correct
+    URLs behind that prefix.
+    """
+
     def __init__(self, app):
+        """Store the wrapped WSGI *app*."""
         self.app = app
 
     def __call__(self, environ, start_response):
+        """Rewrite the WSGI environ based on ``HTTP_X_SCRIPT_NAME`` then delegate."""
         script_name = environ.get("HTTP_X_SCRIPT_NAME", "")
         logger.debug(f"ReverseProxied middleware: SCRIPT_NAME={script_name}")
         if script_name:
@@ -80,9 +90,34 @@ register_cron_task(
 )
 
 
+def _safe_frame_path(folder: str, filename: str):
+    """
+    Resolve *filename* inside *folder*, rejecting path traversal.
+
+    Uses ``os.path.realpath`` and ``os.path.commonpath`` so that crafted names
+    such as ``../../etc/passwd`` or symlinks escaping the frames directory are
+    rejected. A prefix ``startswith`` check is intentionally avoided because it
+    is fooled by sibling directories sharing a common prefix.
+
+    Parameters:
+        folder (str): The trusted base directory (the frames storage path).
+        filename (str): Untrusted filename supplied by the client.
+
+    Returns:
+        str | None: The absolute, validated path, or ``None`` if it would
+        escape *folder*.
+    """
+    base = os.path.realpath(folder)
+    target = os.path.realpath(os.path.join(base, filename))
+    if base != target and os.path.commonpath([base, target]) != base:
+        return None
+    return target
+
+
 @app.route("/")
 @app.route("/index")
 def index():
+    """Home page. Redirects to onboarding when the initial setup is incomplete."""
     conf = YamlConfigLoader()
     if not bool(conf.get_param("setup", "init_config")):
         return redirect(url_for("init"))
@@ -103,12 +138,14 @@ def index():
 
 @app.route("/init")
 def init():
+    """Render the first-run onboarding/configuration page."""
     local_config = YamlConfigLoader()
     return render_template("init-config.html", config=local_config.data)
 
 
 @app.route("/config")
 def config():
+    """Render the configuration editor with current cron status."""
     cron_status = get_cron_status(CRON_COMMAND)
     local_config = YamlConfigLoader()
     return render_template(
@@ -118,6 +155,7 @@ def config():
 
 @app.route("/video")
 def video():
+    """Render the live-video calibration page."""
     # Pass the YAML config so the template can read config['rtsp']['url']
     local_config = YamlConfigLoader()
     return render_template("video.html", config=local_config.data)
@@ -125,6 +163,7 @@ def video():
 
 @app.route("/frames")
 def frames():
+    """List saved frame images."""
     local_config = YamlConfigLoader()
     folder = local_config.get_param("frame", "storage_path")
     try:
@@ -137,20 +176,23 @@ def frames():
 
 @app.route("/download/<path:filename>")
 def download_file(filename):
+    """Download a single frame file as an attachment (traversal-safe)."""
     local_config = YamlConfigLoader()
-    return send_from_directory(
-        local_config.get_param("frame", "storage_path"), filename, as_attachment=True
-    )
+    folder = local_config.get_param("frame", "storage_path")
+    if _safe_frame_path(folder, filename) is None:
+        return jsonify({"error": "Invalid path"}), 400
+    return send_from_directory(folder, filename, as_attachment=True)
 
 
 @app.route("/delete_frame/<path:filename>", methods=["DELETE"])
 def delete_frame(filename):
+    """Delete a single frame file, guarding against path traversal."""
     local_config = YamlConfigLoader()
     folder = local_config.get_param("frame", "storage_path")
-    filepath = os.path.join(folder, filename)
+    filepath = _safe_frame_path(folder, filename)
+    if filepath is None:
+        return jsonify({"error": "Invalid path"}), 400
     try:
-        if not os.path.abspath(filepath).startswith(os.path.abspath(folder)):
-            return jsonify({"error": "Invalid path"}), 400
         os.remove(filepath)
         return jsonify({"success": True})
     except FileNotFoundError:
@@ -162,6 +204,7 @@ def delete_frame(filename):
 
 @app.route("/delete_all_frames", methods=["POST"])
 def delete_all_frames():
+    """Delete every file in the frames folder, reporting per-file errors."""
     local_config = YamlConfigLoader()
     folder = local_config.get_param("frame", "storage_path")
     deleted, errors = [], []
@@ -181,6 +224,7 @@ def delete_all_frames():
 
 @app.route("/download_all_frames")
 def download_all_frames():
+    """Stream all frames as a single ZIP archive."""
     local_config = YamlConfigLoader()
     folder = local_config.get_param("frame", "storage_path")
     buf = io.BytesIO()
@@ -248,6 +292,13 @@ def logs_download():
 
 @app.route("/save_config", methods=["POST"])
 def save_config():
+    """
+    Persist configuration submitted from the settings form.
+
+    Secrets (``vision_key``, ``mqtt_password``) are never logged and are only
+    overwritten when the submitted value differs from the stored one and is not
+    the masked placeholder, so re-saving the form does not wipe them.
+    """
 
     logger.info("Saving configuration from form submission")
 
@@ -527,12 +578,14 @@ def save_config():
 
 @app.route("/cron_status")
 def cron_status():
+    """Return the current cron job status as JSON."""
     status = get_cron_status(CRON_COMMAND)
     return jsonify(status)
 
 
 @app.route("/register_cron", methods=["POST"])
 def register_cron():
+    """(Re)register the scheduled processing cron job."""
     try:
         local_config = YamlConfigLoader()
         selected_time = local_config.get_param("service", "cron")
@@ -547,6 +600,7 @@ def register_cron():
 
 @app.route("/video_feed")
 def video_feed():
+    """Stream the live RTSP feed as MJPEG for calibration."""
     local_config = YamlConfigLoader()
     rtsp_url = local_config.get_param("rtsp", "url")
     logger.info(f"Starting video feed from: {rtsp_url}")
@@ -559,6 +613,7 @@ def video_feed():
 
 @app.route("/run_process", methods=["GET", "POST"])
 def run_process():
+    """Trigger a meter reading, optionally from an uploaded image (POST)."""
     use_file = False
     file = None
     if request.method == "POST":
@@ -584,6 +639,7 @@ def run_process():
 
 @app.route("/load_frame")
 def load_frame():
+    """Capture a single RTSP frame and return its saved path as JSON."""
     local_config = YamlConfigLoader()
     rtsp_url = local_config.get_param("rtsp", "url")
     logger.info(f"Loading frame from RTSP: {rtsp_url}")
@@ -598,6 +654,7 @@ def load_frame():
 
 @app.route("/create_sensor")
 def create_sensor():
+    """Publish MQTT discovery config so Home Assistant creates the entities."""
     logger.info("Creating MQTT sensor...")
     client_mqtt = MqttCLient()
     try:
@@ -611,6 +668,7 @@ def create_sensor():
 
 @app.route("/send_edit", methods=["POST"])
 def receive_coordinates():
+    """Persist OCR crop coordinates and rotation from the calibration UI."""
     data = request.json
     logger.info(f"Received coordinates: {data}")
     local_config = YamlConfigLoader()

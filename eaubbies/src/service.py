@@ -93,6 +93,20 @@ def apply_image_pipeline(client_rtsp: RTSPClient, config: YamlConfigLoader) -> d
 
 
 def create_improved_frame(use_file: bool = False, file=None):
+    """
+    Capture (or load) a frame and run the full image-improvement pipeline.
+
+    Parameters:
+        use_file (bool): When True, read the frame from an uploaded *file*
+            instead of the configured RTSP stream.
+        file: A Werkzeug ``FileStorage`` (or file-like object) used when
+            ``use_file`` is True.
+
+    Returns:
+        tuple: ``(frame_to_process, pipeline_frames)`` where
+        ``frame_to_process`` is the final OpenCV frame and ``pipeline_frames``
+        maps applied pipeline step slugs to their saved filenames.
+    """
     rtsp_url = None if use_file else configuration.get_param("rtsp", "url")
     logger.info(f"RTSP URL: {rtsp_url if rtsp_url else 'N/A (using uploaded file)'}")
     client_rtsp = RTSPClient(rtsp_url=rtsp_url)
@@ -141,6 +155,26 @@ def _draw_boxes(text_regions, frame, default_folder, filename="10.ocr_boxes"):
 def service_process(
     increase_cron_count: bool = False, use_file: bool = False, file=None
 ):
+    """
+    End-to-end meter reading flow.
+
+    Captures/loads a frame, runs the image pipeline, performs OCR with the
+    configured engine (``azure`` or ``tesseract``), parses the meter value,
+    guards against value regressions, persists counters/results, and publishes
+    the values and all pipeline frames over MQTT.
+
+    Parameters:
+        increase_cron_count (bool): When True, increment the ``service.counter``
+            (used by the scheduled cron invocation).
+        use_file (bool): Read the frame from *file* instead of the RTSP stream.
+        file: Uploaded file-like object used when ``use_file`` is True.
+
+    Returns:
+        dict: On success, a payload with ``images``, ``pipeline`` and ``result``.
+        Returns a :class:`ValueError` instance (not raised) for recoverable
+        domain errors such as no OCR text or a value regression, so callers can
+        surface a message without a stack trace.
+    """
     logger.info("=== service_process START ===")
     frame_to_process, pipeline_frames = create_improved_frame(
         use_file=use_file, file=file

@@ -8,7 +8,22 @@ from pathlib import Path
 
 
 class AzureClient:
+    """
+    Wrapper around Azure AI Vision Image Analysis (READ/OCR).
+
+    Also provides a ``draw_text_boxes`` helper that is reused by the Tesseract
+    path, so passing ``vision_key="mock"`` yields a credential-less instance
+    usable purely for drawing.
+    """
+
     def __init__(self, vision_key: str, endpoint_url: str, save_frame: bool = True):
+        """
+        Parameters:
+            vision_key (str): Azure Vision API key, or ``"mock"`` to skip client
+                creation (drawing-only use).
+            endpoint_url (str): Azure Vision endpoint URL, or ``"mock"``.
+            save_frame (bool): When True, annotated frames are written to disk.
+        """
         self.save_frame = save_frame
         self.default_folder = "../frames"
         # Only build the real client when we have valid credentials
@@ -26,6 +41,7 @@ class AzureClient:
 
     # ── I/O helper ────────────────────────────────────────────────────────────
     def write_output_file(self, name: str, frame):
+        """Write *frame* as ``<name>.jpg`` in ``default_folder`` and return its path."""
         filename = f"{name}.jpg"
         path_str = f"{self.default_folder}/{filename}"
         fullpath = Path(path_str)
@@ -35,6 +51,18 @@ class AzureClient:
 
     # ── OCR ───────────────────────────────────────────────────────────────────
     def process_image(self, frame=None, image_path: str = None, image_url: str = None):
+        """
+        Run Azure OCR on a *frame*, *image_path*, or *image_url*.
+
+        Exactly one source must be provided. Frames are JPEG-encoded in memory
+        before upload.
+
+        Returns:
+            The Azure Image Analysis result object (exposing ``.read.blocks``).
+
+        Raises:
+            ValueError: If no valid credentials were supplied, or no source.
+        """
         if self.client is None:
             raise ValueError("AzureClient was initialised without valid credentials.")
 
@@ -60,6 +88,12 @@ class AzureClient:
         return result
 
     def get_regions(self, result):
+        """
+        Flatten an Azure OCR *result* into ``{"bounding_box", "text"}`` dicts.
+
+        The bounding box is emitted as a flat ``[x1,y1,...,x4,y4]`` list to match
+        the format consumed by :meth:`draw_text_boxes` and the Tesseract path.
+        """
         regions = []
         if result is None or result.read is None:
             return regions

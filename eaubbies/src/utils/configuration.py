@@ -1,5 +1,6 @@
 import yaml
 import os
+import tempfile
 from utils.utils import generate_unique_id
 from environs import Env
 
@@ -14,6 +15,16 @@ _config_base = env.str("CONFIG_PATH", "/config")
 
 
 class YamlConfigLoader:
+    """
+    Load and persist the add-on runtime configuration as a YAML file.
+
+    The configuration path is resolved from ``CONFIG_PATH`` (``/config`` inside
+    Home Assistant, ``/data`` standalone) so it lives on a persistent, mounted
+    volume and therefore survives container restarts/reboots. All writes go
+    through :meth:`_atomic_write` so a crash or power loss mid-write cannot
+    leave a truncated/corrupt config behind.
+    """
+
     default_config_file = env.str(
         "DEFAULT_CONFIG_FILE",
         os.path.join(_config_base, "eaubbies", "main.yaml"),
@@ -24,16 +35,59 @@ class YamlConfigLoader:
     )
 
     def __init__(self, filename=None):
+        """
+        Parameters:
+            filename (str): Optional override for the config file path. Defaults
+                to :attr:`default_config_file`.
+        """
         self.filename = filename or self.default_config_file
         self.data = self.load_config()
 
-    def load_config(self):
-        if not os.path.exists(self.filename) or os.path.getsize(self.filename) == 0:
-            os.makedirs(os.path.dirname(self.filename), exist_ok=True)
-            default_config = self.generate_default_config()
+    @staticmethod
+    def _atomic_write(filename: str, data: dict):
+        """
+        Write *data* to *filename* atomically and durably.
 
-            with open(self.filename, "w") as file:
-                yaml.dump(default_config, file)
+        Serialises to a temporary file in the same directory, flushes and
+        ``fsync``s it, then ``os.replace``s it over the target. ``os.replace``
+        is atomic on POSIX, so readers always see either the old or the new
+        complete file — never a partially written one. This prevents config
+        corruption on power loss, which is the realistic failure mode for a
+        Home Assistant box that reboots unexpectedly.
+
+        Parameters:
+            filename (str): Destination config path.
+            data (dict): Configuration mapping to serialise as YAML.
+        """
+        directory = os.path.dirname(filename) or "."
+        os.makedirs(directory, exist_ok=True)
+        fd, tmp_path = tempfile.mkstemp(dir=directory, suffix=".tmp")
+        try:
+            with os.fdopen(fd, "w") as tmp_file:
+                yaml.dump(data, tmp_file)
+                tmp_file.flush()
+                os.fsync(tmp_file.fileno())
+            os.replace(tmp_path, filename)
+        except Exception:
+            # Never leave a stray temp file behind on failure.
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
+            raise
+
+    def load_config(self):
+        """
+        Load the config from disk, generating defaults on first run.
+
+        If the file is missing or empty, a default configuration is generated
+        and written atomically. Otherwise the existing YAML is parsed and
+        returned.
+
+        Returns:
+            dict: The loaded (or freshly generated) configuration.
+        """
+        if not os.path.exists(self.filename) or os.path.getsize(self.filename) == 0:
+            default_config = self.generate_default_config()
+            self._atomic_write(self.filename, default_config)
             return default_config
         try:
             with open(self.filename, "r") as f:
@@ -42,6 +96,12 @@ class YamlConfigLoader:
             raise FileNotFoundError(f"Config file '{self.filename}' not found.")
 
     def generate_default_config(self):
+        """
+        Build the default configuration dictionary used on first launch.
+
+        Returns:
+            dict: A fully-populated default configuration.
+        """
         # Modify this dictionary according to your default configuration
         default_config = {
             "frame": {
@@ -102,6 +162,19 @@ class YamlConfigLoader:
         return default_config
 
     def get_param(self, *keys):
+        """
+        Return a nested configuration value by walking *keys*.
+
+        Parameters:
+            *keys: Ordered dictionary keys to traverse (e.g. ``"vision",
+                "engine"``).
+
+        Returns:
+            The value stored at the requested path.
+
+        Raises:
+            ValueError: If any key in the path is missing.
+        """
         current_level = self.data
         for key in keys:
             if key not in current_level:
@@ -110,11 +183,21 @@ class YamlConfigLoader:
         return current_level
 
     def set_param(self, *keys, value):
+        """
+        Set a nested configuration value and persist it atomically.
+
+        Intermediate dictionaries are created as needed. The whole config is
+        re-serialised through :meth:`_atomic_write` so the on-disk file is never
+        left partially written.
+
+        Parameters:
+            *keys: Ordered dictionary keys identifying the target location.
+            value: Value to store at ``keys[-1]``.
+        """
         current_level = self.data
         for key in keys[:-1]:
             if key not in current_level:
                 current_level[key] = {}
             current_level = current_level[key]
         current_level[keys[-1]] = value
-        with open(self.filename, "w") as file:
-            yaml.dump(self.data, file)
+        self._atomic_write(self.filename, self.data)
