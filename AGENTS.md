@@ -158,17 +158,27 @@ Welcome, developer agent! This repository contains **Eaubbies**, a Home Assistan
 
 ## 🛠️ Essential Commands
 
-The project uses [uv](https://docs.astral.sh/uv/) for Python dependency and workspace management.
+The project uses [uv](https://docs.astral.sh/uv/) for Python dependency management. Requires **Python >= 3.13**. All Python commands run from `eaubbies/src/` (that is where `pyproject.toml`, `uv.lock`, and the `.venv` live).
 
 ### Local Development
 
 ```bash
-# Navigate to the Python source directory
 cd eaubbies/src
 
 # Start the Flask development server with hot-reload
 uv run -- flask run --debug
 ```
+
+### Lint / Format / Test (mirror CI — all run from `eaubbies/src/`)
+
+```bash
+cd eaubbies/src
+uv run black . --check   # formatting gate
+uv run flake8 .          # lint gate (config in root .flake8: E501/W503/E203 ignored)
+uv run pytest            # test suite (tests live in eaubbies/src/tests/)
+```
+
+Run a single test: `uv run pytest tests/test_eaubbies.py::<test_name>`. Non-Python CI gates: hadolint, shellcheck, yamllint, prettier (`**/*.js`), jq (JSON), zizmor, and the HA add-on linter.
 
 ### Build & Deploy Commands
 
@@ -253,10 +263,9 @@ The application stores settings inside a YAML file: `data/config/main.yaml` (rel
 
 When modifying this repository, be extremely careful of the following patterns:
 
-- **Poetry vs. UV:** The project uses `uv` in local development and inside the Dockerfile. The cron script path command has been modernized from poetry to uv in the code:
-  `command = "/app/.venv/bin/python /app/cron.py"`
-- **Local tests:** A local unit test suite using `pytest` is configured in `tests/`. It can be run from the root or inside the `eaubbies/src` folder:
-  `uv run pytest ../../tests/`
+- **Poetry vs. UV:** The project uses `uv` in local development and inside the Dockerfile. The cron script path command uses uv's venv: `command = "/app/.venv/bin/python /app/cron.py"`.
+- **Tests location:** The `pytest` suite lives in `eaubbies/src/tests/` (`test_eaubbies.py`). `pyproject.toml` sets `pythonpath = ["."]`, so pytest must be run from `eaubbies/src/`.
+- **CLI entrypoint:** `command/script.py` (`main()`) invokes `service_process(...)` for command-line/manual runs; `cron.py` is the scheduled wrapper. Both funnel into `service.py:service_process`.
 - **Dual OCR Engines:** Supports both Azure Computer Vision (cloud-based) and Tesseract OCR (local/container-based) via `vision.engine` config parameter.
 - **Home Assistant Add-on Lifecycle:** The entrypoint script (`entrypoint.sh` -> `0.sh`) spins up supervisord, which starts Gunicorn serving the Unix socket `/app/ipc.sock`, and Nginx proxies incoming traffic from Port `8099` to Gunicorn.
 - **CV2 Image Layouts:** Color format adjustments (RGB vs. BGR vs. Gray) inside `service.py` and `rtsp_client.py` must match Azure Vision constraints (which accepts JPEG binary byte streams).
