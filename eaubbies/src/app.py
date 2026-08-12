@@ -591,6 +591,40 @@ def save_config():
             value=request.form.get("mqtt_sensors_water_unit_of_measurement").lower(),
         )
 
+    # ── Meter values ──
+    # ``result_previous`` / ``result_current`` are always present in the form
+    # (they are text inputs), so an empty submission means "reset to None". A
+    # non-empty value must parse as a float; an unparseable value is skipped so
+    # a typo cannot corrupt the stored reading.
+    if "result_previous" in request.form:
+        raw_prev = request.form.get("result_previous", "").strip()
+        if raw_prev == "":
+            local_config.set_param("result", "previous", value=None)
+            logger.info("Previous meter value reset to None")
+        else:
+            try:
+                local_config.set_param("result", "previous", value=float(raw_prev))
+                logger.info(f"Previous meter value updated to: {raw_prev}")
+            except ValueError:
+                logger.warning(f"Ignoring invalid previous meter value: '{raw_prev}'")
+
+    if "result_current" in request.form:
+        raw_curr = request.form.get("result_current", "").strip()
+        if raw_curr == "":
+            local_config.set_param("result", "current", value=None)
+            logger.info("Current meter value reset to None")
+        else:
+            try:
+                local_config.set_param("result", "current", value=float(raw_curr))
+                logger.info(f"Current meter value updated to: {raw_curr}")
+            except ValueError:
+                logger.warning(f"Ignoring invalid current meter value: '{raw_curr}'")
+
+    if request.form.get("result_unit"):
+        local_config.set_param(
+            "result", "unit", value=request.form.get("result_unit").strip().lower()
+        )
+
     # ── Cron ──
     if request.form.get("cron_time"):
         cron_time = request.form.get("cron_time")
