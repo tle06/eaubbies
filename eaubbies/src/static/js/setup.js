@@ -29,6 +29,24 @@ function ResetErrorMessages(errorid) {
   if (p) p.textContent = "";
 }
 
+// Non-blocking warning banner (e.g. MQTT unreachable but a reading was found).
+// Silently no-ops when the target element is not on the current page.
+function ShowWarningMessages(warnid, msg) {
+  var el = document.getElementById(warnid);
+  if (!el) return;
+  el.style.display = "block";
+  var p = el.querySelector("p");
+  if (p) p.textContent = msg;
+}
+
+function ResetWarningMessages(warnid) {
+  var el = document.getElementById(warnid);
+  if (!el) return;
+  el.style.display = "none";
+  var p = el.querySelector("p");
+  if (p) p.textContent = "";
+}
+
 function EmptyTableBody(bodyid) {
   var tbody = document.getElementById(bodyid);
   tbody.querySelectorAll("tr").forEach(function (r) {
@@ -184,6 +202,7 @@ function renderPipelineStrip(source, pipeline, final, ocr) {
 function StartProcess() {
   ShowLoader("loader-process-wrap");
   ResetErrorMessages("error-message-process");
+  ResetWarningMessages("warning-message-process");
   document.getElementById("result-section").style.display = "none";
 
   var fileInput = document.getElementById("import-file");
@@ -208,6 +227,12 @@ function StartProcess() {
       if (data.error) {
         ShowErrorMessages("error-message-process", data.error);
         return;
+      }
+
+      // Non-fatal warning (e.g. MQTT server not responding). The reading is
+      // still valid and shown below.
+      if (data.warning) {
+        ShowWarningMessages("warning-message-process", data.warning);
       }
 
       // Update comparison images with cache-bust
@@ -246,19 +271,28 @@ function StartProcess() {
 // ─── Canvas / frame drawing ───────────────────────────────────────────────────
 
 function CreateHomeAssistantMqttSensor() {
+  var statusEl = document.getElementById("mqttStatus");
   fetch("create_sensor")
     .then(function (r) {
-      return r.json();
+      return r.json().then(function (data) {
+        return { ok: r.ok, data: data };
+      });
     })
-    .then(function (data) {
-      document.getElementById("mqttStatus").innerHTML =
+    .then(function (res) {
+      var data = res.data;
+      // Broker unreachable: the backend returns an explicit error message.
+      if (!res.ok || data.error) {
+        statusEl.innerHTML =
+          "🔴 " + (data.error || "MQTT server is not responding, check logs");
+        return;
+      }
+      statusEl.innerHTML =
         data.mqtt && data.mqtt[1] && data.mqtt[1]["water"]
           ? "🟢 MQTT sensors created in Home Assistant"
           : "🔴 MQTT sensors creation error, check logs";
     })
     .catch(function () {
-      document.getElementById("mqttStatus").innerHTML =
-        "🔴 MQTT error, check logs";
+      statusEl.innerHTML = "🔴 MQTT error, check logs";
     });
 }
 

@@ -696,6 +696,15 @@ def create_sensor():
     """Publish MQTT discovery config so Home Assistant creates the entities."""
     logger.info("Creating MQTT sensor...")
     client_mqtt = MqttCLient()
+    # Report an unreachable broker clearly instead of attempting to publish to
+    # a disconnected client (which silently does nothing).
+    if not getattr(client_mqtt, "connected", False):
+        message = (
+            getattr(client_mqtt, "connection_error", None)
+            or "MQTT server is not responding."
+        )
+        logger.warning(f"create_sensor — broker unavailable: {message}")
+        return jsonify({"error": message}), 502
     try:
         response = client_mqtt.mqtt_publish_device()
         logger.info(f"MQTT sensor created: {response}")

@@ -361,13 +361,29 @@ def service_process(
         f"Frames to publish via MQTT ({len(frames_to_publish)}): {list(frames_to_publish.keys())}"
     )
 
-    # \u2500\u2500 Publish values + all frames \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+    # ── Publish values + all frames ────────────────────────────────────────
+    # A non-responding MQTT broker must not lose the reading we just computed:
+    # capture the failure as a warning and still return the full result below.
     logger.info("Publishing meter values and all frames via MQTT")
-    client_mqtt = MqttCLient()
-    client_mqtt.mqtt_publish_device()
-    client_mqtt.send_value(values=result_values)
-    client_mqtt.send_all_frames(frames=frames_to_publish)
-    logger.info("MQTT publish complete")
+    mqtt_warning = None
+    try:
+        client_mqtt = MqttCLient()
+        if not getattr(client_mqtt, "connected", False):
+            mqtt_warning = (
+                getattr(client_mqtt, "connection_error", None)
+                or "MQTT server is not responding."
+            )
+            logger.warning(
+                f"Skipping MQTT publish — broker unavailable: {mqtt_warning}"
+            )
+        else:
+            client_mqtt.mqtt_publish_device()
+            client_mqtt.send_value(values=result_values)
+            client_mqtt.send_all_frames(frames=frames_to_publish)
+            logger.info("MQTT publish complete")
+    except Exception as e:
+        mqtt_warning = f"MQTT server is not responding: {e}"
+        logger.error(f"MQTT publish failed: {e}", exc_info=True)
 
     step_labels = {
         "convert_bgr": "BGR Convert",
@@ -391,6 +407,9 @@ def service_process(
         "pipeline": pipeline_steps,
         "result": result_values,
     }
+    # Surface a non-fatal MQTT problem alongside the (still valid) result.
+    if mqtt_warning:
+        data["warning"] = mqtt_warning
 
     if increase_cron_count:
         current_count = int(configuration.get_param("service", "counter"))

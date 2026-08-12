@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import time
 
 from paho.mqtt.client import CallbackAPIVersion, Client
 
@@ -40,6 +41,13 @@ class MqttCLient:
         self.config_loader = YamlConfigLoader()
         self.configuration = self.config_loader.data.get("mqtt", {})
 
+        # Connection health, populated by :meth:`mqtt_connection`. ``connected``
+        # is False and ``connection_error`` holds a message whenever the broker
+        # cannot be reached, so callers can report the failure while still
+        # returning any result they computed.
+        self.connected = False
+        self.connection_error = None
+
         self.device_config = self.configuration.get("device", {})
         self.sensors_config = self.configuration.get("sensors", {})
 
@@ -74,12 +82,32 @@ class MqttCLient:
         """Return the discovery-config topic for a given frame *slug*."""
         return f"{self.topic_camera_base}/{slug}/config"
 
-    def mqtt_connection(self):
-        """Create the paho client, wire callbacks, authenticate and connect."""
+    def mqtt_connection(self, connect_timeout: float = 5.0):
+        """
+        Create the paho client, wire callbacks, authenticate and connect.
+
+        Sets :attr:`connected` / :attr:`connection_error` so callers can tell
+        whether the broker is actually reachable. Any failure to reach the
+        broker (missing config, refused/timed-out connection, or no ``CONNACK``
+        within *connect_timeout* seconds) is captured as a message rather than
+        raised, so the caller can still return a computed result.
+
+        Parameters:
+            connect_timeout (float): Seconds to wait for the broker to
+                acknowledge the connection before declaring it unreachable.
+        """
         mqtt_user = self.configuration.get("user")
         mqtt_password = self.configuration.get("password")
         mqtt_server = self.configuration.get("server")
         mqtt_port = int(self.configuration.get("port", 1883))
+
+        self.connected = False
+        self.connection_error = None
+
+        if not mqtt_server:
+            self.connection_error = "MQTT server is not configured."
+            logger.error(self.connection_error)
+            return
 
         self.client = Client(CallbackAPIVersion.VERSION2)
         self.client.enable_logger(logger)
@@ -94,7 +122,21 @@ class MqttCLient:
         try:
             self.client.connect(host=mqtt_server, port=mqtt_port)
             self.client.loop_start()
+            # Wait for the on_connect callback to confirm a real CONNACK.
+            deadline = time.monotonic() + connect_timeout
+            while not self.connected and time.monotonic() < deadline:
+                if self.connection_error:
+                    break
+                time.sleep(0.05)
+            if not self.connected and not self.connection_error:
+                self.connection_error = (
+                    f"MQTT server {mqtt_server}:{mqtt_port} is not responding."
+                )
+                logger.error(self.connection_error)
         except Exception as e:
+            self.connection_error = (
+                f"MQTT server {mqtt_server}:{mqtt_port} is not responding: {e}"
+            )
             logger.error(f"MQTT Connection failed: {e}")
 
     def get_device_unique_id(self):
@@ -108,10 +150,14 @@ class MqttCLient:
         return unique_id
 
     def on_connect(self, client, userdata, flags, rc, properties=None):
-        """paho on_connect callback — log success/failure by result code."""
+        """paho on_connect callback — record connection status by result code."""
         if rc == 0:
+            self.connected = True
+            self.connection_error = None
             logger.info(f"Connected OK Returned code={rc}")
         else:
+            self.connected = False
+            self.connection_error = f"MQTT broker refused the connection (code={rc})."
             logger.error(f"Bad connection Returned code={rc}")
 
     def on_disconnect(self, client, userdata, flags, rc, properties=None):

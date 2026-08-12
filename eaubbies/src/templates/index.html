@@ -104,6 +104,16 @@
         </div>
       </div>
 
+      <!-- Warning (e.g. MQTT unreachable — the reading is still valid) -->
+      <div class="card-body pb-0">
+        <div class="alert alert-warning alert-dismissible" role="alert" id="warning-message-process" style="display:none;">
+          <h4 class="alert-heading d-flex align-items-center">
+            <span class="alert-icon rounded-circle"><i class="bx bx-error-circle"></i></span>&nbsp;Warning
+          </h4>
+          <p class="mb-0"></p>
+        </div>
+      </div>
+
       <!-- Result section (hidden until process runs) -->
       <div id="result-section" style="display:none;">
 
