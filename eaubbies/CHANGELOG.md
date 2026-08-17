@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 
+## [0.0.33] - 2026-08-17
+
+## Added
+
+- Add current and previous value field configuration
+- Handle the MQTT connection in the main view
+
+
+
 ## [0.0.32] - 2026-07-21
 
 ### Added
