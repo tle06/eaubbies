@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import time
 
 from paho.mqtt.client import CallbackAPIVersion, Client
 
@@ -27,9 +28,25 @@ FRAME_SLOTS = [
 
 
 class MqttCLient:
+    """
+    Manage the MQTT connection and Home Assistant discovery for the water meter.
+
+    On construction it connects to the broker and derives the discovery/state
+    topics. It publishes sensor + camera discovery configs, meter state values,
+    and pipeline frames as retained camera images.
+    """
+
     def __init__(self):
+        """Load MQTT config, derive topics, and open the broker connection."""
         self.config_loader = YamlConfigLoader()
         self.configuration = self.config_loader.data.get("mqtt", {})
+
+        # Connection health, populated by :meth:`mqtt_connection`. ``connected``
+        # is False and ``connection_error`` holds a message whenever the broker
+        # cannot be reached, so callers can report the failure while still
+        # returning any result they computed.
+        self.connected = False
+        self.connection_error = None
 
         self.device_config = self.configuration.get("device", {})
         self.sensors_config = self.configuration.get("sensors", {})
@@ -58,16 +75,39 @@ class MqttCLient:
     # ------------------------------------------------------------------
 
     def _camera_image_topic(self, slug: str) -> str:
+        """Return the retained-image topic for a given frame *slug*."""
         return f"{self.topic_camera_base}/{slug}/image"
 
     def _camera_config_topic(self, slug: str) -> str:
+        """Return the discovery-config topic for a given frame *slug*."""
         return f"{self.topic_camera_base}/{slug}/config"
 
-    def mqtt_connection(self):
+    def mqtt_connection(self, connect_timeout: float = 5.0):
+        """
+        Create the paho client, wire callbacks, authenticate and connect.
+
+        Sets :attr:`connected` / :attr:`connection_error` so callers can tell
+        whether the broker is actually reachable. Any failure to reach the
+        broker (missing config, refused/timed-out connection, or no ``CONNACK``
+        within *connect_timeout* seconds) is captured as a message rather than
+        raised, so the caller can still return a computed result.
+
+        Parameters:
+            connect_timeout (float): Seconds to wait for the broker to
+                acknowledge the connection before declaring it unreachable.
+        """
         mqtt_user = self.configuration.get("user")
         mqtt_password = self.configuration.get("password")
         mqtt_server = self.configuration.get("server")
         mqtt_port = int(self.configuration.get("port", 1883))
+
+        self.connected = False
+        self.connection_error = None
+
+        if not mqtt_server:
+            self.connection_error = "MQTT server is not configured."
+            logger.error(self.connection_error)
+            return
 
         self.client = Client(CallbackAPIVersion.VERSION2)
         self.client.enable_logger(logger)
@@ -82,10 +122,25 @@ class MqttCLient:
         try:
             self.client.connect(host=mqtt_server, port=mqtt_port)
             self.client.loop_start()
+            # Wait for the on_connect callback to confirm a real CONNACK.
+            deadline = time.monotonic() + connect_timeout
+            while not self.connected and time.monotonic() < deadline:
+                if self.connection_error:
+                    break
+                time.sleep(0.05)
+            if not self.connected and not self.connection_error:
+                self.connection_error = (
+                    f"MQTT server {mqtt_server}:{mqtt_port} is not responding."
+                )
+                logger.error(self.connection_error)
         except Exception as e:
+            self.connection_error = (
+                f"MQTT server {mqtt_server}:{mqtt_port} is not responding: {e}"
+            )
             logger.error(f"MQTT Connection failed: {e}")
 
     def get_device_unique_id(self):
+        """Return the persisted device unique id, generating+saving one if absent."""
         unique_id = self.device_config.get("unique_id")
         if not unique_id:
             logger.info("Generating unique ID")
@@ -95,21 +150,29 @@ class MqttCLient:
         return unique_id
 
     def on_connect(self, client, userdata, flags, rc, properties=None):
+        """paho on_connect callback — record connection status by result code."""
         if rc == 0:
+            self.connected = True
+            self.connection_error = None
             logger.info(f"Connected OK Returned code={rc}")
         else:
+            self.connected = False
+            self.connection_error = f"MQTT broker refused the connection (code={rc})."
             logger.error(f"Bad connection Returned code={rc}")
 
     def on_disconnect(self, client, userdata, flags, rc, properties=None):
+        """paho on_disconnect callback — warn on unexpected drops and stop the loop."""
         if rc != 0:
             logger.warning(f"Unexpected disconnection. Code: {rc}")
         self.client.loop_stop()
 
     def on_message(self, client, userdata, message):
+        """paho on_message callback — log any received message."""
         msg_str = message.payload.decode("utf-8")
         logger.info(f"Message received: {msg_str} | Topic: {message.topic}")
 
     def publish_payload(self, topic: str, payload, qos: int = 0, retain: bool = True):
+        """Publish *payload* to *topic* and return the paho publish result."""
         logger.debug(f"Publishing to {topic}")
         response = self.client.publish(
             topic=topic, payload=payload, qos=qos, retain=retain
@@ -122,6 +185,7 @@ class MqttCLient:
     # ------------------------------------------------------------------
 
     def mqtt_publish_device(self):
+        """Publish HA discovery configs for all sensor and camera entities."""
         sensors = [
             {
                 "name": "main",
@@ -320,6 +384,7 @@ class MqttCLient:
     # ------------------------------------------------------------------
 
     def send_value(self, values: dict):
+        """Publish the meter *values* dict to the state topic as JSON."""
         if values:
             response = self.publish_payload(
                 topic=self.topic_state, payload=json.dumps(values)

@@ -29,6 +29,24 @@ function ResetErrorMessages(errorid) {
   if (p) p.textContent = "";
 }
 
+// Non-blocking warning banner (e.g. MQTT unreachable but a reading was found).
+// Silently no-ops when the target element is not on the current page.
+function ShowWarningMessages(warnid, msg) {
+  var el = document.getElementById(warnid);
+  if (!el) return;
+  el.style.display = "block";
+  var p = el.querySelector("p");
+  if (p) p.textContent = msg;
+}
+
+function ResetWarningMessages(warnid) {
+  var el = document.getElementById(warnid);
+  if (!el) return;
+  el.style.display = "none";
+  var p = el.querySelector("p");
+  if (p) p.textContent = "";
+}
+
 function EmptyTableBody(bodyid) {
   var tbody = document.getElementById(bodyid);
   tbody.querySelectorAll("tr").forEach(function (r) {
@@ -36,9 +54,35 @@ function EmptyTableBody(bodyid) {
   });
 }
 
-// cache-bust a src so the browser reloads the file
+// Convert a backend-provided frame reference into a browser-servable URL.
+//
+// The backend returns absolute *filesystem* paths (e.g.
+// "/config/eaubbies/img/frames/0.frame_origine.jpg") that the browser cannot
+// load directly. Frames are exposed to the browser only through the Flask
+// `download/<filename>` route, which serves them from the configured
+// `frame.storage_path`. This helper extracts the basename from whatever the
+// backend sends (absolute path, "./relative", or bare filename) and builds a
+// relative `download/...` URL so it also works behind the Home Assistant
+// ingress path prefix.
+function frameUrl(path) {
+  if (!path) return "";
+  // Already a servable URL (http(s), data:, or an existing download route).
+  if (/^(https?:|data:)/i.test(path) || path.indexOf("download/") !== -1) {
+    return path;
+  }
+  // Take the last path segment (handles both "/" and "\" separators) and drop
+  // any pre-existing query string before re-encoding.
+  var basename = path.split(/[\\/]/).pop().split("?")[0];
+  return "download/" + encodeURIComponent(basename);
+}
+
+// cache-bust a src so the browser reloads the file, normalising the path to a
+// servable `download/<filename>` URL first.
 function bustCache(path) {
-  return path + "?t=" + Date.now();
+  var url = frameUrl(path);
+  if (!url) return "";
+  var sep = url.indexOf("?") !== -1 ? "&" : "?";
+  return url + sep + "t=" + Date.now();
 }
 
 // Draw the image with rotation on canvas
@@ -158,6 +202,7 @@ function renderPipelineStrip(source, pipeline, final, ocr) {
 function StartProcess() {
   ShowLoader("loader-process-wrap");
   ResetErrorMessages("error-message-process");
+  ResetWarningMessages("warning-message-process");
   document.getElementById("result-section").style.display = "none";
 
   var fileInput = document.getElementById("import-file");
@@ -182,6 +227,12 @@ function StartProcess() {
       if (data.error) {
         ShowErrorMessages("error-message-process", data.error);
         return;
+      }
+
+      // Non-fatal warning (e.g. MQTT server not responding). The reading is
+      // still valid and shown below.
+      if (data.warning) {
+        ShowWarningMessages("warning-message-process", data.warning);
       }
 
       // Update comparison images with cache-bust
@@ -220,19 +271,28 @@ function StartProcess() {
 // ─── Canvas / frame drawing ───────────────────────────────────────────────────
 
 function CreateHomeAssistantMqttSensor() {
+  var statusEl = document.getElementById("mqttStatus");
   fetch("create_sensor")
     .then(function (r) {
-      return r.json();
+      return r.json().then(function (data) {
+        return { ok: r.ok, data: data };
+      });
     })
-    .then(function (data) {
-      document.getElementById("mqttStatus").innerHTML =
+    .then(function (res) {
+      var data = res.data;
+      // Broker unreachable: the backend returns an explicit error message.
+      if (!res.ok || data.error) {
+        statusEl.innerHTML =
+          "🔴 " + (data.error || "MQTT server is not responding, check logs");
+        return;
+      }
+      statusEl.innerHTML =
         data.mqtt && data.mqtt[1] && data.mqtt[1]["water"]
           ? "🟢 MQTT sensors created in Home Assistant"
           : "🔴 MQTT sensors creation error, check logs";
     })
     .catch(function () {
-      document.getElementById("mqttStatus").innerHTML =
-        "🔴 MQTT error, check logs";
+      statusEl.innerHTML = "🔴 MQTT error, check logs";
     });
 }
 
@@ -260,7 +320,9 @@ function LoadFrame() {
       canvas.addEventListener("mousedown", startDrawing);
       canvas.addEventListener("mouseup", stopDrawing);
     };
-    img.src = data;
+    // A FileReader data-URL is loaded as-is; a backend path is normalised to
+    // the servable `download/<filename>` route (with cache-bust).
+    img.src = /^data:/i.test(data) ? data : bustCache(data);
   }
 
   if (fileInput.files.length > 0) {
@@ -389,7 +451,10 @@ document.addEventListener("DOMContentLoaded", function () {
     var canvas = document.getElementById("canvas");
     var ctx = canvas.getContext("2d");
     var img = new Image();
-    img.src = "static/img/frames/0.frame_origine.jpg";
+    // Serve the last captured source frame through the `download/` route so it
+    // resolves regardless of the configured storage_path (which now lives
+    // outside the static folder, e.g. /config or /data).
+    img.src = bustCache("0.frame_origine.jpg");
 
     if (coordinates_from_flask) {
       rectangles.forEach(function (rect) {

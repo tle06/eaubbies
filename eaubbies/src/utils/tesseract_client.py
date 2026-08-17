@@ -1,6 +1,7 @@
 # eaubbies/eaubbies/src/utils/tesseract_client.py
 import pytesseract
 import cv2
+import numpy as np
 import logging
 from PIL import Image
 from pathlib import Path
@@ -10,21 +11,69 @@ logger = logging.getLogger(__name__)
 
 class TesseractClient:
     """
-    Client wrapper for Tesseract OCR.
+    Thin wrapper around ``pytesseract`` that preprocesses a frame for OCR and
+    returns results in the same shape used by :class:`AzureClient`, so both
+    OCR engines are interchangeable in ``service.service_process``.
     """
 
     default_folder = "../frames"
 
     def __init__(self, tesseract_cmd: str = None, save_frame: bool = True):
         """
-        Initialize the Tesseract Client.
+        Initialise the Tesseract client.
+
+        Parameters:
+            tesseract_cmd (str): Optional absolute path to the ``tesseract``
+                binary. Only needed when it is not on ``PATH`` (e.g. a local
+                macOS dev host). Inside the container it is left unset.
+            save_frame (bool): When True the preprocessed image is written to
+                ``default_folder`` for debugging/UI display.
         """
         if tesseract_cmd:
             pytesseract.pytesseract.tesseract_cmd = tesseract_cmd
             logger.info(f"Tesseract binary set to: {tesseract_cmd}")
         self.save_frame = save_frame
 
+    @staticmethod
+    def _to_grayscale(frame):
+        """
+        Return a single-channel greyscale copy of *frame*.
+
+        The upstream image pipeline may hand us a frame that is already
+        greyscale (``convert_to_grey`` is enabled by default). Calling
+        ``cv2.cvtColor(frame, COLOR_BGR2GRAY)`` on such a frame raises, which
+        was the root cause of the Tesseract path failing. This helper inspects
+        the array shape and only converts when the frame is multi-channel.
+
+        Parameters:
+            frame (numpy.ndarray): 2-D greyscale or 3-D BGR image.
+
+        Returns:
+            numpy.ndarray: A 2-D ``uint8`` greyscale image.
+        """
+        if frame is None:
+            raise ValueError("frame must not be None")
+        # 2-D array or explicit single channel -> already greyscale.
+        if frame.ndim == 2 or (frame.ndim == 3 and frame.shape[2] == 1):
+            gray = frame if frame.ndim == 2 else frame[:, :, 0]
+        else:
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        # Tesseract preprocessing (threshold/morphology) assumes uint8.
+        if gray.dtype != np.uint8:
+            gray = np.clip(gray, 0, 255).astype(np.uint8)
+        return gray
+
     def write_output_file(self, name: str, image):
+        """
+        Persist a PIL *image* as ``<name>.jpg`` inside ``default_folder``.
+
+        Parameters:
+            name (str): Base filename without extension.
+            image (PIL.Image.Image): Image to write.
+
+        Returns:
+            pathlib.Path: Full path of the written file.
+        """
         filename = f"{name}.jpg"
         path_str = f"{self.default_folder}/{filename}"
         fullpath = Path(path_str)
@@ -43,20 +92,30 @@ class TesseractClient:
         """
         Process an image using pytesseract OCR.
 
+        Accepts either a pre-loaded OpenCV *frame* (greyscale or BGR) or a path
+        to an image on disk. The frame is converted to greyscale defensively
+        (see :meth:`_to_grayscale`), auto-cropped to the dark content, upscaled,
+        binarised (Otsu) and morphologically cleaned before OCR.
+
         Parameters:
-            frame (numpy.ndarray): OpenCV image frame.
-            image_path (str): Path to local image file.
-            config (str): Tesseract config string.
+            frame (numpy.ndarray): OpenCV image frame (2-D grey or 3-D BGR).
+            image_path (str): Path to a local image file (alternative to frame).
+            config (str): Tesseract config string (page-segmentation mode,
+                whitelist, etc.).
+            filename (str): Base name used when saving the preprocessed image.
 
         Returns:
-            list: A structure mimicking AzureClient's read result format to ease integration.
+            tuple: ``(result_pages, text_regions)`` where ``result_pages`` is a
+            list of objects exposing ``.lines`` (each line has ``.text``) and
+            ``text_regions`` is a list of ``{"bounding_box", "text"}`` dicts,
+            mirroring :class:`AzureClient` output for a drop-in integration.
         """
         if image_path:
             image = Image.open(image_path)
             logger.info(f"Loaded image from path: {image_path}")
         elif frame is not None:
             logger.info("Processing frame through Tesseract preprocessing pipeline")
-            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            gray = self._to_grayscale(frame)
 
             coords = cv2.findNonZero(cv2.bitwise_not(gray))
             if coords is not None:

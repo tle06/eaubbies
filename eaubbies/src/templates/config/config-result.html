@@ -1,0 +1,19 @@
+<div class="mb-3 col-md-4">
+  <label class="form-label" for="result_previous">Previous value found:</label>
+  <input class="form-control" type="number" step="any" id="result_previous" name="result_previous"
+    value="{% if config['result'].get('previous') is not none %}{{ config['result'].get('previous') }}{% endif %}"
+    placeholder="e.g. 12345.6">
+  <small class="text-muted">Leave empty to reset. Guards against value regressions.</small>
+</div>
+<div class="mb-3 col-md-4">
+  <label class="form-label" for="result_current">Current value found:</label>
+  <input class="form-control" type="number" step="any" id="result_current" name="result_current"
+    value="{% if config['result'].get('current') is not none %}{{ config['result'].get('current') }}{% endif %}"
+    placeholder="e.g. 12345.7">
+  <small class="text-muted">Last reading published to Home Assistant.</small>
+</div>
+<div class="mb-3 col-md-4">
+  <label class="form-label" for="result_unit">Value unit:</label>
+  <input class="form-control" type="text" id="result_unit" name="result_unit"
+    value="{{ config['result'].get('unit', 'l') }}" placeholder="l">
+</div>
